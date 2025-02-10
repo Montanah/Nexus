@@ -1,10 +1,17 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+
 const authRoutes = require("./routes/authRoutes");
+const productRoutes = require("./routes/productRoutes");
+const travelerRoutes = require("./routes/travelerRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+
 const bodyParser = require("body-parser");
 const passport = require("passport");
 const session = require('express-session');
+
 require("./controllers/Passport");
 
 const PORT = process.env.PORT || 3001;
@@ -43,6 +50,11 @@ app.use(passport.session());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/travelers", travelerRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/payments", paymentRoutes);
+
 app.get("/api", (req, res) => {
     res.json({ message: "Hello from server!" });
   });

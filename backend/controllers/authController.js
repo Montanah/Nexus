@@ -2,6 +2,8 @@ const Client = require("../models/Client");
 const Traveler = require("../models/Traveler");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const speakeasy = require("speakeasy");
+const QRCode = require("qrcode");
 
 //register a new user
 exports.register = async (req, res) => {
@@ -16,11 +18,86 @@ exports.register = async (req, res) => {
             return res.status(400).json({ message: "Invalid role" });
         }
         await user.save();
+        console.log(user);
         res.status(201).json({ message: "User registered successfully" });
     } catch (error) {
         res.status(500).json({ message: "Error registering user", error });
     }
 };
+
+//enable 2FA
+exports.enable2FA = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        let user = await Client.findById(id);
+        if (!user) {
+            user = await Traveler.findById(id); 
+        }
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Generate a TOTP secret
+        const secret = speakeasy.generateSecret({ name: `MyApp (${user.email})` });
+        user.secret2FA = secret.base32; 
+        user.is2FAEnabled = true;
+        await user.save();
+
+        // Generate a QR Code for Google Authenticator
+        const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url);
+
+        res.status(200).json({
+            message: "2FA enabled successfully",
+            secret: secret.base32,
+            qrCodeUrl,
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error enabling 2FA", error });
+    }
+};
+
+
+/**
+ * Verify a 2FA token for a user
+ * @param {Object} req - The request object
+ * @param {Object} res - The response object
+ * @param {string} id - The ID of the user to verify
+ * @param {string} token - The 2FA token to verify
+ * @return {Object} The response object
+ */
+// verify 2FA
+exports.verify2FA = async (req, res) => {
+    const { id } = req.params;
+    const { token } = req.body;
+
+    try {
+        let user = await Client.findById(id);
+        if (!user) {
+            user = await Traveler.findById(id);
+        }
+        if (!user || !user.is2FAEnabled || !user.secret2FA) {
+            return res.status(400).json({ message: "2FA not enabled for this user" });
+        }
+
+        // Verify the TOTP code
+        const verified = speakeasy.totp.verify({
+            secret: user.secret2FA,
+            encoding: "base32",
+            token,
+            window: 1, 
+        });
+
+        if (verified) {
+            res.status(200).json({ message: "2FA verification successful" });
+        } else {
+            res.status(400).json({ message: "Invalid 2FA code" });
+        }
+    } catch (error) {
+        res.status(500).json({ message: "Error verifying 2FA", error });
+    }
+};
+
 
 //login a user
 exports.login = async (req, res) => {

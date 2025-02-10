@@ -19,6 +19,14 @@ const clientSchema = new mongoose.Schema({
         type: String,
         default: "client",
     },
+    is2FAEnabled: {
+        type: Boolean,
+        default: false,
+    },
+    secret2FA: {
+        type: String,
+        default: null,
+    },  
     createdAt: {
         type: Date,
         default: Date.now,

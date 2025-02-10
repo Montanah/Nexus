@@ -7,6 +7,9 @@ const router = express.Router();
 router.post("/register", authController.register);
 router.post("/login", authController.login);
 
+router.post("/enable2FA/:id", authController.enable2FA);
+router.post("/verify2FA/:id", authController.verify2FA);
+
 // Google OAuth routes
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 router.get(
