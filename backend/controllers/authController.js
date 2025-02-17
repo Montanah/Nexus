@@ -1,4 +1,5 @@
 const Client = require("../models/Client");
+const Users = require("../models/Users");
 const Traveler = require("../models/Traveler");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -17,6 +18,20 @@ exports.register = async (req, res) => {
         } else {
             return res.status(400).json({ message: "Invalid role" });
         }
+        await user.save();
+        console.log(user);
+        res.status(201).json({ message: "User registered successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Error registering user", error });
+    }
+};
+
+//register a new user
+exports.createUser = async (req, res) => {
+    const { name, email, phone_number, password } = req.body;
+    try {
+        let user;
+        user = new Users({ name, email, phone_number, password });
         await user.save();
         console.log(user);
         res.status(201).json({ message: "User registered successfully" });
@@ -152,3 +167,22 @@ exports.socialLogin = (req, res) => {
     res.status(200).json({ message: "Login successful", token });
   };
   
+//Log out user
+  exports.logout = async (req, res) => {
+    try {
+        res.clearCookie("token");
+        res.status(200).json({ message: "Logged out successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Error logging out user", error });
+    }
+};
+
+//get user details
+exports.getUserDetails = async (req, res) => {
+    try {
+        const user = req.user;
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching user details", error });
+    }
+};
