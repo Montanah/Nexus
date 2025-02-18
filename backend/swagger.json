@@ -1,0 +1,230 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "version": "0.1.9",
+        "title": "Nexus App- crud",
+        "description": "Nexus app Project API",
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        }
+    },
+    "servers": [
+        {
+            "url": "http://localhost:3001",
+            "description": "Development server"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Users",
+            "description": "Users API"
+        },
+        {
+            "name": "Admin",
+            "description": "Admins API"
+        }
+    ],
+    "paths": {
+        "/register": {
+            "post": {
+              "tags": ["Users"],
+              "summary": "Register a new user",
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "email": {
+                          "type": "string",
+                          "example": "user@example.com"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "John Doe"
+                        },
+                        "phone_number": {
+                            "type": "string",
+                            "example": "+123 712345678"
+                          },
+                        "password": {
+                          "type": "string",
+                          "example": "securepassword123"
+                        }
+                      },
+                      "required": ["email", "name", "phone_number", "password"]
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "201": {
+                  "description": "User registered successfully"
+                },
+                "500": {
+                  "description": "Error registering user"
+                }
+              }
+            }
+        },
+        "/login": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "User login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "securepassword123"
+                  }
+                },
+                "required": ["email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          },
+          "500": {
+            "description": "Error logging in user"
+          }
+        }
+      }
+        },
+    "/logout": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "User logout",
+        "responses": {
+          "200": {
+            "description": "Logout successful"
+          }
+        }
+      }
+    },
+    "/user/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get user details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details retrieved successfully"
+          },
+          "500": {
+            "description": "Error fetching user details"
+          }
+        }
+      }
+    },
+    "/enable2FA/{id}": {
+        "post": {
+          "tags": ["Security"],
+          "summary": "Enable two-factor authentication",
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "2FA enabled successfully"
+            }
+          }
+        }
+      },
+      "/verify2FA/{id}": {
+        "post": {
+          "tags": ["Security"],
+          "summary": "Verify two-factor authentication",
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "example": "123456"
+                    }
+                  },
+                  "required": ["token"]
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "2FA verification successful"
+            },
+            "400": {
+              "description": "Invalid token"
+            }
+          }
+        }
+      },
+      "/google": {
+        "get": {
+          "tags": ["OAuth"],
+          "summary": "Google OAuth login",
+          "responses": {
+            "302": {
+              "description": "Redirect to Google OAuth login"
+            }
+          }
+        }
+      },
+      "/google/callback": {
+        "get": {
+          "tags": ["OAuth"],
+          "summary": "Google OAuth callback",
+          "responses": {
+            "200": {
+              "description": "User authenticated successfully via Google"
+            },
+            "401": {
+              "description": "Authentication failed"
+            }
+          }
+        }
+      }
+    }
+}

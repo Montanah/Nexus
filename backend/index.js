@@ -12,6 +12,9 @@ const bodyParser = require("body-parser");
 const passport = require("passport");
 const session = require('express-session');
 
+//swagger
+const swaggerUI = require("swagger-ui-express"), swaggerDocument = require("./swagger.json");
+
 require("./controllers/Passport");
 
 const PORT = process.env.PORT || 3001;
@@ -19,7 +22,7 @@ const PORT = process.env.PORT || 3001;
 const app = express();
 
 require('dotenv').config();
-console.log("JWT_SECRET:", process.env.JWT_SECRET); 
+//console.log("JWT_SECRET:", process.env.JWT_SECRET); 
 
 // Database
 const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/your_database_name';
@@ -55,9 +58,12 @@ app.use("/api/travelers", travelerRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payments", paymentRoutes);
 
+app.use("/api/docs", swaggerUI.serve, swaggerUI.setup(swaggerDocument));
+
 app.get("/api", (req, res) => {
     res.json({ message: "Hello from server!" });
   });
+
 
 app.listen(PORT, () => {
   console.log(`Server listening on ${PORT}`);

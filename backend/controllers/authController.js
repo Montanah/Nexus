@@ -45,10 +45,7 @@ exports.enable2FA = async (req, res) => {
     const { id } = req.params;
 
     try {
-        let user = await Client.findById(id);
-        if (!user) {
-            user = await Traveler.findById(id); 
-        }
+        let user = await Users.findById(id);
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -87,10 +84,8 @@ exports.verify2FA = async (req, res) => {
     const { token } = req.body;
 
     try {
-        let user = await Client.findById(id);
-        if (!user) {
-            user = await Traveler.findById(id);
-        }
+        let user = await Users.findById(id);
+
         if (!user || !user.is2FAEnabled || !user.secret2FA) {
             return res.status(400).json({ message: "2FA not enabled for this user" });
         }
@@ -119,16 +114,17 @@ exports.login = async (req, res) => {
     const { email, password, role } = req.body;
     try {
         let user;
-        if (role === "client") {
-            user = await Client.findOne({ email });
-        } else if (role === "traveler") {
-            user = await Traveler.findOne({ email });
-        } else {
-            return res.status(400).json({ message: "Invalid role" });
-        }
+
+        user = await Users.findOne({ email })
+
         if (!user) {
             return res.status(401).json({ message: "User not found" });
         }
+
+        if (!user.is2FAEnabled) {
+            return res.status(400).json({ message: "Please enable 2FA to continue"})
+        } 
+        
 
         //Match password
         const isPasswordValid = await user.comparePassword(password);
