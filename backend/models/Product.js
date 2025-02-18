@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const productSchema = new mongoose.Schema({
     client: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Client",
+        ref: "Users",
         required: true,
     },
     productName: {
@@ -28,7 +28,6 @@ const productSchema = new mongoose.Schema({
     },
     productImage: [{
         type: String,
-        required: true,
     }],
     destination: {
         city: {

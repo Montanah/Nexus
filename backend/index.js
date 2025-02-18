@@ -14,6 +14,7 @@ const session = require('express-session');
 
 //swagger
 const swaggerUI = require("swagger-ui-express"), swaggerDocument = require("./swagger.json");
+const setupSwagger = require("./swagger");
 
 require("./controllers/Passport");
 
@@ -59,6 +60,9 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/payments", paymentRoutes);
 
 app.use("/api/docs", swaggerUI.serve, swaggerUI.setup(swaggerDocument));
+
+// Setup Swagger Docs
+setupSwagger(app);
 
 app.get("/api", (req, res) => {
     res.json({ message: "Hello from server!" });
