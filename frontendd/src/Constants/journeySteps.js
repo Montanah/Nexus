@@ -1,7 +1,7 @@
 export const JOURNEY_STEPS = [
     {
       title: "Create Order",
-      description: "Clients create product listings and specify delivery details",
+      description: "Clients create product listings and specifies delivery details",
       icon: "🛒"
     },
     {
