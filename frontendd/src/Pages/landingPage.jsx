@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 import { useAuth } from '../Context/AuthContext';
-import { JOURNEY_STEPS } from '../constants/journeySteps';
+import { JOURNEY_STEPS } from '../Constants/journeySteps';
 import { generateDynamicImage } from '../utils/imageGenerator';
 
 const LandingPage = () => {
@@ -25,8 +25,8 @@ const LandingPage = () => {
       {/* Left Column - Content */}
       <div className="w-1/2 flex items-center justify-center p-12">
         <div className="max-w-xl">
-          <h1 className="text-5xl font-extrabold text-indigo-900 mb-6 drop-shadow-lg">
-            NEXUS: 
+          <h1 className="text-9xl font-extrabold text-indigo-900 mb-6 drop-shadow-lg">
+            NEXUS 
             <span className="block text-3xl text-purple-700 mt-2">
               Global Delivery Reimagined
             </span>
