@@ -104,127 +104,127 @@
         }
       }
         },
-    "/logout": {
-      "post": {
-        "tags": ["Users"],
-        "summary": "User logout",
-        "responses": {
-          "200": {
-            "description": "Logout successful"
-          }
-        }
-      }
-    },
-    "/user/{id}": {
-      "get": {
-        "tags": ["Users"],
-        "summary": "Get user details",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User details retrieved successfully"
-          },
-          "500": {
-            "description": "Error fetching user details"
-          }
-        }
-      }
-    },
-    "/enable2FA/{id}": {
+        "/logout": {
         "post": {
-          "tags": ["Security"],
-          "summary": "Enable two-factor authentication",
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "schema": {
-                "type": "string"
-              }
-            }
-          ],
-          "responses": {
+            "tags": ["Users"],
+            "summary": "User logout",
+            "responses": {
             "200": {
-              "description": "2FA enabled successfully"
-            }
-          }
-        }
-      },
-      "/verify2FA/{id}": {
-        "post": {
-          "tags": ["Security"],
-          "summary": "Verify two-factor authentication",
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "required": true,
-              "schema": {
-                "type": "string"
-              }
-            }
-          ],
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "token": {
-                      "type": "string",
-                      "example": "123456"
-                    }
-                  },
-                  "required": ["token"]
+                "description": "Logout successful"
                 }
-              }
             }
-          },
-          "responses": {
-            "200": {
-              "description": "2FA verification successful"
-            },
-            "400": {
-              "description": "Invalid token"
-            }
-          }
-        }
-      },
-      "/google": {
+            }   
+        },
+        "/user/{id}": {
         "get": {
-          "tags": ["OAuth"],
-          "summary": "Google OAuth login",
-          "responses": {
-            "302": {
-              "description": "Redirect to Google OAuth login"
+            "tags": ["Users"],
+            "summary": "Get user details",
+            "parameters": [
+            {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                "type": "string"
+                }
             }
-          }
-        }
-      },
-      "/google/callback": {
-        "get": {
-          "tags": ["OAuth"],
-          "summary": "Google OAuth callback",
-          "responses": {
+            ],
+            "responses": {
             "200": {
-              "description": "User authenticated successfully via Google"
+                "description": "User details retrieved successfully"
             },
-            "401": {
-              "description": "Authentication failed"
+            "500": {
+                "description": "Error fetching user details"
             }
-          }
+            }
         }
-      }
+        },
+        "/enable2FA/{id}": {
+            "post": {
+            "tags": ["Security"],
+            "summary": "Enable two-factor authentication",
+            "parameters": [
+                {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                }
+                }
+            ],
+            "responses": {
+                "200": {
+                "description": "2FA enabled successfully"
+                }
+            }
+            }
+        },
+        "/verify2FA/{id}": {
+            "post": {
+            "tags": ["Security"],
+            "summary": "Verify two-factor authentication",
+            "parameters": [
+                {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                }
+                }
+            ],
+            "requestBody": {
+                "required": true,
+                "content": {
+                "application/json": {
+                    "schema": {
+                    "type": "object",
+                    "properties": {
+                        "token": {
+                        "type": "string",
+                        "example": "123456"
+                        }
+                    },
+                    "required": ["token"]
+                    }
+                }
+                }
+            },
+            "responses": {
+                "200": {
+                "description": "2FA verification successful"
+                },
+                "400": {
+                "description": "Invalid token"
+                }
+            }
+            }
+        },
+        "/google": {
+            "get": {
+            "tags": ["OAuth"],
+            "summary": "Google OAuth login",
+            "responses": {
+                "302": {
+                "description": "Redirect to Google OAuth login"
+                }
+            }
+            }
+        },
+        "/google/callback": {
+            "get": {
+            "tags": ["OAuth"],
+            "summary": "Google OAuth callback",
+            "responses": {
+                "200": {
+                "description": "User authenticated successfully via Google"
+                },
+                "401": {
+                "description": "Authentication failed"
+                }
+            }
+            }
+        }
     }
 }
