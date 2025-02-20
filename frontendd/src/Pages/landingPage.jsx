@@ -1,16 +1,13 @@
-// import React from 'react';
-import { useState } from 'react';
-import { useAuth } from '../Context/AuthContext';
-import { JOURNEY_STEPS } from '../Constants/journeySteps';
-import { generateDynamicImage } from '../utils/imageGenerator';
+import { useAuth } from '../Context/AuthContext';;
+import Logo from '../assets/NexusLogo.png';
+import OrderImage from '../assets/orderImage.png';
+import OrderReception from '../assets/orderReception.png';
+import DeliveryImage from '../assets/deliveryImage.png';
+import OrderMatching from '../assets/orderMatching.png';
+import { motion } from 'framer-motion';
 
 const LandingPage = () => {
   const { setCurrentRoute } = useAuth();
-  const [activeStep, setActiveStep] = useState(0);
-
-  const journeyImages = JOURNEY_STEPS.map((step) =>
-    generateDynamicImage(`4K ultra-detailed illustration of ${step.title} in logistics delivery process`)
-  );
 
   const handleLogin = () => {
     setCurrentRoute('login');
@@ -21,7 +18,11 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 to-purple-100 min-h-screen flex">
+    <div className="bg-gradient-to-br from-indigo-50 to-purple-400 min-h-screen flex">
+      {/* Navbar */}
+      <div className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between p-4">
+        <img src={Logo} alt="Nexus Logo" className="w-25 h-25 ml-10" />
+      </div>
       {/* Left Column - Content */}
       <div className="w-1/2 flex items-center justify-center p-12">
         <div className="max-w-xl">
@@ -70,36 +71,74 @@ const LandingPage = () => {
         </div>
       </div>
 
-      {/* Right Column - Journey Graphics */}
+      {/* Right Column - Customer Journey Graphics */}
       <div className="w-1/2 relative">
-        <div className="sticky top-0 h-screen flex items-center justify-center p-8">
-          <div className="w-full h-[80vh] bg-white rounded-2xl shadow-2xl overflow-hidden">
-            <img 
-              src={journeyImages[activeStep]} 
-              alt={JOURNEY_STEPS[activeStep].title}
-              className="w-full h-full object-cover transition-all duration-500 ease-in-out"
-            />
-            <div className="absolute bottom-0 left-4 right-0 bg-opacity-50 text-white p-4">
-              <h2 className="text-2xl text-indigo-900 font-bold">{JOURNEY_STEPS[activeStep].title}</h2>
-              <p className='text-purple-700'>{JOURNEY_STEPS[activeStep].description}</p>
+        <div className="sticky top-0 h-screen flex items-center justify-center px-30">
+          <div className="w-full space-y-0 px-0"> {/* Added space-y-6 for consistent vertical spacing */}
+            {/* Item 1: Image on the left, text on the right */}
+            <div className="flex items-center justify-start pr-4">
+              <motion.img
+                src={OrderImage}
+                alt="Order Placing Process Image"
+                className="w-35 h-35 mr-0"
+                initial={{ opacity: 0, x: -100 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 1 }}
+              />
+              <p className="text-lg font-serif text-purple-700 italic">
+                Create product listing, specify delivery details & pay for the product
+              </p>
+            </div>
+
+            {/* Item 2: Image on the right, text on the left */}
+            <div className="flex items-center justify-end">
+              <p className="text-lg font-serif text-indigo-900 italic">
+                Our smart algorithm matches your order with nearby travelers
+              </p>
+              <motion.img
+                src={OrderMatching}
+                alt="Order Matching Process Image"
+                className="w-35 h-35 ml-0"
+                initial={{ opacity: 0, y: -10 }}
+                whileInView={{ opacity: 1, y: 0 }} /* Changed x to y for vertical animation */
+                transition={{ duration: 1 }}
+              />
+            </div>
+
+            {/* Item 3: Image on the left, text on the right */}
+            <div className="flex items-center justify-start">
+              <motion.img
+                src={DeliveryImage}
+                alt="Order Delivery Process Image"
+                className="w-40 h-40 mr-0"
+                initial={{ opacity: 0, x: -100 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 1 }}
+              />
+              <p className="text-lg font-serif text-purple-700 italic">
+                Traveler purchases the product and proceeds to make delivery
+              </p>
+            </div>
+
+            {/* Item 4: Image on the right, text on the left */}
+            <div className="flex items-center justify-end">
+              <p className="text-lg font-serif text-indigo-900 italic">
+                Client receives product, verified by both parties
+              </p>
+              <motion.img
+                src={OrderReception}
+                alt="Order Reception Process Image"
+                className="w-35 h-35 ml-0"
+                initial={{ opacity: 0, y: -100 }}
+                whileInView={{ opacity: 1, y: 0 }} /* Changed x to y for vertical animation */
+                transition={{ duration: 1 }}
+              />
             </div>
           </div>
         </div>
-        
-        {/* Step Navigation */}
-        <div className="absolute bottom-13 left-1/2 transform -translate-x-1/2 flex space-x-2">
-          {JOURNEY_STEPS.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setActiveStep(index)}
-              className={`w-3 h-3 rounded-full ${
-                activeStep === index ? 'bg-gray-300' : 'bg-indigo-600 hover:bg-indigo-300'
-              }`}
-            />
-          ))}
-        </div>
       </div>
     </div>
+
   );
 };
 
