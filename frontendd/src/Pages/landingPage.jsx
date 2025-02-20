@@ -1,4 +1,5 @@
-import { useAuth } from '../Context/AuthContext';;
+import { useAuth } from '../Context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import Logo from '../assets/NexusLogo.png';
 import OrderImage from '../assets/orderImage.png';
 import OrderReception from '../assets/orderReception.png';
@@ -8,13 +9,20 @@ import { motion } from 'framer-motion';
 
 const LandingPage = () => {
   const { setCurrentRoute } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogin = () => {
     setCurrentRoute('login');
+
+    // Navigate to login page;
+    navigate('/login');
   };
 
   const handleSignup = () => {
     setCurrentRoute('signup');
+
+    // Navigate to signup page;
+    navigate('/signup');
   };
 
   return (
