@@ -1,16 +1,19 @@
-import { useState } from 'react'; // Use React's useState instead of Vue's ref
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import Logo from '../assets/NexusLogo.png';
 
 const SignUp = () => {
   const navigate = useNavigate();
 
-  // Form fields
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [password, setPassword] = useState('');
-  const [verifyPassword, setVerifyPassword] = useState('');
+  // Form state
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phoneNumber: '',
+    password: '',
+    verifyPassword: ''
+  });
 
   // Password visibility
   const [showPassword, setShowPassword] = useState(false);
@@ -25,6 +28,10 @@ const SignUp = () => {
     verifyPassword: ''
   });
 
+  // Social login loading and error states
+  const [socialLoading, setSocialLoading] = useState(false);
+  const [socialError, setSocialError] = useState('');
+
   // Toggle password visibility
   const togglePasswordVisibility = (field) => {
     if (field === 'password') {
@@ -36,7 +43,6 @@ const SignUp = () => {
 
   // Validate form
   const validateForm = () => {
-    let isValid = true;
     const errors = {
       fullName: '',
       email: '',
@@ -45,33 +51,35 @@ const SignUp = () => {
       verifyPassword: ''
     };
 
-    if (!fullName.trim()) {
+    let isValid = true;
+
+    if (!formData.fullName.trim()) {
       errors.fullName = 'Full name is required';
       isValid = false;
     }
 
-    if (!email.trim()) {
+    if (!formData.email.trim()) {
       errors.email = 'Email is required';
       isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       errors.email = 'Email is invalid';
       isValid = false;
     }
 
-    if (!phoneNumber.trim()) {
+    if (!formData.phoneNumber.trim()) {
       errors.phoneNumber = 'Phone number is required';
       isValid = false;
     }
 
-    if (!password) {
+    if (!formData.password) {
       errors.password = 'Password is required';
       isValid = false;
-    } else if (password.length < 8) {
+    } else if (formData.password.length < 8) {
       errors.password = 'Password must be at least 8 characters';
       isValid = false;
     }
 
-    if (password !== verifyPassword) {
+    if (formData.password !== formData.verifyPassword) {
       errors.verifyPassword = 'Passwords do not match';
       isValid = false;
     }
@@ -80,56 +88,82 @@ const SignUp = () => {
     return isValid;
   };
 
-  // Handle signup submission
-  const handleSignup = (e) => {
-    e.preventDefault(); // Prevent form submission
-    if (validateForm()) {
-      // Perform signup logic here
-      console.log('Signup successful', {
-        fullName,
-        email,
-        phoneNumber
-      });
+  // Handle input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
 
-      // Navigate to the login page after successful signup
-      navigate('/login');
+  // Handle signup submission
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    try {
+      const response = await axios.post('/register', formData);
+      if (response.status === 200 || response.status === 201) {
+        navigate('/login');
+        setFormData({ fullName: '', email: '', phoneNumber: '', password: '', verifyPassword: '' });
+      }
+    } catch (error) {
+      handleApiError(error);
     }
   };
 
-  // Social login handlers
-  const handleGoogleSignup = () => {
-    console.log('Google Signup');
-
-    // Perform Google signup logic here
-
-    // Navigate to the login page after successful signup
-    navigate('/login');
+  // Handle API errors
+  const handleApiError = (error) => {
+    alert(
+      error.response?.data?.message ||
+      (error.request ? 'Network error. Please check your connection.' : 'An unexpected error occurred.')
+    );
   };
 
-  const handleAppleSignup = () => {
-    console.log('Apple Signup');
+  // Handle social login signup (Google, Apple)
+  const handleSocialSignup = async (platform) => {
+    setSocialLoading(true);
+    setSocialError('');
 
-    // Perform Apple signup logic here
+    const url = platform === 'google' 
+      ? '/google' 
+      : '/apple';
 
-    // Navigate to the login page after successful signup
-    navigate('/login');
+    try {
+      const response = await axios.post(url, {
+        fullName: formData.fullName,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        console.log(`${platform.charAt(0).toUpperCase() + platform.slice(1)} Signup successful`);
+        navigate('/login');
+      }
+    } catch (err) {
+      console.error(`${platform.charAt(0).toUpperCase() + platform.slice(1)} Signup Error:`, err);
+      handleApiError(err);
+      setSocialError('Something went wrong during social signup. Please try again.');
+    } finally {
+      setSocialLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 flex items-center justify-center p-4">
-        <div className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between">
-        {/* Logo with onClick navigation */}
+      {/* Header with Logo */}
+      <div className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between">
         <img
-            src={Logo}
-            alt="Nexus Logo"
-            className="w-25 h-25 ml-10 cursor-pointer"
-            onClick={() => navigate('/')} // Navigate to home page on click
+          src={Logo}
+          alt="Nexus Logo"
+          className="w-25 h-25 ml-10 cursor-pointer"
+          onClick={() => navigate('/')}
         />
-    </div>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8">
+      </div>
+
+      {/* Signup Form Container */}
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8 mt-16">
         <div className="text-right mb-4">
           <button
-            onClick={() => navigate('/login')} // Navigate to login page
+            onClick={() => navigate('/login')}
             className="text-indigo-600 hover:underline"
           >
             Already have an account? Sign In
@@ -146,9 +180,10 @@ const SignUp = () => {
           <div>
             <input
               type="text"
+              name="fullName"
               placeholder="John Doe"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              value={formData.fullName}
+              onChange={handleInputChange}
               className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 formErrors.fullName ? 'border-red-500' : ''
               }`}
@@ -162,9 +197,10 @@ const SignUp = () => {
           <div>
             <input
               type="email"
+              name="email"
               placeholder="johndoe@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={formData.email}
+              onChange={handleInputChange}
               className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 formErrors.email ? 'border-red-500' : ''
               }`}
@@ -178,9 +214,10 @@ const SignUp = () => {
           <div>
             <input
               type="tel"
+              name="phoneNumber"
               placeholder="+254712345678"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
+              value={formData.phoneNumber}
+              onChange={handleInputChange}
               className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 formErrors.phoneNumber ? 'border-red-500' : ''
               }`}
@@ -194,9 +231,10 @@ const SignUp = () => {
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
+              name="password"
               placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={formData.password}
+              onChange={handleInputChange}
               className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 formErrors.password ? 'border-red-500' : ''
               }`}
@@ -217,9 +255,10 @@ const SignUp = () => {
           <div className="relative">
             <input
               type={showVerifyPassword ? 'text' : 'password'}
+              name="verifyPassword"
               placeholder="Verify Password"
-              value={verifyPassword}
-              onChange={(e) => setVerifyPassword(e.target.value)}
+              value={formData.verifyPassword}
+              onChange={handleInputChange}
               className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 formErrors.verifyPassword ? 'border-red-500' : ''
               }`}
@@ -255,7 +294,7 @@ const SignUp = () => {
 
           <div className="flex space-x-4 justify-center">
             <button
-              onClick={handleGoogleSignup}
+              onClick={() => handleSocialSignup('google')}
               className="flex items-center justify-center w-full py-2 border rounded-md hover:bg-gray-100"
             >
               <img
@@ -266,7 +305,7 @@ const SignUp = () => {
               Google
             </button>
             <button
-              onClick={handleAppleSignup}
+              onClick={() => handleSocialSignup('apple')}
               className="flex items-center justify-center w-full py-2 border rounded-md hover:bg-gray-100"
             >
               <img
