@@ -107,8 +107,8 @@ const LandingPage = () => {
                 src={OrderMatching}
                 alt="Order Matching Process Image"
                 className="w-35 h-35 ml-0"
-                initial={{ opacity: 0, y: -10 }}
-                whileInView={{ opacity: 1, y: 0 }} /* Changed x to y for vertical animation */
+                initial={{ opacity: 0, x: 100 }}
+                whileInView={{ opacity: 1, x: 0 }}
                 transition={{ duration: 1 }}
               />
             </div>
@@ -137,8 +137,8 @@ const LandingPage = () => {
                 src={OrderReception}
                 alt="Order Reception Process Image"
                 className="w-35 h-35 ml-0"
-                initial={{ opacity: 0, y: -100 }}
-                whileInView={{ opacity: 1, y: 0 }} /* Changed x to y for vertical animation */
+                initial={{ opacity: 0, x: 100 }}
+                whileInView={{ opacity: 1, x: 0 }} /* Changed x to y for vertical animation */
                 transition={{ duration: 1 }}
               />
             </div>

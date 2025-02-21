@@ -146,7 +146,7 @@ const SignUp = () => {
           <div>
             <input
               type="text"
-              placeholder="Full Name"
+              placeholder="John Doe"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
@@ -162,7 +162,7 @@ const SignUp = () => {
           <div>
             <input
               type="email"
-              placeholder="Email Address"
+              placeholder="johndoe@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
@@ -178,7 +178,7 @@ const SignUp = () => {
           <div>
             <input
               type="tel"
-              placeholder="Phone Number"
+              placeholder="+254712345678"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
