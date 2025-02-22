@@ -145,6 +145,10 @@ const LandingPage = () => {
           </div>
         </div>
       </div>
+      {/* Footer */}
+      <footer className="absolute bottom-2 left-18 text-center text-gray-500 text-sm">
+            <p>Copyright &copy; 2025 Nexus. All rights reserved.</p>
+        </footer>
     </div>
 
   );

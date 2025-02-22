@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../assets/NexusLogo.png';
+import axios from 'axios';
 
 const Login = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(false);
 
   // Form fields
   const [email, setEmail] = useState('');
@@ -57,28 +60,103 @@ const Login = () => {
     return isValid;
   };
 
-  // Handle login submission
-  const handleLogin = (e) => {
+  // Handle login
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    // Perform login logic here
-    console.log('Login successful', {
-      email,
-      role: loginRole
-    });
+    setLoading(true); // Start loading
 
-    // Navigate to appropriate dashboard based on role
-    navigate(loginRole === 'client' ? '/client-dashboard' : '/traveler-dashboard');
+    try {
+      const response = await axios.post('/login', {
+        email,
+        password,
+        role: loginRole
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        console.log('Login successful', response.data);
+        navigate(loginRole === 'client' ? '/client-dashboard' : '/traveler-dashboard');
+        setEmail('');
+        setPassword('');
+        setLoginRole('');
+      } else {
+        console.error('Login failed:', response.data.message);
+        alert('Login failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      if (error.response) {
+        alert(`Error: ${error.response.data.message || 'Something went wrong.'}`);
+      } else if (error.request) {
+        alert('Network error. Please check your connection.');
+      } else {
+        alert('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      setLoading(false); // Stop loading
+    }
   };
 
   // Social login handlers
-  const handleGoogleLogin = () => {
-    console.log('Google Login');
+  const handleGoogleLogin = async () => {
+    setSocialLoading(true); // Start loading
+    try {
+      // Google login logic
+      const response = await axios.post('/google-login', {
+        email,
+        role: loginRole
+      });
+  
+      if (response.status === 200 || response.status === 201) {
+        console.log('Google login successful', response.data);
+        navigate(loginRole === 'client' ? '/client-dashboard' : '/traveler-dashboard');
+      } else {
+        console.error('Google login failed:', response.data.message);
+        alert('Google login failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+      if (error.response) {
+        alert(`Error: ${error.response.data.message || 'Something went wrong.'}`);
+      } else if (error.request) {
+        alert('Network error. Please check your connection.');
+      } else {
+        alert('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      setSocialLoading(false); // Stop loading
+    }
   };
-
-  const handleAppleLogin = () => {
-    console.log('Apple Login');
+  
+  const handleAppleLogin = async () => {
+    setSocialLoading(true); // Start loading
+    try {
+      // Apple login logic
+      const response = await axios.post('/apple-login', {
+        email,
+        role: loginRole
+      });
+  
+      if (response.status === 200 || response.status === 201) {
+        console.log('Apple login successful', response.data);
+        navigate(loginRole === 'client' ? '/client-dashboard' : '/traveler-dashboard');
+      } else {
+        console.error('Apple login failed:', response.data.message);
+        alert('Apple login failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Apple login error:', error);
+      if (error.response) {
+        alert(`Error: ${error.response.data.message || 'Something went wrong.'}`);
+      } else if (error.request) {
+        alert('Network error. Please check your connection.');
+      } else {
+        alert('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      setSocialLoading(false); // Stop loading
+    }
   };
 
   return (
@@ -105,7 +183,7 @@ const Login = () => {
 
         {/* Login Title */}
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-indigo-900 mb-2 drop-shadow-lg text-center">
+          <h2 className="text-3xl font-bold text-indigo-900 mb-2 text-center">
             Welcome back
           </h2>
           <p className="text-gray-600 text-sm text-center">
@@ -187,9 +265,36 @@ const Login = () => {
           {/* Continue Button */}
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors"
+            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading} // Disable button when loading
           >
-            Continue
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <svg
+                  className="animate-spin h-5 w-5 mr-3 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Logging in...
+              </div>
+            ) : (
+              'Continue'
+            )}
           </button>
         </form>
 
@@ -202,33 +307,92 @@ const Login = () => {
           </div>
 
           <div className="flex space-x-4 justify-center">
-            <button
-              onClick={handleGoogleLogin}
-              className="flex items-center justify-center w-full py-2 border rounded-md hover:bg-gray-100"
-            >
-              <img
-                src="https://www.svgrepo.com/show/303108/google-icon-logo.svg"
-                alt="Google"
-                className="w-6 h-6 mr-2"
-              />
-              Google
-            </button>
-            <button
-              onClick={handleAppleLogin}
-              className="flex items-center justify-center w-full py-2 border rounded-md hover:bg-gray-100"
-            >
-              <img
-                src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
-                alt="Apple"
-                className="w-6 h-6 mr-2"
-              />
-              Apple
-            </button>
+          <button
+            onClick={handleGoogleLogin}
+            className="flex items-center justify-center w-full py-2 border rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={socialLoading} // Disable button when loading
+          >
+            {socialLoading ? (
+              <div className="flex items-center justify-center">
+                <svg
+                  className="animate-spin h-5 w-5 mr-2 text-gray-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Logging in...
+              </div>
+            ) : (
+              <>
+                <img
+                  src="https://www.svgrepo.com/show/303108/google-icon-logo.svg"
+                  alt="Google"
+                  className="w-6 h-6 mr-2"
+                />
+                Google
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={handleAppleLogin}
+            className="flex items-center justify-center w-full py-2 border rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={socialLoading} // Disable button when loading
+          >
+            {socialLoading ? (
+              <div className="flex items-center justify-center">
+                <svg
+                  className="animate-spin h-5 w-5 mr-2 text-gray-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Logging in...
+              </div>
+            ) : (
+              <>
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
+                  alt="Apple"
+                  className="w-6 h-6 mr-2"
+                />
+                Apple
+              </>
+            )}
+          </button>
           </div>
         </div>
       </div>
       {/* Footer */}
-        <footer className="absolute bottom-5 left-0 right-0 text-center text-gray-500 text-sm">
+        <footer className="absolute bottom-2 left-0 right-0 text-center text-gray-500 text-sm">
             <p>Copyright &copy; 2025 Nexus. All rights reserved.</p>
         </footer>
     </div>
