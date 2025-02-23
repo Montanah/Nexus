@@ -1,6 +1,7 @@
 import { useAuth } from '../Context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import Logo from '../assets/NexusLogo.png';
+import Header from '../Components/Header';
+import Footer from '../Components/Footer';
 import OrderImage from '../assets/orderImage.png';
 import OrderReception from '../assets/orderReception.png';
 import DeliveryImage from '../assets/deliveryImage.png';
@@ -29,7 +30,7 @@ const LandingPage = () => {
     <div className="bg-gradient-to-br from-indigo-50 to-purple-400 min-h-screen flex">
       {/* Navbar */}
       <div className="fixed top-0 left-0 right-0 z-10 flex items-center justify-between p-4">
-        <img src={Logo} alt="Nexus Logo" className="w-25 h-25 ml-10" />
+        <Header />
       </div>
       {/* Left Column - Content */}
       <div className="w-1/2 flex items-center justify-center p-12">
@@ -146,9 +147,7 @@ const LandingPage = () => {
         </div>
       </div>
       {/* Footer */}
-      <footer className="absolute bottom-2 left-18 text-center text-gray-500 text-sm">
-            <p>Copyright &copy; 2025 Nexus. All rights reserved.</p>
-        </footer>
+        <Footer />
     </div>
 
   );
