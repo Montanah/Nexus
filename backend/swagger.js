@@ -30,6 +30,8 @@ const options = {
             { name: "Admin", description: "Admin functionalities" },
             { name: "Traveler", description: "Traveler-related operations" },
             { name: "Payment", description: "Payment transactions and processing" },
+            { name: "Order", description: "Order management and related operations" },
+            { name: "Delivery", description: "Delivery-related operations" },
         ],
     },
     apis: ["./routes/*.js"],

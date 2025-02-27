@@ -204,4 +204,51 @@ router.get(
   authController.socialLogin
 );
 
+/**
+ * @swagger
+ * /auth/apple:
+ *   get:
+ *     summary: Redirect to Apple OAuth login page
+ *     tags: [OAuth]
+ *     responses:
+ *       200:
+ *         description: Redirects to Apple OAuth login page
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/auth/apple', passport.authenticate('apple'));
+
+/**
+ * @swagger
+ * /auth/apple/callback:
+ *   get:
+ *     summary: Apple OAuth callback
+ *     tags: [OAuth]
+ *     responses:
+ *       200:
+ *         description: User authenticated successfully via Apple
+ *       401:
+ *         description: Authentication failed 
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/auth/apple/callback', (req, res, next) => {
+  passport.authenticate('apple', (err, user, info) => {
+    if (err) {
+      return next(err);
+    }
+    if (!user) {
+      return res.redirect('/login');
+    }
+    req.logIn(user, (err) => {
+      if (err) {
+        return next(err);
+      }
+      return res.redirect('/');
+    });
+  })(req, res, next);
+});
+
 module.exports = router;

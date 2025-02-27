@@ -3,12 +3,12 @@ const mongoose = require("mongoose");
 const PaymentSchema = new mongoose.Schema({
     client: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: "Client", 
+        ref: "Users", 
         required: true 
     },
     traveler: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: "Traveler", 
+        ref: "Users", 
         required: false },
     product: { 
         type: mongoose.Schema.Types.ObjectId, 
