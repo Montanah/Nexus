@@ -111,7 +111,7 @@ exports.verify2FA = async (req, res) => {
 
 //login a user
 exports.login = async (req, res) => {
-    const { email, password, role } = req.body;
+    const { email, password } = req.body;
     try {
         let user;
 
