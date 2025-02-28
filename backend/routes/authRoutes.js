@@ -218,7 +218,7 @@ router.get(
  *       500:
  *         description: Internal server error
  */
-router.get('/auth/apple', passport.authenticate('apple'));
+router.get('/apple', passport.authenticate('apple'));
 
 /**
  * @swagger
@@ -234,7 +234,7 @@ router.get('/auth/apple', passport.authenticate('apple'));
  *       500:
  *         description: Internal server error
  */
-router.post('/auth/apple/callback', (req, res, next) => {
+router.post('/apple/callback', (req, res, next) => {
   passport.authenticate('apple', (err, user, info) => {
     if (err) {
       return next(err);
@@ -250,5 +250,60 @@ router.post('/auth/apple/callback', (req, res, next) => {
     });
   })(req, res, next);
 });
+
+
+/**
+ * @swagger
+ * /auth/verifyUser:
+ *   post:
+ *     summary: Verify user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               code:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User verified successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/verifyUser", authController.verifyUser);
+
+/**
+ * @swagger
+ * /auth/loginUser:
+ *   post:
+ *     summary: Login user
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User logged in successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/loginUser", authController.loginUser);
 
 module.exports = router;

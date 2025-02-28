@@ -28,6 +28,16 @@ const UsersSchema = new mongoose.Schema({
         type: String,
         default: null,
     },  
+    isVerified: { 
+        type: Boolean, 
+        default: false
+    }, 
+    verificationCode: { 
+        type: String 
+    }, 
+    verificationCodeExpires: { 
+        type: Date 
+    }, 
     createdAt: {
         type: Date,
         default: Date.now,
