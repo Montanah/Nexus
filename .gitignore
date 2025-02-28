@@ -2,3 +2,4 @@ backend/.env
 backend/node_modules
 backend/mailer
 node_modules
+.env

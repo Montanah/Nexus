@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../Context/AuthContext';
 import axios from 'axios';
 import Header from '../Components/Header';
 import LoginForm from '../Components/LoginForm';
@@ -7,6 +8,7 @@ import SocialLogin from '../Components/SocialLogin';
 import Footer from '../Components/Footer';
 
 const Login = () => {
+  const { socialLogin } = useAuth(); // Use socialLogin for social auth
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -28,10 +30,10 @@ const Login = () => {
     const redirectUri = `${window.location.origin}/login`;
 
     if (platform === 'google') {
-      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_GOOGLE_CLIENT_ID&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile`;
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=GOOGLE_CLIENT_ID&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile`;
       window.location.href = googleAuthUrl;
     } else if (platform === 'apple') {
-      const appleAuthUrl = `https://appleid.apple.com/auth/authorize?client_id=YOUR_APPLE_CLIENT_ID&redirect_uri=${redirectUri}&response_type=code%20id_token&scope=name%20email&response_mode=form_post`;
+      const appleAuthUrl = `https://appleid.apple.com/auth/authorize?client_id=APPLE_CLIENT_ID&redirect_uri=${redirectUri}&response_type=code%20id_token&scope=name%20email&response_mode=form_post`;
       window.location.href = appleAuthUrl;
     }
   };
@@ -53,16 +55,14 @@ const Login = () => {
       const response = await axios.post(endpoint, { code, email, role: loginRole });
 
       if (response.status === 200 || response.status === 201) {
+        const { userId, userData } = response.data;
+        await socialLogin(userId, { ...userData, role: loginRole });
         console.log(`${platform.charAt(0).toUpperCase() + platform.slice(1)} Login successful`);
         navigate(loginRole === 'client' ? '/client-dashboard' : '/traveler-dashboard');
       }
     } catch (err) {
       console.error(`${platform.charAt(0).toUpperCase() + platform.slice(1)} Callback Error:`, err);
       setSocialError('Something went wrong during social login. Please try again.');
-      alert(
-        err.response?.data?.message ||
-        (err.request ? 'Network error. Please check your connection.' : 'An unexpected error occurred.')
-      );
     } finally {
       setSocialLoading(false);
     }
@@ -89,7 +89,9 @@ const Login = () => {
         <LoginForm navigate={navigate} />
         <SocialLogin onSocialSignup={handleSocialLogin} loading={socialLoading} error={socialError} />
       </div>
-      <Footer />
+        <div className="absolute bottom-2 left-0 right-0 text-center text-gray-500 text-sm">
+        <Footer />
+        </div>
     </div>
   );
 };

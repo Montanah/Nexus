@@ -4,23 +4,25 @@ import axios from 'axios';
 
 const SignupForm = ({ navigate }) => {
   const [formData, setFormData] = useState({
-    fullName: '',
+    name: '',
     email: '',
-    phoneNumber: '',
+    phonenumber: '',
     password: '',
     verifyPassword: '',
   });
 
   const [formErrors, setFormErrors] = useState({
-    fullName: '',
+    name: '',
     email: '',
-    phoneNumber: '',
+    phonenumber: '',
     password: '',
     verifyPassword: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showVerifyPassword, setShowVerifyPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const togglePasswordVisibility = (field) => {
     if (field === 'password') setShowPassword(!showPassword);
@@ -29,17 +31,17 @@ const SignupForm = ({ navigate }) => {
 
   const validateForm = () => {
     const errors = {
-      fullName: '',
+      name: '',
       email: '',
-      phoneNumber: '',
+      phonenumber: '',
       password: '',
       verifyPassword: '',
     };
 
     let isValid = true;
 
-    if (!formData.fullName.trim()) {
-      errors.fullName = 'Full name is required';
+    if (!formData.name.trim()) {
+      errors.name = 'Name is required';
       isValid = false;
     }
 
@@ -51,8 +53,8 @@ const SignupForm = ({ navigate }) => {
       isValid = false;
     }
 
-    if (!formData.phoneNumber.trim()) {
-      errors.phoneNumber = 'Phone number is required';
+    if (!formData.phonenumber.trim()) {
+      errors.phonenumber = 'Phone number is required';
       isValid = false;
     }
 
@@ -82,17 +84,29 @@ const SignupForm = ({ navigate }) => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    setLoading(true);
+    setError('');
+
     try {
-      const response = await axios.post('/register', formData);
+      const response = await axios.post('/api/register', {
+        name: formData.name,
+        email: formData.email,
+        phonenumber: formData.phonenumber,
+        password: formData.password,
+      });
       if (response.status === 200 || response.status === 201) {
-        navigate('/login');
-        setFormData({ fullName: '', email: '', phoneNumber: '', password: '', verifyPassword: '' });
+        console.log('Signup successful:', response.data);
+        navigate('/login'); // Redirect to login
+        setFormData({ name: '', email: '', phonenumber: '', password: '', verifyPassword: '' });
       }
     } catch (error) {
-      alert(
+      console.error('Signup error:', error);
+      setError(
         error.response?.data?.message ||
-        (error.request ? 'Network error. Please check your connection.' : 'An unexpected error occurred.')
+        (error.request ? 'Network error. Please check your connection.' : 'Internal server error. Please try again.')
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -100,11 +114,11 @@ const SignupForm = ({ navigate }) => {
     <form onSubmit={handleSignup} className="space-y-4">
       <InputField
         type="text"
-        name="fullName"
+        name="name"
         placeholder="John Doe"
-        value={formData.fullName}
+        value={formData.name}
         onChange={handleInputChange}
-        error={formErrors.fullName}
+        error={formErrors.name}
       />
       <InputField
         type="email"
@@ -116,11 +130,11 @@ const SignupForm = ({ navigate }) => {
       />
       <InputField
         type="tel"
-        name="phoneNumber"
+        name="phonenumber"
         placeholder="+254712345678"
-        value={formData.phoneNumber}
+        value={formData.phonenumber}
         onChange={handleInputChange}
-        error={formErrors.phoneNumber}
+        error={formErrors.phonenumber}
       />
       <InputField
         type="password"
@@ -144,11 +158,13 @@ const SignupForm = ({ navigate }) => {
         toggleVisibility={() => togglePasswordVisibility('verifyPassword')}
         showPassword={showVerifyPassword}
       />
+      {error && <p className="text-red-500 text-sm">{error}</p>}
       <button
         type="submit"
-        className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors"
+        className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
+        disabled={loading}
       >
-        Sign Up
+        {loading ? 'Signing Up...' : 'Sign Up'}
       </button>
     </form>
   );

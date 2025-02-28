@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../Context/AuthContext';
 import axios from 'axios';
 import Header from '../Components/Header';
-import SignupForm from '../Components/SignupForm';
+import SignupForm from '../Components/SignUpForm';
 import SocialLogin from '../Components/SocialLogin';
 import Footer from '../Components/Footer';
 
 const SignUp = () => {
+  const { socialLogin } = useAuth(); // Add socialLogin
   const navigate = useNavigate();
   const location = useLocation();
 
   const [formData, setFormData] = useState({
-    fullName: '',
+    name: '', 
     email: '',
-    phoneNumber: '',
+    phonenumber: '',
   });
 
   const [socialLoading, setSocialLoading] = useState(false);
@@ -31,10 +33,10 @@ const SignUp = () => {
     const redirectUri = `${window.location.origin}/signup`;
 
     if (platform === 'google') {
-      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_GOOGLE_CLIENT_ID&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile`;
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=GOOGLE_CLIENT_ID&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile`;
       window.location.href = googleAuthUrl;
     } else if (platform === 'apple') {
-      const appleAuthUrl = `https://appleid.apple.com/auth/authorize?client_id=YOUR_APPLE_CLIENT_ID&redirect_uri=${redirectUri}&response_type=code%20id_token&scope=name%20email&response_mode=form_post`;
+      const appleAuthUrl = `https://appleid.apple.com/auth/authorize?client_id=APPLE_CLIENT_ID&redirect_uri=${redirectUri}&response_type=code%20id_token&scope=name%20email&response_mode=form_post`;
       window.location.href = appleAuthUrl;
     }
   };
@@ -55,12 +57,14 @@ const SignUp = () => {
       const endpoint = platform === 'google' ? '/auth/google/callback' : '/auth/apple/callback';
       const response = await axios.post(endpoint, {
         code,
-        fullName: formData.fullName || 'Unknown',
+        name: formData.name || 'Unknown',
         email: formData.email || '',
-        phoneNumber: formData.phoneNumber || '',
+        phonenumber: formData.phonenumber || '',
       });
 
       if (response.status === 200 || response.status === 201) {
+        const { userId, userData } = response.data;
+        await socialLogin(userId, userData);
         console.log(`${platform.charAt(0).toUpperCase() + platform.slice(1)} Signup successful`);
         navigate('/login');
       }
@@ -108,7 +112,9 @@ const SignUp = () => {
           </a>
         </div>
       </div>
+      <div className="absolute bottom-2 left-0 right-0 text-center text-gray-500 text-sm">
       <Footer />
+      </div>
     </div>
   );
 };
