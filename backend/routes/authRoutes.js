@@ -106,7 +106,7 @@ router.get("/user/:id", authenticateClient, authController.getUserDetails);
 
 /**
  * @swagger
- * /enable2FA/{id}:
+ * /auth/enable2FA/{id}:
  *   post:
  *     summary: Enable 2FA for a user
  *     tags: [Users]
@@ -131,7 +131,7 @@ router.post("/enable2FA/:id", authController.enable2FA);
 
 /**
  * @swagger
- * /verify2FA/{id}:
+ * /auth/verify2FA/{id}:
  *   post:
  *     summary: Verify 2FA for a user
  *     tags: [Users]
@@ -166,7 +166,7 @@ router.post("/verify2FA/:id", authController.verify2FA);
 // Google OAuth routes
 /**
  * @swagger
- * /google:
+ * /auth/google:
  *   get:
  *     summary: Redirect to Google OAuth login page
  *     tags: [OAuth]
@@ -182,7 +182,7 @@ router.get("/google", passport.authenticate("google", { scope: ["profile", "emai
 
 /**
  * @swagger
- * /google/callback:
+ * /auth/google/callback:
  *   get:
  *     summary: Google OAuth callback
  *     tags: [OAuth]
