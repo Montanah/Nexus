@@ -282,8 +282,11 @@ const ClientDashboard = () => {
   const handleLogout = async () => {
     setLoading(true);
     setError(null);
-    const result = await logout();
-    if (result.success) {
+    const baseurl = import.meta.env.VITE_API_KEY;
+    const response = await axios.post(`${baseurl}/auth/logout`)
+    // const result = await logout();
+    if (response.status === 200 || response.status === 201){
+    // if (result.success) {
       navigate('/login');
     } else {
       setError(result.error);
