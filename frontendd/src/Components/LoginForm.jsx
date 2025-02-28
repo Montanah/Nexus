@@ -44,7 +44,8 @@ const LoginForm = ({ navigate }) => {
 
     setLoading(true);
     try {
-      const response = await axios.post('/login', { email, password, role: loginRole });
+      const baseurl = import.meta.env.VITE_API_KEY;
+      const response = await axios.post(`${baseurl}/auth/login`, { email, password, role: loginRole });
       if (response.status === 200 || response.status === 201) {
         console.log('Login successful', response.data);
         navigate(loginRole === 'client' ? '/client-dashboard' : '/traveler-dashboard');

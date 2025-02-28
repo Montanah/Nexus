@@ -7,7 +7,7 @@ const router = express.Router();
 //router.post("/register", authController.register);
 /**
  * @swagger
- * /register:
+ * /auth/register:
  *   post:
  *     summary: Register a new user
  *     tags: [Users]
@@ -22,7 +22,7 @@ const router = express.Router();
  *                 type: string
  *               email:
  *                 type: string
- *               phonenumber: 
+ *               phone_number: 
  *                 type: string
  *               password:
  *                 type: string 
@@ -38,7 +38,7 @@ router.post("/register", authController.createUser);
 
 /**
  * @swagger
- * /login:
+ * /auth/login:
  *   post:
  *     summary: Login a user
  *     tags: [Users]
@@ -65,7 +65,7 @@ router.post("/login", authController.login);
 
 /**
  * @swagger
- * /logout:
+ * /auth/logout:
  *   post:
  *     summary: Logout a user
  *     tags: [Users]
@@ -81,7 +81,7 @@ router.post("/logout", authController.logout);
 
 /**
  * @swagger
- * /user/{id}:
+ * /auth/user/{id}:
  *   get:
  *     summary: Get user details
  *     tags: [Users]

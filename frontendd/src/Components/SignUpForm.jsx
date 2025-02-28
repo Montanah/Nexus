@@ -88,12 +88,14 @@ const SignupForm = ({ navigate }) => {
     setError('');
 
     try {
-      const response = await axios.post('/api/register', {
+      const baseUrl = import.meta.env.VITE_API_KEY;
+      const response = await axios.post(`${baseUrl}/auth/register`, {
         name: formData.name,
         email: formData.email,
-        phonenumber: formData.phonenumber,
+        phone_number: formData.phonenumber,
         password: formData.password,
       });
+      console.log(response);
       if (response.status === 200 || response.status === 201) {
         console.log('Signup successful:', response.data);
         navigate('/login'); // Redirect to login
