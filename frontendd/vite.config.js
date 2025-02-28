@@ -14,7 +14,7 @@ export default defineConfig({
         target: 'http://localhost:3000', // Your backend's local address
         changeOrigin: true,              // Ensures the host header matches the target
         secure: false,                   // For local dev (non-HTTPS)
-        rewrite: (path) => path.replace(/^\/api/, ''), // Optional: Remove '/api' prefix if backend doesn’t expect it
+        rewrite: (path) => path.replace(/^\/api/, ''), // Strips '/api' prefix i
       },
     },
   },
