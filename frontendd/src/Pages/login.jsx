@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../Context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import Header from '../Components/Header';
 import LoginForm from '../Components/LoginForm';
@@ -8,7 +8,7 @@ import SocialLogin from '../Components/SocialLogin';
 import Footer from '../Components/Footer';
 
 const Login = () => {
-  const { socialLogin } = useAuth(); // Use socialLogin for social auth
+  const { login, socialLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -89,7 +89,7 @@ const Login = () => {
         <LoginForm navigate={navigate} />
         <SocialLogin onSocialSignup={handleSocialLogin} loading={socialLoading} error={socialError} />
       </div>
-        <div className="absolute bottom-2 left-0 right-0 text-center text-gray-500 text-sm">
+      <div className="absolute bottom-2 left-0 right-0 text-center text-gray-500 text-sm">
         <Footer />
         </div>
     </div>

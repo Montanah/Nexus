@@ -30,14 +30,14 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setLoading(true);
-      const response = await axios.post('/api/login', { email, password });
-      const { userId, userData } = response.data;
+      const baseUrl = import.meta.env.VITE_API_KEY;
+      const response = await axios.post(`${baseUrl}/auth/login`, { email, password });
+      const { userId, userData, token, is2FAEnabled } = response.data;
       setUserId(userId);
       setUser(userData);
       localStorage.setItem('userId', userId);
-      return true;
+      return { success: true, is2FAEnabled, userId }; // Return 2FA status
     } catch (err) {
-      console.error('Login error:', err);
       throw new Error(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);

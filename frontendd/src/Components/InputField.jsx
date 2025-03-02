@@ -26,7 +26,7 @@ const InputField = ({
           onClick={toggleVisibility}
           className="absolute right-3 top-3 text-gray-500"
         >
-          {showPassword ? '👁️' : '🙈'}
+          {showPassword ? '🙈' : '👁️'}
         </button>
       )}
       {error && <p className="text-red-500 text-sm mt-1">{error}</p>}

@@ -1,116 +1,149 @@
 import { useState } from 'react';
-import InputField from './InputField';
+import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import InputField from './InputField';
 
 const LoginForm = ({ navigate }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loginRole, setLoginRole] = useState('');
-  const [formErrors, setFormErrors] = useState({ email: '', password: '', role: '' });
+  const { login } = useAuth();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    role: '',
+    token: '',
+  });
+  const [step, setStep] = useState('credentials'); // 'credentials' or '2fa'
+  const [userId, setUserId] = useState(null);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isFirstLogin, setIsFirstLogin] = useState(true); // Track first login
 
-  const togglePasswordVisibility = () => setShowPassword(!showPassword);
-
-  const validateForm = () => {
-    const errors = { email: '', password: '', role: '' };
-    let isValid = true;
-
-    if (!email.trim()) {
-      errors.email = 'Email is required';
-      isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      errors.email = 'Email is invalid';
-      isValid = false;
-    }
-
-    if (!password) {
-      errors.password = 'Password is required';
-      isValid = false;
-    }
-
-    if (!loginRole) {
-      errors.role = 'Please select a login role';
-      isValid = false;
-    }
-
-    setFormErrors(errors);
-    return isValid;
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
+  const handleCredentialSubmit = async (e) => {
+    e.preventDefault();
     setLoading(true);
+    setError('');
+
+    if (!formData.email || !formData.password || !formData.role) {
+      setError('Email, password, and role are required');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const baseurl = import.meta.env.VITE_API_KEY;
-      const response = await axios.post(`${baseurl}/auth/loginUser`, { email, password, role: loginRole });
-      if (response.status === 200 || response.status === 201) {
-        console.log('Login successful', response.data);
-        navigate(loginRole === 'client' ? '/client-dashboard' : '/traveler-dashboard');
-        setEmail('');
-        setPassword('');
-        setLoginRole('');
+      let response;
+      if (isFirstLogin) {
+        // First login uses /auth/loginUser
+        response = await axios.post('/auth/loginUser', { email: formData.email, password: formData.password });
+        if (response.status === 200) {
+          const { userId, user } = response.data;
+          setUserId(userId);
+          if (!user.isVerified) {
+            setError('Account not verified. Check your email/SMS');
+          } else {
+            navigate('/settings', { state: { userId, role: formData.role } }); // Redirect to enable 2FA
+          }
+        }
+      } else {
+        // Subsequent logins use /auth/login + 2FA
+        response = await login(formData.email, formData.password); // Assumes /auth/login returns userId
+        if (response.success) {
+          setUserId(response.userId);
+          setStep('2fa'); // Proceed to 2FA
+        }
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      alert(
-        error.response?.data?.message ||
-        (error.request ? 'Network error. Please check your connection.' : 'An unexpected error occurred.')
-      );
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed');
+      if (err.response?.data?.message === 'Please enable 2FA to continue') {
+        setIsFirstLogin(true); // Reset to first login flow if 2FA not enabled
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handle2FASubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    if (!formData.token) {
+      setError('Please enter your 2FA code');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await axios.post(`/auth/verify2FA/${userId}`, { token: formData.token });
+      if (response.status === 200) {
+        setIsFirstLogin(false); // Mark as subsequent login
+        navigate(formData.role === 'client' ? '/client-dashboard' : '/traveler-dashboard');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Invalid 2FA code');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleLogin} className="space-y-4">
-      <InputField
-        type="email"
-        name="email"
-        placeholder="Email Address"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        error={formErrors.email}
-      />
-      <InputField
-        type="password"
-        name="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        error={formErrors.password}
-        showToggle
-        toggleVisibility={togglePasswordVisibility}
-        showPassword={showPassword}
-      />
-      <div className="space-y-2 justify-between">
-        <p className="text-gray-700">Login as:</p>
-        <div className="flex space-x-4">
-          <label className="flex items-center">
-            <input
-              type="radio"
-              value="client"
-              checked={loginRole === 'client'}
-              onChange={() => setLoginRole('client')}
-              className="mr-2"
+    <form onSubmit={step === 'credentials' ? handleCredentialSubmit : handle2FASubmit} className="space-y-4">
+      {step === 'credentials' ? (
+        <>
+          <InputField type="email" name="email" placeholder="Email Address" value={formData.email} onChange={handleChange} />
+          <div className="relative">
+            <InputField
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={handleChange}
             />
-            Client
-          </label>
-          <label className="flex items-center">
-            <input
-              type="radio"
-              value="traveler"
-              checked={loginRole === 'traveler'}
-              onChange={() => setLoginRole('traveler')}
-              className="mr-2"
-            />
-            Traveler
-          </label>
-        </div>
-        {formErrors.role && <p className="text-red-500 text-sm mt-1">{formErrors.role}</p>}
-      </div>
+            <button
+              type="button"
+              onClick={togglePasswordVisibility}
+              className="absolute inset-y-0 right-3 flex items-center text-gray-600"
+            >
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
+          <div className="space-y-2">
+            <p className="text-gray-700">Login as:</p>
+            <div className="flex space-x-4">
+              {['client', 'traveler'].map((role) => (
+                <label key={role} className="flex items-center">
+                  <input
+                    type="radio"
+                    name="role"
+                    value={role}
+                    checked={formData.role === role}
+                    onChange={handleChange}
+                    className="mr-2"
+                  />
+                  {role.charAt(0).toUpperCase() + role.slice(1)}
+                </label>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        <InputField
+          type="text"
+          name="token"
+          placeholder="Enter 2FA Code"
+          value={formData.token}
+          onChange={handleChange}
+        />
+      )}
+
+      {error && <p className="text-red-500 text-sm">{error}</p>}
       <button
         type="submit"
         className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -118,20 +151,11 @@ const LoginForm = ({ navigate }) => {
       >
         {loading ? (
           <div className="flex items-center justify-center">
-            <svg
-              className="animate-spin h-5 w-5 mr-3 text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
+            <svg className="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
-            Logging in...
+            Processing...
           </div>
         ) : (
           'Continue'

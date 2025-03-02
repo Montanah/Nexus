@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../Context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import Header from '../Components/Header';
 import SignupForm from '../Components/SignUpForm';
@@ -8,14 +8,14 @@ import SocialLogin from '../Components/SocialLogin';
 import Footer from '../Components/Footer';
 
 const SignUp = () => {
-  const { socialLogin } = useAuth(); // Add socialLogin
+  const { socialLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [formData, setFormData] = useState({
-    name: '', 
+    name: '',
     email: '',
-    phonenumber: '',
+    phone_number: '',
   });
 
   const [socialLoading, setSocialLoading] = useState(false);
@@ -59,7 +59,7 @@ const SignUp = () => {
         code,
         name: formData.name || 'Unknown',
         email: formData.email || '',
-        phonenumber: formData.phonenumber || '',
+        phone_number: formData.phone_number || '',
       });
 
       if (response.status === 200 || response.status === 201) {
@@ -81,7 +81,7 @@ const SignUp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 flex flex-col items-center justify-between p-4">
       <Header />
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8 mt-16">
         <div className="text-right mb-4">
@@ -112,8 +112,8 @@ const SignUp = () => {
           </a>
         </div>
       </div>
-      <div className="absolute bottom-2 left-0 right-0 text-center text-gray-500 text-sm">
-      <Footer />
+      <div className="w-full p-2 sm:p-4">
+        <Footer />
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ const SignupForm = ({ navigate }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phonenumber: '',
+    phone_number: '', // Changed from phonenumber
     password: '',
     verifyPassword: '',
   });
@@ -14,11 +14,13 @@ const SignupForm = ({ navigate }) => {
   const [formErrors, setFormErrors] = useState({
     name: '',
     email: '',
-    phonenumber: '',
+    phone_number: '', // Changed from phonenumber
     password: '',
     verifyPassword: '',
   });
 
+  const [verificationCode, setVerificationCode] = useState('');
+  const [step, setStep] = useState('register'); // 'register' or 'verify'
   const [showPassword, setShowPassword] = useState(false);
   const [showVerifyPassword, setShowVerifyPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -33,7 +35,7 @@ const SignupForm = ({ navigate }) => {
     const errors = {
       name: '',
       email: '',
-      phonenumber: '',
+      phone_number: '', // Changed from phonenumber
       password: '',
       verifyPassword: '',
     };
@@ -53,8 +55,8 @@ const SignupForm = ({ navigate }) => {
       isValid = false;
     }
 
-    if (!formData.phonenumber.trim()) {
-      errors.phonenumber = 'Phone number is required';
+    if (!formData.phone_number.trim()) {
+      errors.phone_number = 'Phone number is required';
       isValid = false;
     }
 
@@ -92,14 +94,12 @@ const SignupForm = ({ navigate }) => {
       const response = await axios.post(`${baseUrl}/auth/register`, {
         name: formData.name,
         email: formData.email,
-        phone_number: formData.phonenumber,
+        phone_number: formData.phone_number, // Changed from phonenumber
         password: formData.password,
       });
-      console.log(response);
-      if (response.status === 200 || response.status === 201) {
+      if (response.status === 201) {
         console.log('Signup successful:', response.data);
-        navigate('/login'); // Redirect to login
-        setFormData({ name: '', email: '', phonenumber: '', password: '', verifyPassword: '' });
+        setStep('verify'); // Move to verification step
       }
     } catch (error) {
       console.error('Signup error:', error);
@@ -112,61 +112,109 @@ const SignupForm = ({ navigate }) => {
     }
   };
 
+  const handleVerifySubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    if (!verificationCode) {
+      setError('Please enter your verification code');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await axios.post('/auth/verifyUser', {
+        email: formData.email,
+        code: verificationCode,
+      });
+      if (response.status === 200) {
+        navigate('/login');
+        setFormData({ name: '', email: '', phone_number: '', password: '', verifyPassword: '' });
+        setVerificationCode('');
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      setError(
+        error.response?.data?.message ||
+        (error.request ? 'Network error. Please check your connection.' : 'Verification failed')
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <form onSubmit={handleSignup} className="space-y-4">
-      <InputField
-        type="text"
-        name="name"
-        placeholder="John Doe"
-        value={formData.name}
-        onChange={handleInputChange}
-        error={formErrors.name}
-      />
-      <InputField
-        type="email"
-        name="email"
-        placeholder="johndoe@email.com"
-        value={formData.email}
-        onChange={handleInputChange}
-        error={formErrors.email}
-      />
-      <InputField
-        type="tel"
-        name="phonenumber"
-        placeholder="+254712345678"
-        value={formData.phonenumber}
-        onChange={handleInputChange}
-        error={formErrors.phonenumber}
-      />
-      <InputField
-        type="password"
-        name="password"
-        placeholder="Password"
-        value={formData.password}
-        onChange={handleInputChange}
-        error={formErrors.password}
-        showToggle
-        toggleVisibility={() => togglePasswordVisibility('password')}
-        showPassword={showPassword}
-      />
-      <InputField
-        type="password"
-        name="verifyPassword"
-        placeholder="Verify Password"
-        value={formData.verifyPassword}
-        onChange={handleInputChange}
-        error={formErrors.verifyPassword}
-        showToggle
-        toggleVisibility={() => togglePasswordVisibility('verifyPassword')}
-        showPassword={showVerifyPassword}
-      />
+    <form onSubmit={step === 'register' ? handleSignup : handleVerifySubmit} className="space-y-4">
+      {step === 'register' ? (
+        <>
+          <InputField
+            type="text"
+            name="name"
+            placeholder="John Doe"
+            value={formData.name}
+            onChange={handleInputChange}
+            error={formErrors.name}
+          />
+          <InputField
+            type="email"
+            name="email"
+            placeholder="johndoe@email.com"
+            value={formData.email}
+            onChange={handleInputChange}
+            error={formErrors.email}
+          />
+          <InputField
+            type="tel"
+            name="phone_number" // Changed from phonenumber
+            placeholder="+254712345678"
+            value={formData.phone_number}
+            onChange={handleInputChange}
+            error={formErrors.phone_number}
+          />
+          <InputField
+            type="password"
+            name="password"
+            placeholder="Password"
+            value={formData.password}
+            onChange={handleInputChange}
+            error={formErrors.password}
+            showToggle
+            toggleVisibility={() => togglePasswordVisibility('password')}
+            showPassword={showPassword}
+          />
+          <InputField
+            type="password"
+            name="verifyPassword"
+            placeholder="Verify Password"
+            value={formData.verifyPassword}
+            onChange={handleInputChange}
+            error={formErrors.verifyPassword}
+            showToggle
+            toggleVisibility={() => togglePasswordVisibility('verifyPassword')}
+            showPassword={showVerifyPassword}
+          />
+        </>
+      ) : (
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Enter Verification Code received via email/phone number enetered</label>
+          <input
+            type="text"
+            value={verificationCode}
+            onChange={(e) => setVerificationCode(e.target.value)}
+            placeholder="Enter your 6-digit code"
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            required
+          />
+        </div>
+      )}
       {error && <p className="text-red-500 text-sm">{error}</p>}
       <button
         type="submit"
         className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
         disabled={loading}
       >
-        {loading ? 'Signing Up...' : 'Sign Up'}
+        {loading ? 'Processing...' : step === 'register' ? 'Sign Up' : 'Verify'}
       </button>
     </form>
   );
