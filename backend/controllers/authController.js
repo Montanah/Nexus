@@ -5,28 +5,16 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const speakeasy = require("speakeasy");
 const QRCode = require("qrcode");
-const nodemailer = require("nodemailer");
+
 const crypto = require("crypto");
 const twilio = require("twilio");
+const { generateOTP } = require("../utils/otp-generator");
+const { use } = require("passport");
+const { sendEmail } = require("../utils/nodemailer");
+const { response } = require("../utils/responses");
 
 require('dotenv').config();
 
-// Setup Email Transporter
-const transporter = nodemailer.createTransport({
-    service: "Gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-  transporter.verify((error, success) => {
-    if (error) {
-      console.log("Error connecting to email:", error);
-    } else {
-      console.log("Email server is ready to send messages!");
-    }
-  });
-  
 
 //register a new user
 exports.register = async (req, res) => {
@@ -52,37 +40,31 @@ exports.register = async (req, res) => {
 exports.createUser = async (req, res) => {
     const { name, email, phone_number, password } = req.body;
     try {
-        let user;
-        if (user) return res.status(400).json({ message: "User already exists" });
+         // Check if user exists
+        let user = await Users.findOne({ email });
+        if (user) return response(res, 400, "User already exists");
 
          // Generate verification code
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+        //const verificationCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+        const verificationCode = generateOTP();
         const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min expiry
 
         user = new Users({ name, email, phone_number, password, verificationCode, verificationCodeExpires, });
         
         await user.save();
 
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: "Verify Your Account",
-            text: `Your verification code is: ${verificationCode}`,
-          };
-
-          await transporter.sendMail(mailOptions);
-
+        sendEmail(email, "Verify Your Account", `Your verification code is: ${verificationCode}`);
         //   await twilioClient.messages.create({
         //     body: `Your verification code is: ${verificationCode}`,
         //     from: process.env.TWILIO_PHONE_NUMBER,
         //     to: phone_number,
         //   });
-       
-        res.status(201).json({ message: "User registered successfully" });
+        return response(res, 201, { message: "User registered successfully", user});
+        //res.status(201).json({ message: "User registered successfully" });
     } catch (error) {
         console.error("Error registering user:", error); 
         
-        return res.status(500).json({ 
+        return response(res, 500, { 
             message: "Error registering user", 
             error: error.message || "An unknown error occurred" 
         });
@@ -163,12 +145,12 @@ exports.verifyUser = async (req, res) => {
     try {
       const user = await Users.findOne({ email });
   
-      if (!user) return res.status(400).json({ message: "User not found" });
+      if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
   
-      if (user.isVerified) return res.status(400).json({ message: "User already verified" });
+      if (user.isVerified) return response(res, 400, "User already verified"); // res.status(400).json({ message: "User already verified" });
   
       if (user.verificationCode !== code || new Date() > user.verificationCodeExpires) {
-        return res.status(400).json({ message: "Invalid or expired code" });
+        return response(res, 400, "Invalid or expired code"); // res.status(400).json({ message: "Invalid or expired code" });
       }
   
       // Mark user as verified
@@ -177,11 +159,11 @@ exports.verifyUser = async (req, res) => {
       user.verificationCodeExpires = undefined;
       await user.save();
   
-      res.status(200).json({ message: "Verification successful. You can now log in." });
+      response(res, 200, "Verification successful. You can now log in."); // res.status(200).json({ message: "Verification successful. You can now log in." });
   
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: "Verification failed", error });
+      response(res, 500, "Verification failed", error); // res.status(500).json({ message: "Verification failed", error });
     }
   };
   
@@ -226,14 +208,14 @@ exports.loginUser = async (req, res) => {
     try {
       const user = await Users.findOne({ email });
   
-      if (!user) return res.status(400).json({ message: "User not found" });
+      if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
   
-      if (!user.isVerified) return res.status(403).json({ message: "Account not verified. Check your email/SMS" });
+      if (!user.isVerified) return response(res, 403, "Account not verified. Check your email/SMS"); // res.status(403).json({ message: "Account not verified. Check your email/SMS" });
   
       //Match password
       const isPasswordValid = await user.comparePassword(password);
       if (!isPasswordValid) {
-          return res.status(401).json({ message: "Invalid password" });
+          return response(res, 401, "Invalid password"); // res.status(401).json({ message: "Invalid password" });
       }
 
       //generate JWT token
@@ -241,48 +223,45 @@ exports.loginUser = async (req, res) => {
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
           expiresIn: "1h",
       });
-      res.status(200).json({ message: "Login successful", token, user});
+      response(res, 200, { message: "Login successful", token });
+      //res.status(200).json({ message: "Login successful", token, user});
   
     } catch (error) {
-      res.status(500).json({ message: "Login error", error });
+      response(res, 500, { message: "Login error", error });
+      //res.status(500).json({ message: "Login error", error });
     }
   };
 
-  exports.resendVerification = async (req, res) => {
+exports.resendVerification = async (req, res) => {
     const { email } = req.body;
   
     try {
       const user = await Users.findOne({ email });
   
-      if (!user) return res.status(400).json({ message: "User not found" });
+      if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
   
-      if (user.isVerified) return res.status(400).json({ message: "User already verified" });
+      if (user.isVerified) return response(res, 400, "User already verified") // res.status(400).json({ message: "User already verified" });
   
       // Generate new code
-      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const verificationCode = generateOTP();
+      //const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
   
       user.verificationCode = verificationCode;
       user.verificationCodeExpires = verificationCodeExpires;
       await user.save();
-  
-      // Send Email
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "New Verification Code",
-        text: `Your new verification code is: ${verificationCode}`,
-      });
-  
-      res.status(200).json({ message: "New code sent. Check your email" });
+
+      // Send Email  
+      sendEmail(email, "New Verification Code", `Your new verification code is: ${verificationCode}`);
+    
+      response(res, 200, "New code sent. Check your email"); //      res.status(200).json({ message: "New code sent. Check your email" });
   
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: "Error resending code", error });
+      response(res, 500, "Error resending code", error); // res.status(500).json({ message: "Error resending code", error });
     }
   };
-  
-  
+    
 
 /**
  * Social login handler
@@ -301,16 +280,16 @@ exports.socialLogin = (req, res) => {
     });
   
     // Return the JWT token in the response
-    res.status(200).json({ message: "Login successful", token });
+    response(res, 200, { message: "Login successful", token }); // res.status(200).json({ message: "Login successful", token });
   };
   
 //Log out user
   exports.logout = async (req, res) => {
     try {
-        res.clearCookie("token");
-        res.status(200).json({ message: "Logged out successfully" });
+        response(res, 200, "Logged out successfully"); // res.clearCookie("token");
+        response(res, 200, "Logged out successfully"); // res.status(200).json({ message: "Logged out successfully" });
     } catch (error) {
-        res.status(500).json({ message: "Error logging out user", error });
+        response(res, 500, "Error logging out user", error); // res.status(500).json({ message: "Error logging out user", error });
     }
 };
 
@@ -319,11 +298,73 @@ exports.getUserDetails = async (req, res) => {
     try {
         const user = await Users.findById(req.params.id).select("-password"); 
         if (!user) {
-            return res.status(404).json({ message: "User not found" });
+            return response(res, 404, "User not found"); // res.status(404).json({ message: "User not found" });
         }
 
-        res.status(200).json(user);
+        response(res, 200, user); // res.status(200).json(user);
     } catch (error) {
-        res.status(500).json({ message: "Error fetching user details", error });
+        response(res, 500, "Error fetching user details", error); // res.status(500).json({ message: "Error fetching user details", error });
+    }
+};
+
+//forget password
+exports.forgotPassword = async (req, res) => {
+    const { email } = req.body;
+  
+    try {
+      // Check if user exists
+      const user = await Users.findOne({ email });
+      
+      if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
+  
+      // Generate new code
+      const resetToken = generateOTP();
+      //const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const resetTokenExpires = new Date(Date.now() + 10 * 60 * 1000);
+  
+      //save reset token to the database
+      user.verificationCode = resetToken;
+      user.verificationCodeExpires = resetTokenExpires;
+      await user.save();
+  
+      // Send Email  
+      sendEmail(email, "Reset Password", `Your reset code is: ${resetToken}`);
+
+      response(res, 200, "Reset code sent. Check your email");
+
+    } catch (error) {
+      console.error(error);
+      response(res, 500, { 
+        message: "Error processing forgot password request", 
+        error: error.message || "An unknown error occurred"
+        });
+    }
+  };
+
+  exports.resetPassword = async (req, res) => {
+    const { email, password, resetToken } = req.body;
+  
+    try {
+      // Check if user exists
+      const user = await Users.findOne({ email });
+  
+      if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
+  
+      
+      // Check if reset token has expired    
+      if (user.resetTokenExpires < Date.now()) return response(res, 400, "Reset token has expired"); // res.status(400).json({ message: "Reset token has expired" });
+  
+      user.verificationCode = undefined;
+      user.verificationCodeExpires = undefined;
+
+      await user.save();
+
+      return response(res, 200, "Password reset successful"); // res.status(200).json({ message: "Password reset successful" });
+    } catch (error) {
+      console.error("Error in reset password:",error);
+      response(res, 500, { 
+        message: "Error processing reset password request", 
+        error: error.message || "An unknown error occurred"
+        });
     }
 };

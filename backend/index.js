@@ -26,7 +26,7 @@ require('dotenv').config();
 //console.log("JWT_SECRET:", process.env.JWT_SECRET); 
 
 // Database
-const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/your_database_name';
+const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/nexus';
 
 mongoose.connect(uri)
   .then(() => console.log('MongoDB connected successfully'))
@@ -63,6 +63,10 @@ app.use("/api/docs", swaggerUI.serve, swaggerUI.setup(swaggerDocument));
 
 // Setup Swagger Docs
 setupSwagger(app);
+
+app.all("*", (req, res) => {
+  response(res, 404, "Route not found");
+});
 
 app.get("/api", (req, res) => {
     res.json({ message: "Hello from server!" });

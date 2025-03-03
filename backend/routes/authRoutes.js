@@ -306,4 +306,26 @@ router.post("/verifyUser", authController.verifyUser);
  */
 router.post("/loginUser", authController.loginUser);
 
+/**
+ * @swagger
+ * /auth/resendVerificationCode:
+ *   post:
+ *     summary: Resend verification code
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Verification code resent successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/resendVerificationCode", authController.resendVerification);
+
+router.post("/forgotPassword", authController.forgotPassword);
+router.post('/resetPassword', authController.resetPassword);
+
+
 module.exports = router;
