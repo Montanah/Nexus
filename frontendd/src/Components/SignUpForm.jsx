@@ -3,6 +3,7 @@ import InputField from './InputField';
 import axios from 'axios';
 
 const SignupForm = ({ navigate }) => {
+  const baseUrl = import.meta.env.VITE_API_KEY;
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -90,7 +91,6 @@ const SignupForm = ({ navigate }) => {
     setError('');
 
     try {
-      const baseUrl = import.meta.env.VITE_API_KEY;
       const response = await axios.post(`${baseUrl}/auth/register`, {
         name: formData.name,
         email: formData.email,
@@ -98,15 +98,29 @@ const SignupForm = ({ navigate }) => {
         password: formData.password,
       });
       if (response.status === 201) {
-        console.log('Signup successful:', response.data);
+        console.log('Signup successful:', response?.data?.message);
         setStep('verify'); // Move to verification step
       }
     } catch (error) {
       console.error('Signup error:', error);
-      setError(
-        error.response?.data?.message ||
-        (error.request ? 'Network error. Please check your connection.' : 'Internal server error. Please try again.')
-      );
+
+      if (error.response) {
+        const { status, description, data } = error.response.data;
+  
+        setError(
+          data?.message ||
+          description ||
+          `Error ${status}: Something went wrong.`
+        );
+      // setError(
+      //   error.response?.data?.message ||
+      //   (error.request ? 'Network error. Please check your connection.' : 'Internal server error. Please try again.')
+      // );
+      } else if (error.request) {
+        setError('Network error. Please check your connection.');
+      } else {
+        setError('Signup failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -116,18 +130,22 @@ const SignupForm = ({ navigate }) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
+  
     if (!verificationCode) {
       setError('Please enter your verification code');
       setLoading(false);
       return;
     }
-
+  
     try {
-      const response = await axios.post('/auth/verifyUser', {
+      const response = await axios.post(`${baseUrl}/auth/verifyUser`, {
         email: formData.email,
         code: verificationCode,
       });
+      console.log('email', formData.email);
+      console.log('code', verificationCode);  
+      console.log('Verification response:', response);
+  
       if (response.status === 200) {
         navigate('/login');
         setFormData({ name: '', email: '', phone_number: '', password: '', verifyPassword: '' });
@@ -135,14 +153,24 @@ const SignupForm = ({ navigate }) => {
       }
     } catch (error) {
       console.error('Verification error:', error);
-      setError(
-        error.response?.data?.message ||
-        (error.request ? 'Network error. Please check your connection.' : 'Verification failed')
-      );
+  
+      if (error.response) {
+        const { status, description, data } = error.response.data;
+  
+        setError(
+          data?.message ||
+          description ||
+          `Error ${status}: Something went wrong.`
+        );
+      } else if (error.request) {
+        setError('Network error. Please check your connection.');
+      } else {
+        setError('Verification failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  };  
 
   return (
     <form onSubmit={step === 'register' ? handleSignup : handleVerifySubmit} className="space-y-4">
@@ -197,7 +225,7 @@ const SignupForm = ({ navigate }) => {
         </>
       ) : (
         <div>
-          <label className="block text-sm font-medium text-gray-700">Enter Verification Code received via email/phone number enetered</label>
+          <label className="block text-sm font-medium text-gray-700">Enter Verification Code received via email/phone number entered</label>
           <input
             type="text"
             value={verificationCode}

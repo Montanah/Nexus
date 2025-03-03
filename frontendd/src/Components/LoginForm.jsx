@@ -4,6 +4,7 @@ import axios from 'axios';
 import InputField from './InputField';
 
 const LoginForm = ({ navigate }) => {
+  const baseUrl = import.meta.env.VITE_API_KEY;
   const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -41,11 +42,13 @@ const LoginForm = ({ navigate }) => {
       let response;
       if (isFirstLogin) {
         // First login uses /auth/loginUser
-        response = await axios.post('/auth/loginUser', { email: formData.email, password: formData.password });
+        response = await axios.post(`${baseUrl}/auth/loginUser`, { email: formData.email, password: formData.password });
         if (response.status === 200) {
-          const { userId, user } = response.data;
-          setUserId(userId);
-          if (!user.isVerified) {
+          const user = response?.data?.data?.user;
+          const userId = user?._id;
+          // const { userId, user } = response?.data?.message;
+          // setUserId(userId);
+          if (!user?.isVerified) {
             setError('Account not verified. Check your email/SMS');
           } else {
             navigate('/settings', { state: { userId, role: formData.role } }); // Redirect to enable 2FA
@@ -54,14 +57,17 @@ const LoginForm = ({ navigate }) => {
       } else {
         // Subsequent logins use /auth/login + 2FA
         response = await login(formData.email, formData.password); // Assumes /auth/login returns userId
-        if (response.success) {
-          setUserId(response.userId);
+        if (response?.description === "Success") {
+          setUserId(response?.data?.user?._id);
           setStep('2fa'); // Proceed to 2FA
         }
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
-      if (err.response?.data?.message === 'Please enable 2FA to continue') {
+
+      const errorMessage = err.response?.data?.data?.message || err.response?.data?.message || 'An error occurred';
+      setError(errorMessage);
+      //setError(err.response?.data?.message || 'Login failed');
+      if (errorMessage === 'Please enable 2FA to continue') {
         setIsFirstLogin(true); // Reset to first login flow if 2FA not enabled
       }
     } finally {
@@ -81,13 +87,15 @@ const LoginForm = ({ navigate }) => {
     }
 
     try {
-      const response = await axios.post(`/auth/verify2FA/${userId}`, { token: formData.token });
+      const response = await axios.post(`${baseUrl}/auth/verify2FA/${userId}`, { token: formData.token });
       if (response.status === 200) {
         setIsFirstLogin(false); // Mark as subsequent login
         navigate(formData.role === 'client' ? '/client-dashboard' : '/traveler-dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid 2FA code');
+      const errorMessage = err.response?.data?.data?.message || err.response?.data?.message || 'An error occurred';
+      setError(errorMessage);
+      //setError(err.response?.data?.message || 'Invalid 2FA code');
     } finally {
       setLoading(false);
     }

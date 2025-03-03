@@ -211,7 +211,9 @@ exports.loginUser = async (req, res) => {
       if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
   
       if (!user.isVerified) return response(res, 403, "Account not verified. Check your email/SMS"); // res.status(403).json({ message: "Account not verified. Check your email/SMS" });
-  
+      
+      if (!user.is2FAEnabled) return response(res, 400, "Please enable 2FA to continue"); // { return res.status(400).json({ message: "Please enable 2FA to continue"})      } 
+      
       //Match password
       const isPasswordValid = await user.comparePassword(password);
       if (!isPasswordValid) {
@@ -223,11 +225,20 @@ exports.loginUser = async (req, res) => {
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
           expiresIn: "1h",
       });
-      response(res, 200, { message: "Login successful", token });
+      return response(res, 200, {
+        message: "Login successful",
+        token,
+        user: { 
+            _id: user._id, 
+            name: user.name, 
+            email: user.email, 
+            isVerified: user.isVerified
+        }
+    });
       //res.status(200).json({ message: "Login successful", token, user});
   
     } catch (error) {
-      response(res, 500, { message: "Login error", error });
+      response(res, 500, { message: "Login error", error: error.message });
       //res.status(500).json({ message: "Login error", error });
     }
   };
