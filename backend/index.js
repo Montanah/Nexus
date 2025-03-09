@@ -16,6 +16,8 @@ const session = require('express-session');
 const swaggerUI = require("swagger-ui-express"), swaggerDocument = require("./swagger.json");
 const setupSwagger = require("./swagger");
 
+const response = require("./utils/responses");
+
 require("./controllers/Passport");
 
 const PORT = process.env.PORT || 3001;

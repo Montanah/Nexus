@@ -16,25 +16,6 @@ const { response } = require("../utils/responses");
 require('dotenv').config();
 
 
-//register a new user
-exports.register = async (req, res) => {
-    const { name, email, password, role } = req.body;
-    try {
-        let user;
-        if (role === "client") {
-            user = new Client({ name, email, password });
-        } else if (role === "traveler") {
-            user = new Traveler({ name, email, password });
-        } else {
-            return res.status(400).json({ message: "Invalid role" });
-        }
-        await user.save();
-        console.log(user);
-        res.status(201).json({ message: "User registered successfully" });
-    } catch (error) {
-        res.status(500).json({ message: "Error registering user", error });
-    }
-};
 
 //register a new user
 exports.createUser = async (req, res) => {

@@ -1,17 +1,18 @@
 const Product = require("../models/Product");
 const Users = require("../models/Users");
+const { response } = require("../utils/responses");
 
 //create a new product listing
 exports.createProduct = async (req, res) => {
     try {
-        const { productName, productDescription, productCategory, productWeight, productDimensions, destination, productFee, shippingRestrictions, urgencyLevel } = req.body;
+        const { productName, quantity, productDescription, productCategory, productWeight, productDimensions, destination, productFee, shippingRestrictions, urgencyLevel } = req.body;
         
         const clientID = req.user.id;
 
         //check if exists
         const client = await Users.findById(clientID);
         if (!client) {
-            return res.status(404).json({ message: "Client not found" });
+            return response(res, 404, "Client not found"); 
         }
 
         // Validate destination
@@ -33,11 +34,12 @@ exports.createProduct = async (req, res) => {
         const newProduct = new Product({ 
             client:clientID, 
             productName, 
+            quantity,
             productDescription, 
             productCategory, 
             productWeight, 
             productDimensions, 
-            productImage: imageUrls,
+            productPhotos: imageUrls,
             destination,
             productFee,
             shippingRestrictions,
@@ -49,10 +51,11 @@ exports.createProduct = async (req, res) => {
         console.log("Saving Product:", newProduct);
 
         await newProduct.save();
-        res.status(201).json({ message: "Product created successfully", product: newProduct });
+        response(res, 201, "Product created successfully", { product: newProduct }); //res.status(201).json({ message: "Product created successfully", product: newProduct });
     } catch (error) {
         console.error("Error creating product:", error);
-        res.status(500).json({ message: "Error creating product", error });
+        response(res, 500, "Error creating product", error);
+        //res.status(500).json({ message: "Error creating product", error });
     }
     
 };

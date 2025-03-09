@@ -10,6 +10,10 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    quantity: {
+        type: Number,
+        required: true,
+    },         
     productDescription: {
         type: String,
         required: true,
@@ -20,13 +24,13 @@ const productSchema = new mongoose.Schema({
     },
     productWeight: {
         type: Number,
-        required: true,
+        optional: true,
     },
     productDimensions: {
         type: String,
-        required: true,
+        optional: true,
     },
-    productImage: [{
+    productPhotos: [{
         type: String,
     }],
     destination: {
@@ -38,6 +42,14 @@ const productSchema = new mongoose.Schema({
             type: String,
             required: true, 
         },
+        town: {
+            type: String,
+            required: true,
+        },
+    },
+    deliverydate: {
+        type: Date,
+        required: true,
     },
     shippingRestrictions: {
         type: String,
