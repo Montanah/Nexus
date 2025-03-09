@@ -15,8 +15,6 @@ const { response } = require("../utils/responses");
 
 require('dotenv').config();
 
-
-
 //register a new user
 exports.createUser = async (req, res) => {
     const { name, email, phone_number, password } = req.body;
@@ -193,7 +191,7 @@ exports.loginUser = async (req, res) => {
   
       if (!user.isVerified) return response(res, 403, "Account not verified. Check your email/SMS"); // res.status(403).json({ message: "Account not verified. Check your email/SMS" });
       
-      if (!user.is2FAEnabled) return response(res, 400, "Please enable 2FA to continue"); // { return res.status(400).json({ message: "Please enable 2FA to continue"})      } 
+      //if (!user.is2FAEnabled) return response(res, 400, "Please enable 2FA to continue"); // { return res.status(400).json({ message: "Please enable 2FA to continue"})      } 
       
       //Match password
       const isPasswordValid = await user.comparePassword(password);
