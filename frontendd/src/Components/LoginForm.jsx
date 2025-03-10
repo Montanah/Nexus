@@ -40,36 +40,22 @@ const LoginForm = ({ navigate }) => {
 
     try {
       let response;
-      if (isFirstLogin) {
+      //if (isFirstLogin) {
         // First login uses /auth/loginUser
-        response = await axios.post(`${baseUrl}/auth/loginUser`, { email: formData.email, password: formData.password });
-        if (response.status === 200) {
-          const user = response?.data?.data?.user;
-          const userId = user?._id;
-          // const { userId, user } = response?.data?.message;
-          // setUserId(userId);
-          if (!user?.isVerified) {
-            setError('Account not verified. Check your email/SMS');
-          } else {
-            navigate('/settings', { state: { userId, role: formData.role } }); // Redirect to enable 2FA
-          }
-        }
-      } else {
-        // Subsequent logins use /auth/login + 2FA
-        response = await login(formData.email, formData.password); // Assumes /auth/login returns userId
-        if (response?.description === "Success") {
-          setUserId(response?.data?.user?._id);
-          setStep('2fa'); // Proceed to 2FA
-        }
+      response = await axios.post(`${baseUrl}/auth/loginUser`, { 
+        email: formData.email, 
+        password: formData.password 
+      });
+      console.log(response)
+      if (response.status === 200) {
+        setUserId(response?.data?.data?.userId);
+        setStep('otp');
       }
     } catch (err) {
 
       const errorMessage = err.response?.data?.data?.message || err.response?.data?.message || 'An error occurred';
       setError(errorMessage);
       //setError(err.response?.data?.message || 'Login failed');
-      if (errorMessage === 'Please enable 2FA to continue') {
-        setIsFirstLogin(true); // Reset to first login flow if 2FA not enabled
-      }
     } finally {
       setLoading(false);
     }
@@ -87,9 +73,15 @@ const LoginForm = ({ navigate }) => {
     }
 
     try {
-      const response = await axios.post(`${baseUrl}/auth/verify2FA/${userId}`, { token: formData.token });
+      // const response = await axios.post(`${baseUrl}/auth/verify2FA/${userId}`, { token: formData.token });
+      const response = await axios.post(`${baseUrl}/auth/verifyLoginOTP`, {
+        userId,
+        verificationCode: formData.token,
+    });
+    console.log("Response received:", response.data);
       if (response.status === 200) {
-        setIsFirstLogin(false); // Mark as subsequent login
+        localStorage.setItem('authToken', response?.data?.data?.token);
+        //setIsFirstLogin(false); // Mark as subsequent login
         navigate(formData.role === 'client' ? '/client-dashboard' : '/traveler-dashboard');
       }
     } catch (err) {

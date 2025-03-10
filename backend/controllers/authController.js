@@ -186,9 +186,11 @@ exports.loginUser = async (req, res) => {
   
     try {
       const user = await Users.findOne({ email });
+
+     
   
       if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
-  
+      console.log(user.isVerified)
       if (!user.isVerified) return response(res, 403, "Account not verified. Check your email/SMS"); // res.status(403).json({ message: "Account not verified. Check your email/SMS" });
       
       //if (!user.is2FAEnabled) return response(res, 400, "Please enable 2FA to continue"); // { return res.status(400).json({ message: "Please enable 2FA to continue"})      } 
@@ -199,28 +201,89 @@ exports.loginUser = async (req, res) => {
           return response(res, 401, "Invalid password"); // res.status(401).json({ message: "Invalid password" });
       }
 
-      //generate JWT token
-      console.log("JWT_SECRET:", process.env.JWT_SECRET);
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-          expiresIn: "1h",
-      });
-      return response(res, 200, {
-        message: "Login successful",
-        token,
-        user: { 
-            _id: user._id, 
-            name: user.name, 
-            email: user.email, 
-            isVerified: user.isVerified
-        }
+    //   //generate JWT token
+    //   console.log("JWT_SECRET:", process.env.JWT_SECRET);
+    //   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    //       expiresIn: "1h",
+    //   });
+    //   return response(res, 200, {
+    //     message: "Login successful",
+    //     token,
+    //     user: { 
+    //         _id: user._id, 
+    //         name: user.name, 
+    //         email: user.email, 
+    //         isVerified: user.isVerified
+    //     }
+    // });
+    //   //res.status(200).json({ message: "Login successful", token, user});
+
+    // Generate OTP for login verification
+    const verificationCode = generateOTP();
+    const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); 
+    
+    // Save OTP and expiry in the database
+    user.loginVerificationCode = verificationCode;
+    user.loginVerificationCodeExpires = verificationCodeExpires;
+    await user.save();
+    
+    // Send OTP via email
+    sendEmail(email, "Login Verification Code", `Your login verification code is: ${verificationCode}`);
+    
+    return response(res, 200, {
+        message: "Verification code sent to your email.",
+        userId: user._id
     });
-      //res.status(200).json({ message: "Login successful", token, user});
   
     } catch (error) {
       response(res, 500, { message: "Login error", error: error.message });
       //res.status(500).json({ message: "Login error", error });
     }
   };
+
+exports.verifyLoginOTP = async (req, res ) => {
+    const { userId, verificationCode } = req.body;
+
+    try {
+        const user = await Users.findById(userId);
+
+        if (!user) return response(res, 400, "User not found");
+
+        // Check if OTP is valid and not expired
+        if (
+            !user.loginVerificationCode ||
+            user.loginVerificationCode !== verificationCode ||
+            new Date() > user.loginVerificationCodeExpires
+        ) {
+            return response(res, 400, "Invalid or expired verification code");
+        }
+
+        // Clear the OTP fields after successful verification
+        user.loginVerificationCode = undefined;
+        user.loginVerificationCodeExpires = undefined;
+        await user.save();
+
+        // Generate JWT token
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+            expiresIn: "1h",
+        });
+
+        return response(res, 200, {
+            message: "Login successful",
+            token,
+            user: { 
+                _id: user._id, 
+                name: user.name, 
+                email: user.email, 
+                isVerified: user.isVerified
+            }
+        });
+
+    } catch (error) {
+        response(res, 500, { message: "OTP verification error", error: error.message });
+    }
+   
+};
 
 exports.resendVerification = async (req, res) => {
     const { email } = req.body;
@@ -277,7 +340,6 @@ exports.socialLogin = (req, res) => {
   exports.logout = async (req, res) => {
     try {
         response(res, 200, "Logged out successfully"); // res.clearCookie("token");
-        response(res, 200, "Logged out successfully"); // res.status(200).json({ message: "Logged out successfully" });
     } catch (error) {
         response(res, 500, "Error logging out user", error); // res.status(500).json({ message: "Error logging out user", error });
     }

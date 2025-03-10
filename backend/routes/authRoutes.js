@@ -22,7 +22,7 @@ const router = express.Router();
  *                 type: string
  *               email:
  *                 type: string
- *               phone_number: 
+ *               phonenumber: 
  *                 type: string
  *               password:
  *                 type: string 
@@ -324,8 +324,59 @@ router.post("/loginUser", authController.loginUser);
  */
 router.post("/resendVerificationCode", authController.resendVerification);
 
+/**
+ * @swagger
+ *  /auth/forgotPassword:
+ *   post:
+ *     summary: Forgot Password
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Verification code resent successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/forgotPassword", authController.forgotPassword);
+
+/**
+ * @swagger
+ *  /auth/resetPassword:
+ *   post:
+ *     summary: Reset Password
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Verification code resent successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
 router.post('/resetPassword', authController.resetPassword);
+
+/**
+ * @swagger
+ * /auth/verifyLoginOTP:
+ *    post:
+ *     summary: Verify Login verification code
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Verification code resent successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error *  
+ */
+router.post('/verifyLoginOTP', authController.verifyLoginOTP);
 
 
 module.exports = router;
