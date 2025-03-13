@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../Context/AuthContext';
 import axios from 'axios';
 import Header from '../Components/Header';
 import LoginForm from '../Components/LoginForm';
@@ -8,7 +8,7 @@ import SocialLogin from '../Components/SocialLogin';
 import Footer from '../Components/Footer';
 
 const Login = () => {
-  const { login, socialLogin } = useAuth();
+  const { socialLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -83,7 +83,7 @@ const Login = () => {
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-indigo-900 mb-2 text-center">Welcome back</h2>
           <p className="text-gray-600 text-sm text-center">
-            Enter your details to sign in to your account
+            Enter the 6-digit code received via your email/phonenumber
           </p>
         </div>
         <LoginForm navigate={navigate} />
