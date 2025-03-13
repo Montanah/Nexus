@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api, { loginUser, verifyLoginOTP, fetchUser, logoutUser } from '../Services/api'; 
 
 const AuthContext = createContext();
 
@@ -11,15 +11,19 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       const storedUserId = localStorage.getItem('userId');
-      if (storedUserId) {
+      const storedToken = localStorage.getItem('authToken');
+      if (storedUserId && storedToken) {
         setUserId(storedUserId);
         try {
-          const response = await axios.get(`/api/user/${storedUserId}`);
-          setUser(response.data); // e.g., { name, email, phonenumber }
+          const response = await api.get(`/auth/user/${storedUserId}`, {
+            headers: { Authorization: `Bearer ${storedToken}` },
+          });
+          setUser(response.data);
         } catch (err) {
           console.error('Failed to fetch user details:', err);
           setUserId(null);
           localStorage.removeItem('userId');
+          localStorage.removeItem('authToken');
         }
       }
       setLoading(false);
@@ -27,33 +31,23 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, verificationCode = null) => {
     try {
       setLoading(true);
-      const baseUrl = import.meta.env.VITE_API_KEY;
-      const response = await axios.post(`${baseUrl}/auth/login`, { email, password });
-      const { userId, userData, token, is2FAEnabled } = response.data;
-      setUserId(userId);
-      setUser(userData);
-      localStorage.setItem('userId', userId);
-      return { success: true, is2FAEnabled, userId }; // Return 2FA status
-    } catch (err) {
-      throw new Error(err.response?.data?.message || 'Login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const socialLogin = async (userId, userData) => {
-    try {
-      setLoading(true);
-      setUserId(userId);
-      setUser(userData);
-      localStorage.setItem('userId', userId);
-      return true;
-    } catch (err) {
-      console.error('Social login error:', err);
-      throw new Error('Social login failed');
+      if (!verificationCode) {
+        const response = await loginUser({ email, password });
+        const userId = response.data?.userId;
+        setUserId(userId);
+        localStorage.setItem('userId', userId);
+        return { success: true, step: 'otp', userId };
+      } else {
+        const response = await verifyLoginOTP({ userId, verificationCode });
+        const token = response.data?.token;
+        localStorage.setItem('authToken', token);
+        const userData = await fetchUser(userId, token);
+        setUser(userData);
+        return { success: true, step: 'complete', token };
+      }
     } finally {
       setLoading(false);
     }
@@ -61,10 +55,12 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post('/api/logout');
+      const token = localStorage.getItem('authToken');
+      await logoutUser(token);
       setUserId(null);
       setUser(null);
       localStorage.removeItem('userId');
+      localStorage.removeItem('authToken');
       return { success: true };
     } catch (err) {
       console.error('Logout error:', err);
@@ -76,7 +72,6 @@ export const AuthProvider = ({ children }) => {
     userId,
     user,
     login,
-    socialLogin,
     logout,
     loading,
   };

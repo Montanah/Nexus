@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
 import InputField from './InputField';
 
 const LoginForm = ({ navigate }) => {
-  const baseUrl = import.meta.env.VITE_API_KEY;
   const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -12,12 +10,10 @@ const LoginForm = ({ navigate }) => {
     role: '',
     token: '',
   });
-  const [step, setStep] = useState('credentials'); // 'credentials' or '2fa'
-  const [userId, setUserId] = useState(null);
+  const [step, setStep] = useState('credentials'); // 'credentials' or 'otp'
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [isFirstLogin, setIsFirstLogin] = useState(true); // Track first login
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -39,23 +35,13 @@ const LoginForm = ({ navigate }) => {
     }
 
     try {
-      let response;
-      //if (isFirstLogin) {
-        // First login uses /auth/loginUser
-      response = await axios.post(`${baseUrl}/auth/loginUser`, { 
-        email: formData.email, 
-        password: formData.password 
-      });
-      console.log(response)
-      if (response.status === 200) {
-        setUserId(response?.data?.data?.userId);
+      const response = await login(formData.email, formData.password);
+      console.log('Login response:', response);
+      if (response.success && response.step === 'otp') {
         setStep('otp');
       }
     } catch (err) {
-
-      const errorMessage = err.response?.data?.data?.message || err.response?.data?.message || 'An error occurred';
-      setError(errorMessage);
-      //setError(err.response?.data?.message || 'Login failed');
+      setError(err.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -73,21 +59,13 @@ const LoginForm = ({ navigate }) => {
     }
 
     try {
-      // const response = await axios.post(`${baseUrl}/auth/verify2FA/${userId}`, { token: formData.token });
-      const response = await axios.post(`${baseUrl}/auth/verifyLoginOTP`, {
-        userId,
-        verificationCode: formData.token,
-    });
-    console.log("Response received:", response.data);
-      if (response.status === 200) {
-        localStorage.setItem('authToken', response?.data?.data?.token);
-        //setIsFirstLogin(false); // Mark as subsequent login
+      const response = await login(formData.email, formData.password, formData.token);
+      console.log('OTP verification response:', response);
+      if (response.success && response.step === 'complete') {
         navigate(formData.role === 'client' ? '/client-dashboard' : '/traveler-dashboard');
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.data?.message || err.response?.data?.message || 'An error occurred';
-      setError(errorMessage);
-      //setError(err.response?.data?.message || 'Invalid 2FA code');
+      setError(err.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -97,7 +75,13 @@ const LoginForm = ({ navigate }) => {
     <form onSubmit={step === 'credentials' ? handleCredentialSubmit : handle2FASubmit} className="space-y-4">
       {step === 'credentials' ? (
         <>
-          <InputField type="email" name="email" placeholder="Email Address" value={formData.email} onChange={handleChange} />
+          <InputField
+            type="email"
+            name="email"
+            placeholder="Email Address"
+            value={formData.email}
+            onChange={handleChange}
+          />
           <div className="relative">
             <InputField
               type={showPassword ? "text" : "password"}
@@ -142,7 +126,6 @@ const LoginForm = ({ navigate }) => {
           onChange={handleChange}
         />
       )}
-
       {error && <p className="text-red-500 text-sm">{error}</p>}
       <button
         type="submit"

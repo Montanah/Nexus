@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { FaShoppingCart } from 'react-icons/fa';
 import Sidebar from '../Components/Sidebar';
@@ -9,6 +8,8 @@ import InputField from '../Components/DashboardInputField';
 import PhotoUpload from '../Components/PhotoUpload';
 import PriceBreakdown from '../Components/PriceBreakdown';
 import ActionButtons from '../Components/ActionButtons';
+import { checkout, addToCart, saveProduct, updateProduct } from '../Services/api';
+import CountryStateCityComponent from '../Components/State';
 
 const ClientDashboard = () => {
   const { userId, logout, loading: authLoading } = useAuth();
@@ -19,7 +20,7 @@ const ClientDashboard = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  const [productId, setProductId] = useState(null); // Added for editing
+  const [productId, setProductId] = useState(null);
   const [productName, setProductName] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [productDescription, setProductDescription] = useState('');
@@ -28,27 +29,22 @@ const ClientDashboard = () => {
   const [weight, setWeight] = useState('');
   const [dimensions, setDimensions] = useState('');
   const [country, setCountry] = useState('');
+  const [state, setState] = useState('');
   const [city, setCity] = useState('');
-  const [town, setTown] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
   const [shippingRestrictions, setShippingRestrictions] = useState('');
   const [productPrice, setProductPrice] = useState('');
   const [finalCharge, setFinalCharge] = useState(0);
-
-  const [countryOptions, setCountryOptions] = useState([]);
-  const [cityOptions, setCityOptions] = useState([]);
-  const [townOptions, setTownOptions] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
 
   const quantityOptions = Array.from({ length: 10 }, (_, i) => i + 1);
   const categoryOptions = ['Electronics', 'Clothing', 'Books', 'Accessories', 'Other'];
 
-  // Prefill form with itemToEdit if present
   useEffect(() => {
     const { itemToEdit } = location.state || {};
     if (itemToEdit) {
       setIsEditing(true);
-      setProductId(itemToEdit.productId || null); // Store productId
+      setProductId(itemToEdit.productId || null);
       setProductName(itemToEdit.productName || '');
       setQuantity(itemToEdit.quantity || 1);
       setProductDescription(itemToEdit.productDescription || '');
@@ -57,77 +53,14 @@ const ClientDashboard = () => {
       setWeight(itemToEdit.weight || '');
       setDimensions(itemToEdit.dimensions || '');
       setCountry(itemToEdit.delivery?.country || '');
+      setState(itemToEdit.delivery?.state || '');
       setCity(itemToEdit.delivery?.city || '');
-      setTown(itemToEdit.delivery?.town || '');
       setDeliveryDate(itemToEdit.delivery?.deliveryDate || '');
       setShippingRestrictions(itemToEdit.shippingRestrictions || '');
       setProductPrice(itemToEdit.productPrice || '');
       setFinalCharge(itemToEdit.finalCharge || 0);
     }
   }, [location.state]);
-
-  // Fetch countries on mount
-  useEffect(() => {
-    const fetchCountries = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get('/api/countries');
-        setCountryOptions(response.data.countries || []);
-      } catch (err) {
-        setError('Failed to load countries');
-        console.error('Error fetching countries:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCountries();
-  }, []);
-
-  // Fetch cities when country changes
-  useEffect(() => {
-    if (!country) {
-      setCityOptions([]);
-      setCity('');
-      return;
-    }
-    const fetchCities = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get(`/api/cities/${country}`);
-        setCityOptions(response.data.cities || []);
-        if (!isEditing) setCity('');
-      } catch (err) {
-        setError('Failed to load cities');
-        console.error('Error fetching cities:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCities();
-  }, [country, isEditing]);
-
-  // Fetch towns when country or city changes
-  useEffect(() => {
-    if (!country || !city) {
-      setTownOptions([]);
-      setTown('');
-      return;
-    }
-    const fetchTowns = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get(`/api/towns/${country}/${city}`);
-        setTownOptions(response.data.towns || []);
-        if (!isEditing) setTown('');
-      } catch (err) {
-        setError('Failed to load towns');
-        console.error('Error fetching towns:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTowns();
-  }, [country, city, isEditing]);
 
   const calculateFinalCharge = () => {
     const basePrice = parseFloat(productPrice) || 0;
@@ -147,17 +80,17 @@ const ClientDashboard = () => {
     }
   }, [success]);
 
-  const checkout = async () => {
+  const handleCheckout = async () => {
     const formData = {
       userId,
       productId,
       productName,
       quantity,
       finalCharge,
-      delivery: { country, city, town, deliveryDate },
+      delivery: { country, state, city, deliveryDate },
       productDescription,
       category,
-      productPhotos: productPhotos.map(photo => photo.name || photo),
+      productPhotos: productPhotos.map((photo) => photo.name || photo),
       weight,
       dimensions,
       shippingRestrictions,
@@ -167,8 +100,8 @@ const ClientDashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.post('/api/checkout', formData);
-      console.log('Checkout successful:', response.data);
+      const data = await checkout(formData);
+      console.log('Checkout successful:', data);
       setSuccess('Checkout successful');
       return true;
     } catch (err) {
@@ -180,17 +113,17 @@ const ClientDashboard = () => {
     }
   };
 
-  const addToCart = async () => {
+  const handleAddToCart = async () => {
     const formData = {
       userId,
       productId,
       productName,
       quantity,
       finalCharge,
-      delivery: { country, city, town, deliveryDate },
+      delivery: { country, state, city, deliveryDate },
       productDescription,
       category,
-      productPhotos: productPhotos.map(photo => photo.name || photo),
+      productPhotos: productPhotos.map((photo) => photo.name || photo),
       weight,
       dimensions,
       shippingRestrictions,
@@ -200,8 +133,8 @@ const ClientDashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.post('/api/cart', formData);
-      console.log('Added to cart:', response.data);
+      const data = await addToCart(formData);
+      console.log('Added to cart:', data);
       setSuccess('Added to cart successfully');
       return true;
     } catch (err) {
@@ -213,9 +146,9 @@ const ClientDashboard = () => {
     }
   };
 
-  const saveProduct = async (e) => {
+  const handleSaveProduct = async (e) => {
     e.preventDefault();
-    if (!productName || !country || !city || !town || !deliveryDate || !productPrice) {
+    if (!productName || !country || !state || !city || !deliveryDate || !productPrice) {
       setError('Please fill all required fields');
       return;
     }
@@ -226,10 +159,10 @@ const ClientDashboard = () => {
       productName,
       quantity,
       finalCharge,
-      delivery: { country, city, town, deliveryDate },
+      delivery: { country, state, city, deliveryDate },
       productDescription,
       category,
-      productPhotos: productPhotos.map(photo => photo.name || photo),
+      productPhotos: productPhotos.map((photo) => photo.name || photo),
       weight,
       dimensions,
       shippingRestrictions,
@@ -239,19 +172,16 @@ const ClientDashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      let response;
+      let data;
       if (isEditing && productId) {
-        // Update existing item using productId
-        response = await axios.put(`/api/cart/${userId}/${productId}`, formData);
-        console.log('Item updated:', response.data);
+        data = await updateProduct(userId, productId, formData);
+        console.log('Item updated:', data);
         setSuccess('Item updated successfully');
       } else {
-        // Create new item
-        response = await axios.post('/api/products', formData);
-        console.log('Product saved:', response.data);
+        data = await saveProduct(formData);
+        console.log('Product saved:', data);
         setSuccess('Product saved successfully');
       }
-      // Reset form
       setProductId(null);
       setProductName('');
       setQuantity(1);
@@ -261,8 +191,8 @@ const ClientDashboard = () => {
       setWeight('');
       setDimensions('');
       setCountry('');
+      setState('');
       setCity('');
-      setTown('');
       setDeliveryDate('');
       setShippingRestrictions('');
       setProductPrice('');
@@ -280,18 +210,21 @@ const ClientDashboard = () => {
   };
 
   const handleLogout = async () => {
-    setLoading(true);
-    setError(null);
-    const baseurl = import.meta.env.VITE_API_KEY;
-    const response = await axios.post(`${baseurl}/auth/logout`)
-    // const result = await logout();
-    if (response.status === 200 || response.status === 201){
-    // if (result.success) {
-      navigate('/login');
-    } else {
-      setError(result.error);
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await logout();
+      if (result.success) {
+        navigate('/login');
+      } else {
+        setError(result.error || 'Logout failed');
+      }
+    } catch (err) {
+      setError('Logout failed');
+      console.error('Logout error:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   if (authLoading) {
@@ -303,48 +236,48 @@ const ClientDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-200 flex">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-200 flex flex-col lg:flex-row relative">
       <Sidebar />
-      <div className="flex-1 p-8">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold text-blue-600">
+      <div className="flex-1 p-4 sm:p-6 md:p-8 pb-24 sm:pb-28 md:pb-32 lg:ml-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-blue-600">
             {isEditing ? 'Edit Product Listing' : 'Create Product Listing'}
           </h1>
-          <div className="flex space-x-2">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
             <Link
               to="/cart"
-              className="flex items-center bg-blue-500 text-white px-5 py-2 rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="flex items-center justify-center bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto"
             >
               <FaShoppingCart className="mr-2" />
               Cart
             </Link>
             <button
               onClick={handleLogout}
-              className="bg-red-500 text-white px-5 py-2 rounded-md text-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"
+              className="bg-red-500 text-white px-4 py-2 rounded-md text-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto"
             >
-              LogOut
+              Logout
             </button>
           </div>
         </div>
-        {loading && <p className="text-gray-600">Loading...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-        {success && <p className="text-green-500">{success}</p>}
-        <form onSubmit={saveProduct} className="space-y-6">
-          <div className="flex flex-row gap-4">
+        {loading && <p className="text-gray-600 text-center">Loading...</p>}
+        {error && <p className="text-red-500 text-center">{error}</p>}
+        {success && <p className="text-green-500 text-center">{success}</p>}
+        <form onSubmit={handleSaveProduct} className="space-y-6">
+          <div className="flex flex-col md:flex-row gap-4">
             <InputField
               label="Product Name"
               value={productName}
               onChange={setProductName}
               placeholder="Enter product name"
               required
-              className="w-60 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full md:w-60 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
             <InputField
               label="Quantity"
               value={quantity}
               onChange={setQuantity}
               options={quantityOptions}
-              className="w-full px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
           </div>
           <InputField
@@ -353,65 +286,48 @@ const ClientDashboard = () => {
             onChange={setProductDescription}
             placeholder="Describe your product"
             rows={4}
-            className="w-1/2 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           />
           <InputField
             label="Category"
             value={category}
             onChange={setCategory}
             options={categoryOptions}
-            className="w-35 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full md:w-35 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           />
           <PhotoUpload
             photos={productPhotos}
             setPhotos={setProductPhotos}
-            className="w-1/2 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           />
-          <div className="flex flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
             <InputField
               label="Weight (Optional)"
               value={weight}
               onChange={setWeight}
               placeholder="Enter weight"
-              className="w-full px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
             <InputField
               label="Dimensions (Optional)"
               value={dimensions}
               onChange={setDimensions}
               placeholder="L x W x H"
-              className="w-full px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
           </div>
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-blue-600">Delivery Destination</h2>
-            <div className="flex flex-row gap-4">
-              <InputField
-                label="Country"
-                value={country}
-                onChange={setCountry}
-                options={countryOptions}
-                required
-                disabled={loading}
-                className="w-48 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-              <InputField
-                label="City"
-                value={city}
-                onChange={setCity}
-                options={cityOptions}
-                required
-                disabled={loading || !country}
-                className="w-48 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-              <InputField
-                label="Town"
-                value={town}
-                onChange={setTown}
-                options={townOptions}
-                required
-                disabled={loading || !city}
-                className="w-48 px-1 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            <h2 className="text-lg md:text-xl font-semibold text-blue-600">
+              Delivery Destination
+            </h2>
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
+              <CountryStateCityComponent
+                selectedCountry={country}
+                setSelectedCountry={setCountry}
+                selectedState={state}
+                setSelectedState={setState}
+                selectedCity={city}
+                setSelectedCity={setCity}
               />
               <InputField
                 label="Delivery Date"
@@ -419,7 +335,7 @@ const ClientDashboard = () => {
                 value={deliveryDate}
                 onChange={setDeliveryDate}
                 required
-                className="w-32 px-1 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="w-full md:w-32 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
               />
             </div>
           </div>
@@ -429,7 +345,7 @@ const ClientDashboard = () => {
             onChange={setShippingRestrictions}
             placeholder="Any special shipping instructions"
             rows={3}
-            className="w-1/2 px-1 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           />
           <PriceBreakdown
             productPrice={productPrice}
@@ -437,9 +353,9 @@ const ClientDashboard = () => {
             finalCharge={finalCharge}
           />
           <ActionButtons
-            onAddToCart={addToCart}
-            onCheckout={checkout}
-            onSave={saveProduct}
+            onAddToCart={handleAddToCart}
+            onCheckout={handleCheckout}
+            onSave={handleSaveProduct}
           />
         </form>
       </div>

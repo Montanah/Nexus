@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import PropTypes from 'prop-types';
+import { fetchUser } from '../Services/api';
 
 const UserProfile = ({ userId }) => {
   const [user, setUser] = useState({
@@ -20,17 +21,19 @@ const UserProfile = ({ userId }) => {
 
       try {
         setLoading(true);
-        const response = await axios.get(`/api/user/${userId}`);
-        const { name, email, avatar } = response.data;
-
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+        const userData = await fetchUser(userId, token);
         setUser({
-          name: name || 'Unknown User',
-          email: email || 'No email provided',
-          avatar: avatar || 'https://maxm-imggenurl.web.val.run/user-avatar-placeholder',
+          name: userData.name || 'Unknown User',
+          email: userData.email || 'No email provided',
+          avatar: userData.avatar || 'https://maxm-imggenurl.web.val.run/user-avatar-placeholder',
         });
       } catch (err) {
         console.error('Error fetching user data:', err);
-        setError('Failed to load user profile');
+        setError(err.message || 'Failed to load user profile');
       } finally {
         setLoading(false);
       }
@@ -41,35 +44,39 @@ const UserProfile = ({ userId }) => {
 
   if (loading) {
     return (
-      <div className="fixed bottom-0 left-0 p-4 bg-gray-200 shadow-md w-64">
-        <p>Loading...</p>
+      <div className="fixed bottom-0 left-0 w-full lg:w-64 p-4 bg-gray-200 shadow-md z-50">
+        <p className="text-center text-sm sm:text-base">Loading...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="fixed bottom-0 left-0 p-4 bg-gray-200 shadow-md w-64">
-        <p className="text-red-500">{error}</p>
+      <div className="fixed bottom-0 left-0 w-full lg:w-64 p-4 bg-gray-200 shadow-md z-50">
+        <p className="text-red-500 text-center text-sm sm:text-base">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="fixed bottom-0 left-0 p-4 bg-gradient-to-br from-indigo-100 to-indigo-300 shadow-md w-64">
-      <div className="flex items-center">
+    <div className="fixed bottom-0 left-0 w-full lg:w-64 p-4 sm:p-6 bg-gradient-to-br from-indigo-100 to-indigo-300 shadow-md z-50">
+      <div className="flex items-center justify-center lg:justify-start">
         <img
           src={user.avatar}
           alt="User Avatar"
-          className="w-12 h-12 rounded-full mr-4"
+          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full mr-3 sm:mr-4"
         />
-        <div>
-          <p className="font-semibold">{user.name}</p>
-          <p className="text-sm text-gray-500">{user.email}</p>
+        <div className="text-center lg:text-left">
+          <p className="font-semibold text-sm sm:text-base">{user.name}</p>
+          <p className="text-xs sm:text-sm text-gray-500">{user.email}</p>
         </div>
       </div>
     </div>
   );
+};
+
+UserProfile.propTypes = {
+  userId: PropTypes.string.isRequired,
 };
 
 export default UserProfile;
