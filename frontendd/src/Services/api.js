@@ -73,4 +73,46 @@ export const updateProduct = async (userId, productId, formData) => {
   return response.data;
 };
 
+// Fetch cart items for a user
+export const fetchCart = async (userId) => {
+  const response = await api.get(`/api/cart/${userId}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
+  return response.data.items || [];
+};
+
+// Delete cart item
+export const deleteCartItem = async (userId, productId) => {
+  const response = await api.delete(`/api/cart/${userId}/${productId}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
+  return response.data;
+};
+
+// Initiate mobile payment (M-Pesa or Airtel Money)
+export const initiateMobilePayment = async (userId, cartItems, total, paymentMethod) => {
+  const response = await api.post('/api/mobile-payment', {
+    userId,
+    cartItems,
+    total,
+    paymentMethod,
+  }, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
+  return response.data;
+};
+
+// Create Stripe checkout session
+export const createCheckoutSession = async (userId, cartItems, total, voucherCode) => {
+  const response = await api.post('/api/create-checkout-session', {
+    userId,
+    cartItems,
+    total,
+    voucherCode,
+  }, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
+  return response.data;
+};
+
 export default api;

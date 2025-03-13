@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../Context/AuthContext';
 import { loadStripe } from '@stripe/stripe-js';
 import NexusLogo from '../assets/NexusLogo.png';
-import { FaEdit, FaTrash, FaCcVisa, FaCcMastercard, FaCcPaypal, FaCcDiscover, FaMobileAlt } from 'react-icons/fa'; // Added FaMobileAlt for mobile money
+import { FaEdit, FaTrash, FaCcVisa, FaCcMastercard, FaCcPaypal, FaCcDiscover, FaMobileAlt } from 'react-icons/fa';
+import { fetchCart, deleteCartItem, initiateMobilePayment, createCheckoutSession } from '../Services/api';
 
 // Initialize Stripe outside the component
 const stripePromise = loadStripe('pk_test_51OvoL6KzYkQzGZz6rK8Z5Qe5f6Y5X8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9'); // Replace with your Stripe publishable key
@@ -15,13 +15,13 @@ const Checkout = () => {
 
   const [cartItems, setCartItems] = useState([]);
   const [voucherCode, setVoucherCode] = useState('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card'); // Track payment method
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Fetch cart items on mount
   useEffect(() => {
-    const fetchCart = async () => {
+    const fetchCartData = async () => {
       if (!userId) {
         setError('User not authenticated');
         navigate('/login');
@@ -30,8 +30,12 @@ const Checkout = () => {
 
       try {
         setLoading(true);
-        const response = await axios.get(`/api/cart/${userId}`);
-        setCartItems(response.data.items || []);
+        const items = await fetchCart(userId);
+        setCartItems(items);
+
+        if (items.length === 0) {
+          navigate('/client-dashboard');
+        }
       } catch (err) {
         setError('Failed to load cart items');
         console.error('Error fetching cart:', err);
@@ -39,18 +43,17 @@ const Checkout = () => {
         setLoading(false);
       }
     };
-    fetchCart();
+    fetchCartData();
   }, [userId, navigate]);
 
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + (item.finalCharge || 0), 0);
-  const shipping = 10;
-  const total = (subtotal + shipping).toFixed(2);
+  const total = subtotal.toFixed(2);
 
   // Handle delete item
   const handleDelete = async (productId) => {
     try {
-      await axios.delete(`/api/cart/${userId}/${productId}`);
+      await deleteCartItem(userId, productId);
       setCartItems(cartItems.filter(item => item.productId !== productId));
     } catch (err) {
       setError('Failed to delete item');
@@ -70,27 +73,13 @@ const Checkout = () => {
       setError(null);
 
       if (selectedPaymentMethod === 'mpesa' || selectedPaymentMethod === 'airtel') {
-        // Custom mobile money payment flow (e.g., M-Pesa or Airtel Money)
-        const response = await axios.post(`/api/mobile-payment`, {
-          userId,
-          cartItems,
-          total,
-          paymentMethod: selectedPaymentMethod,
-        });
-        console.log(`${selectedPaymentMethod} payment initiated:`, response.data);
-        navigate('/checkout-success'); // Assuming success for now
+        const paymentData = await initiateMobilePayment(userId, cartItems, total, selectedPaymentMethod); // Use service function
+        console.log(`${selectedPaymentMethod} payment initiated:`, paymentData);
+        navigate('/checkout-success');
       } else {
-        // Stripe payment flow for cards and supported methods
-        const response = await axios.post('/api/create-checkout-session', {
-          userId,
-          cartItems,
-          total,
-          voucherCode,
-        });
-
-        const sessionId = response.data.id;
+        const session = await createCheckoutSession(userId, cartItems, total, voucherCode); // Use service function
         const stripe = await stripePromise;
-        const { error } = await stripe.redirectToCheckout({ sessionId });
+        const { error } = await stripe.redirectToCheckout({ sessionId: session.id });
         if (error) {
           setError(error.message);
         }
@@ -211,10 +200,6 @@ const Checkout = () => {
             <div className="flex justify-between text-gray-600">
               <span>Subtotal:</span>
               <span>${subtotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-gray-600 mt-2">
-              <span>Shipping:</span>
-              <span>${shipping.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-lg font-semibold text-blue-600 mt-2">
               <span>Total:</span>

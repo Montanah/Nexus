@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
-import { Link } from 'react-router-dom';
+import { fetchCart, deleteCartItem } from '../Services/api';
 
 const CartPage = () => {
   const { userId } = useAuth();
@@ -14,20 +13,18 @@ const CartPage = () => {
 
   // Fetch cart items on mount
   useEffect(() => {
-    const fetchCart = async () => {
+    const fetchCartData = async () => {
       if (!userId) {
         setError('User not authenticated');
-        navigate('/login'); // Redirect if no userId
+        navigate('/login');
         return;
       }
 
       try {
         setLoading(true);
-        const response = await axios.get(`/api/cart/${userId}`);
-        const items = response.data.items || [];
+        const items = await fetchCart(userId);
         setCartItems(items);
 
-        // Redirect if cart is empty
         if (items.length === 0) {
           navigate('/client-dashboard');
         }
@@ -39,8 +36,28 @@ const CartPage = () => {
       }
     };
 
-    fetchCart();
+    fetchCartData();
   }, [userId, navigate]);
+
+  // Handle deleting a cart item
+  const handleDeleteItem = async (productId) => {
+    try {
+      setLoading(true);
+      setError(null);
+      await deleteCartItem(userId, productId); // Use deleteCartItem from api.js
+      const updatedItems = await fetchCart(userId); // Refresh cart after deletion
+      setCartItems(updatedItems);
+
+      if (updatedItems.length === 0) {
+        navigate('/client-dashboard');
+      }
+    } catch (err) {
+      setError('Failed to remove item from cart');
+      console.error('Error deleting cart item:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calculate total price
   const totalPrice = cartItems.reduce((sum, item) => sum + (item.finalCharge || 0), 0).toFixed(2);
@@ -79,8 +96,8 @@ const CartPage = () => {
           ) : (
             <>
               <ul className="space-y-4">
-                {cartItems.map((item, index) => (
-                  <li key={index} className="flex justify-between items-center border-b pb-4">
+                {cartItems.map((item) => (
+                  <li key={item.productId} className="flex justify-between items-center border-b pb-4">
                     <div>
                       <h2 className="text-lg font-semibold text-gray-800">{item.productName}</h2>
                       <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
@@ -94,7 +111,15 @@ const CartPage = () => {
                         <p className="text-sm text-gray-600">Category: {item.category}</p>
                       )}
                     </div>
-                    <p className="text-lg font-semibold text-blue-600">${item.finalCharge.toFixed(2)}</p>
+                    <div className="flex items-center space-x-4">
+                      <p className="text-lg font-semibold text-blue-600">${item.finalCharge.toFixed(2)}</p>
+                      <button
+                        onClick={() => handleDeleteItem(item.productId)}
+                        className="bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
