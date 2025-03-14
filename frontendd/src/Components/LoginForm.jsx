@@ -73,6 +73,11 @@ const LoginForm = ({ navigate }) => {
 
   return (
     <form onSubmit={step === 'credentials' ? handleCredentialSubmit : handle2FASubmit} className="space-y-4">
+      {/* Step-Based Heading */}
+      <h2 className="text-gray-600 text-sm text-center">
+        {step === 'credentials' ? 'Enter your email and password' : 'Enter the 6-digit code received via your email/phone'}
+      </h2>
+
       {step === 'credentials' ? (
         <>
           <InputField
@@ -96,6 +101,14 @@ const LoginForm = ({ navigate }) => {
               className="absolute inset-y-0 right-3 flex items-center text-gray-600"
             >
               {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
+          <div>
+            <button
+              onClick={() => navigate('/forgot-password')}
+              className="text-red-500 text-sm hover:text-indigo-700 transition-colors"
+            >
+              Forgot your password?
             </button>
           </div>
           <div className="space-y-2">

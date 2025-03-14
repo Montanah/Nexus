@@ -81,38 +81,44 @@ const SignUp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 flex flex-col items-center justify-between p-4">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-indigo-50 to-purple-100 p-4">
       <Header />
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8 mt-16">
-        <div className="text-right mb-4">
-          <button
-            onClick={() => navigate('/login')}
-            className="text-indigo-600 hover:underline text-sm"
-          >
-            Already have an account? Sign In
-          </button>
-        </div>
-        <h2 className="text-3xl font-bold text-center mb-6 text-indigo-900">
-          Create an Account
-        </h2>
-        <SignupForm navigate={navigate} />
-        <SocialLogin
-          onSocialSignup={handleSocialSignup}
-          loading={socialLoading}
-          error={socialError}
-        />
-        <div className="text-center text-sm text-gray-500 mt-6">
-          By signing up, you agree to our{' '}
-          <a href="#" className="text-indigo-600 hover:underline">
-            Terms of Use
-          </a>{' '}
-          &{' '}
-          <a href="#" className="text-indigo-600 hover:underline">
-            Privacy Policy
-          </a>
+
+      {/* Main Signup Form */}
+      <div className="flex-grow flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8 mt-10">
+          <div className="text-right mb-4">
+            <button
+              onClick={() => navigate('/login')}
+              className="text-indigo-600 hover:underline text-sm"
+            >
+              Already have an account? Sign In
+            </button>
+          </div>
+          <h2 className="text-3xl font-bold text-center mb-6 text-indigo-900">
+            Create an Account
+          </h2>
+          <SignupForm navigate={navigate} />
+          <SocialLogin
+            onSocialSignup={handleSocialSignup}
+            loading={socialLoading}
+            error={socialError}
+          />
+          <div className="text-center text-sm text-gray-500 mt-6">
+            By signing up, you agree to our{' '}
+            <a href="#" className="text-indigo-600 hover:underline">
+              Terms of Use
+            </a>{' '}
+            &{' '}
+            <a href="#" className="text-indigo-600 hover:underline">
+              Privacy Policy
+            </a>
+          </div>
         </div>
       </div>
-      <div className="w-full p-2 sm:p-4">
+
+      {/* Footer - Centered at Bottom */}
+      <div className="mt-auto w-full flex justify-center items-center text-gray-500 text-sm">
         <Footer />
       </div>
     </div>

@@ -33,6 +33,12 @@ export const verifyLoginOTP = async (otpData) => {
   return response.data;
 };
 
+// Request password reset
+export const requestPasswordReset = async (email) => {
+  const response = await api.post('/auth/forgot-password', { email });
+  return response.data;
+};
+
 // Fetch user data based on userId
 export const fetchUser = async (userId, token) => {
   const response = await api.get(`/auth/user/${userId}`, {

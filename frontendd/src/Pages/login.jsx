@@ -69,29 +69,33 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 flex items-center justify-center p-4">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-indigo-50 to-purple-100 p-4">
+      {/* Navbar */}
       <Header />
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8">
-        <div className="flex justify-between items-center mb-8">
-          <button
-            onClick={() => navigate('/signup')}
-            className="text-indigo-600 hover:underline transition-colors text-sm ml-43"
-          >
-            Don’t have an account? Sign Up
-          </button>
+
+      {/* Main Login Container */}
+      <div className="flex-grow flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8">
+          <div className="flex justify-between items-center mb-8">
+            <button
+              onClick={() => navigate('/signup')}
+              className="text-indigo-600 hover:underline transition-colors text-sm ml-43"
+            >
+              Don’t have an account? Sign Up
+            </button>
+          </div>
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-indigo-900 mb-2 text-center">Welcome back</h2>
+          </div>
+          <LoginForm navigate={navigate} />
+          <SocialLogin onSocialSignup={handleSocialLogin} loading={socialLoading} error={socialError} />
         </div>
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-indigo-900 mb-2 text-center">Welcome back</h2>
-          <p className="text-gray-600 text-sm text-center">
-            Enter the 6-digit code received via your email/phonenumber
-          </p>
-        </div>
-        <LoginForm navigate={navigate} />
-        <SocialLogin onSocialSignup={handleSocialLogin} loading={socialLoading} error={socialError} />
       </div>
-      <div className="absolute bottom-2 left-0 right-0 text-center text-gray-500 text-sm">
+
+      {/* Footer - Centered at Bottom */}
+      <div className="mt-auto w-full flex justify-center items-center text-gray-500 text-sm">
         <Footer />
-        </div>
+      </div>
     </div>
   );
 };
