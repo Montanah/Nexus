@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../Context/AuthContext';
 import { loadStripe } from '@stripe/stripe-js';
-import NexusLogo from '../assets/NexusLogo.png';
 import { FaEdit, FaTrash, FaCcVisa, FaCcMastercard, FaCcPaypal, FaCcDiscover, FaMobileAlt } from 'react-icons/fa';
-import { fetchCart, deleteCartItem, initiateMobilePayment, createCheckoutSession } from '../Services/api';
+import { fetchCart, deleteCartItem, initiateMpesaMobilePayment, initiateAirtelMobilePayment, createCheckoutSession } from '../Services/api';
+import Header from '../Components/Header';
 
 // Initialize Stripe outside the component
 const stripePromise = loadStripe('pk_test_51OvoL6KzYkQzGZz6rK8Z5Qe5f6Y5X8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9'); // Replace with your Stripe publishable key
@@ -15,9 +16,10 @@ const Checkout = () => {
 
   const [cartItems, setCartItems] = useState([]);
   const [voucherCode, setVoucherCode] = useState('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [paymentDetails, setPaymentDetails] = useState({}); // Added for handleInputChange
 
   // Fetch cart items on mount
   useEffect(() => {
@@ -66,23 +68,41 @@ const Checkout = () => {
     navigate('/client-dashboard', { state: { itemToEdit: item } });
   };
 
+  // Handle input change for payment fields
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setPaymentDetails(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Apply voucher (placeholder)
+  const applyVoucher = () => {
+    console.log('Voucher applied:', voucherCode);
+    // TODO: Implement voucher logic (e.g., API call to validate voucher and adjust total)
+  };
+
   // Handle pay with conditional logic for payment methods
   const handlePay = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      if (selectedPaymentMethod === 'mpesa' || selectedPaymentMethod === 'airtel') {
-        const paymentData = await initiateMobilePayment(userId, cartItems, total, selectedPaymentMethod); // Use service function
-        console.log(`${selectedPaymentMethod} payment initiated:`, paymentData);
+      if (selectedPaymentMethod === 'mpesa') {
+        const paymentData = await initiateMpesaMobilePayment(userId, cartItems, total, selectedPaymentMethod);
+        console.log('M-Pesa payment initiated:', paymentData);
         navigate('/checkout-success');
-      } else {
-        const session = await createCheckoutSession(userId, cartItems, total, voucherCode); // Use service function
+      } else if (selectedPaymentMethod === 'airtel') { 
+        const paymentData = await initiateAirtelMobilePayment(userId, cartItems, total, selectedPaymentMethod);
+        console.log('Airtel payment initiated:', paymentData);
+        navigate('/checkout-success');
+      } else if (selectedPaymentMethod === 'card' || selectedPaymentMethod === 'paypal') {
+        const session = await createCheckoutSession(userId, cartItems, total, voucherCode);
         const stripe = await stripePromise;
         const { error } = await stripe.redirectToCheckout({ sessionId: session.id });
         if (error) {
           setError(error.message);
         }
+      } else {
+        setError('Please select a payment method');
       }
     } catch (err) {
       setError('Failed to initiate payment');
@@ -109,112 +129,185 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-indigo-100">
-      {/* Header with Logo */}
-      <header className="bg-white shadow-md p-4 flex items-center">
-        <img src={NexusLogo} alt="Nexus Logo" className="w-12 h-12" />
-      </header>
+    <div className="h-screen flex flex-col bg-gradient-to-br from-indigo-50 to-purple-100">
+      {/* Header */}
+      <Header />
 
       {/* Main Content */}
-      <div className="flex flex-col md:flex-row max-w-6xl mx-auto p-8 gap-8">
-        {/* Left Side: Cart Items */}
-        <div className="md:w-2/3">
-          <h2 className="text-2xl font-bold text-blue-600 mb-4">Your Cart</h2>
-          {cartItems.length === 0 ? (
-            <p className="text-gray-600">Your cart is empty.</p>
-          ) : (
-            <ul className="space-y-4">
-              {cartItems.map((item) => (
-                <li key={item.productId} className="flex justify-between items-center bg-white p-4 rounded-md shadow-sm">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">{item.productName}</h3>
-                    <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <p className="text-lg font-semibold text-blue-600">${item.finalCharge.toFixed(2)}</p>
-                    <button onClick={() => handleEdit(item)} className="text-blue-500 hover:text-blue-700" aria-label="Edit item">
-                      <FaEdit />
-                    </button>
-                    <button onClick={() => handleDelete(item.productId)} className="text-red-500 hover:text-red-700" aria-label="Delete item">
-                      <FaTrash />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* Right Side: Payment Methods, Voucher, Summary */}
-        <div className="md:w-1/3 bg-white p-6 rounded-md shadow-md">
-          <h2 className="text-xl font-bold text-blue-600 mb-4">Payment Details</h2>
-
-          {/* Payment Methods */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Accepted Payment Methods</h3>
-            <div className="flex flex-wrap gap-4 text-gray-600">
-              <FaCcVisa className="text-3xl" title="Visa" />
-              <FaCcMastercard className="text-3xl" title="Mastercard" />
-              <FaCcPaypal className="text-3xl" title="PayPal" />
-              <FaCcDiscover className="text-3xl" title="Discover" />
-              <FaMobileAlt className="text-3xl" title="M-Pesa" />
-              <FaMobileAlt className="text-3xl" title="Airtel Money" />
-            </div>
-          </div>
-
-          {/* Payment Method Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Select Payment Method</label>
-            <select
-              value={selectedPaymentMethod}
-              onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              <option value="card">Card (Stripe)</option>
-              <option value="mpesa">Pay via M-Pesa</option>
-              <option value="airtel">Pay via Airtel Money</option>
-            </select>
-          </div>
-
-          {/* Voucher */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Voucher Code</label>
-            <input
-              type="text"
-              value={voucherCode}
-              onChange={(e) => setVoucherCode(e.target.value)}
-              placeholder="Enter voucher code"
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            />
-            <button
-              className="mt-2 bg-blue-500 text-white px-4 py-1 rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              onClick={() => console.log('Apply voucher:', voucherCode)}
-            >
-              Apply
-            </button>
-          </div>
-
-          {/* Price Summary */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Price Summary</h3>
-            <div className="flex justify-between text-gray-600">
-              <span>Subtotal:</span>
-              <span>${subtotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-lg font-semibold text-blue-600 mt-2">
-              <span>Total:</span>
-              <span>${total}</span>
-            </div>
-          </div>
-
-          {/* Pay Button */}
-          <button
-            onClick={handlePay}
-            className="w-full bg-green-500 text-white px-4 py-2 rounded-md text-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400"
-            disabled={loading}
+      <div className="flex-grow p-8 pt-24">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-8">
+          {/* Left Side: Cart Items */}
+          <motion.div
+            className="md:w-2/3"
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            {loading ? 'Processing...' : 'Pay'}
-          </button>
+            <h2 className="text-3xl font-bold text-indigo-900 mb-6">Your Cart</h2>
+            {cartItems.length === 0 ? (
+              <p className="text-purple-700 text-center">Your cart is empty.</p>
+            ) : (
+              <ul className="space-y-4">
+                {cartItems.map((item) => (
+                  <motion.li
+                    key={item.productId}
+                    className="flex justify-between items-center bg-white p-4 rounded-xl shadow-md"
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <div>
+                      <h3 className="text-lg font-semibold text-indigo-900">{item.productName}</h3>
+                      <p className="text-sm text-gray-700">Quantity: {item.quantity}</p>
+                      <p className="text-sm text-gray-700">Category: {item.category || 'N/A'}</p>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <p className="text-lg font-semibold text-purple-700">${item.finalCharge.toFixed(2)}</p>
+                      <button
+                        onClick={() => handleEdit(item)}
+                        className="text-indigo-600 hover:text-indigo-800"
+                        aria-label="Edit item"
+                      >
+                        <FaEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.productId)}
+                        className="text-red-500 hover:text-red-700"
+                        aria-label="Delete item"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </motion.li>
+                ))}
+              </ul>
+            )}
+          </motion.div>
+
+          {/* Right Side: Payment Details */}
+          <motion.div
+            className="md:w-1/3 bg-white p-6 rounded-xl shadow-md"
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-2xl font-bold text-indigo-900 mb-4">Payment Details</h2>
+
+            {/* Accepted Payment Methods */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Accepted Payment Methods</h3>
+              <div className="flex flex-wrap gap-4">
+                <FaCcVisa className="text-4xl text-blue-700" title="Visa" />
+                <FaCcMastercard className="text-4xl text-red-600" title="Mastercard" />
+                <FaCcPaypal className="text-4xl text-blue-500" title="PayPal" />
+                <FaCcDiscover className="text-4xl text-orange-500" title="Discover" />
+                <FaMobileAlt className="text-4xl text-green-600" title="M-Pesa/Airtel" />
+              </div>
+            </div>
+
+            {/* Select Payment Method */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Payment Method</label>
+              <select
+                value={selectedPaymentMethod}
+                onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 text-sm"
+              >
+                <option value="">Choose a payment method</option>
+                <option value="card">Credit/Debit Card</option>
+                <option value="paypal">PayPal</option>
+                <option value="mpesa">Pay via M-Pesa</option>
+                <option value="airtel">Pay via Airtel Money</option>
+              </select>
+            </div>
+
+            {/* Dynamic Payment Fields */}
+            {selectedPaymentMethod === 'card' && (
+              <div className="mb-6 space-y-2">
+                <input
+                  type="text"
+                  name="cardNumber"
+                  placeholder="Card Number"
+                  className="w-full p-2 border rounded-md"
+                  onChange={handleInputChange}
+                />
+                <input
+                  type="text"
+                  name="expiryDate"
+                  placeholder="Expiry Date (MM/YY)"
+                  className="w-full p-2 border rounded-md"
+                  onChange={handleInputChange}
+                />
+                <input
+                  type="text"
+                  name="cvv"
+                  placeholder="CVV"
+                  className="w-full p-2 border rounded-md"
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
+
+            {selectedPaymentMethod === 'paypal' && (
+              <input
+                type="email"
+                name="paypalEmail"
+                placeholder="PayPal Email"
+                className="w-full p-2 border rounded-md mb-6"
+                onChange={handleInputChange}
+              />
+            )}
+
+            {['mpesa', 'airtel'].includes(selectedPaymentMethod) && (
+              <input
+                type="text"
+                name="phoneNumber"
+                placeholder="Phone Number"
+                className="w-full p-2 border rounded-md mb-6"
+                onChange={handleInputChange}
+              />
+            )}
+
+            {/* Voucher Field */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Voucher Code</label>
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={voucherCode}
+                  onChange={(e) => setVoucherCode(e.target.value)}
+                  placeholder="Enter voucher code"
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 text-sm"
+                />
+                <button
+                  onClick={applyVoucher}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+
+            {/* Price Summary */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Price Summary</h3>
+              <div className="flex justify-between text-gray-600">
+                <span>Subtotal:</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-lg font-semibold text-purple-700 mt-2">
+                <span>Total:</span>
+                <span>${total}</span>
+              </div>
+            </div>
+
+            {/* Pay Button */}
+            <button
+              onClick={handlePay}
+              className="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+              disabled={loading}
+            >
+              {loading ? 'Processing...' : 'Pay Now'}
+            </button>
+          </motion.div>
         </div>
       </div>
     </div>

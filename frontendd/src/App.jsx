@@ -20,7 +20,6 @@ const App = () => {
           <Route path="/client-dashboard" element={<ClientDashboard />} /> 
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<Checkout />} /> 
-          <Route path="/checkout-success" element={<div>Checkout Successful!</div>} />
         </Routes>
       </Router>
     </AuthProvider>

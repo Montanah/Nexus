@@ -95,8 +95,21 @@ export const deleteCartItem = async (userId, productId) => {
   return response.data;
 };
 
-// Initiate mobile payment (M-Pesa or Airtel Money)
-export const initiateMobilePayment = async (userId, cartItems, total, paymentMethod) => {
+// Initiate Mpesa mobile payment (M-Pesa or Airtel Money)
+export const initiateMpesaMobilePayment = async (userId, cartItems, total, paymentMethod) => {
+  const response = await api.post('/api/daraja-api endpoint', {  // Replace 'daraja-api endpoint' with the actual endpoint
+    userId,
+    cartItems,
+    total,
+    paymentMethod,
+  }, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
+  return response.data;
+};
+
+// Initiate Airtel mobile payment (M-Pesa or Airtel Money)
+export const initiateAirtelMobilePayment = async (userId, cartItems, total, paymentMethod) => {
   const response = await api.post('/api/mobile-payment', {
     userId,
     cartItems,
