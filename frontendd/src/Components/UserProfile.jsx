@@ -26,6 +26,7 @@ const UserProfile = ({ userId }) => {
           throw new Error('No authentication token found');
         }
         const userData = await fetchUser(userId, token);
+        console.log('userData:', JSON.stringify(userData, null, 2));  // Checking the user data
         setUser({
           name: userData.name || 'Unknown User',
           email: userData.email || 'No email provided',

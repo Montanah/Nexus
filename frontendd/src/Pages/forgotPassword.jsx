@@ -2,33 +2,34 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
 import Footer from '../Components/Footer';
-import { requestPasswordReset } from '../Services/api';
+import { forgotPassword } from '../Services/api';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false); // Added for better UX
 
   const handlePasswordReset = async () => {
     setMessage('');
     setError('');
+    setLoading(true);
 
     if (!email.trim()) {
       setError('Please enter your email.');
+      setLoading(false);
       return;
     }
 
     try {
-      const response = await requestPasswordReset(email);
-      if (response.status === 200) { // Check response.status if API returns it in data
-        setMessage('Password reset instructions have been sent to your email.');
-      } else {
-        setMessage(response.message || 'Password reset instructions have been sent to your email.');
-      }
+      const response = await forgotPassword(email);
+      setMessage(response.message || 'Email sent!'); // Only if API return it
+      setTimeout(() => navigate('/email-sent', { state: { email } }), 1000); // Navigate to confirmation page with email
     } catch (err) {
-      console.error(err);
+      console.error('Forgot password error:', err);
       setError('Failed to send reset instructions. Please try again.');
+      setLoading(false);
     }
   };
 
@@ -42,7 +43,7 @@ const ForgotPassword = () => {
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8">
           <h2 className="text-3xl font-bold text-indigo-900 mb-4 text-center">Forgot Password</h2>
           <p className="text-gray-600 text-sm text-center mb-4">
-            Enter your email and well send you password reset instructions.
+            Enter your email and we will send you password reset instructions.
           </p>
 
           {message && <p className="text-green-500 text-sm mb-4">{message}</p>}
@@ -64,9 +65,10 @@ const ForgotPassword = () => {
 
           <button
             onClick={handlePasswordReset}
-            className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-lg text-base"
+            className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-lg text-base disabled:bg-indigo-400"
+            disabled={loading}
           >
-            Send Reset Instructions
+            {loading ? 'Sending...' : 'Send Reset Instructions'}
           </button>
 
           <div className="mt-4 text-center">

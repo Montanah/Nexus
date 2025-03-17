@@ -7,6 +7,8 @@ import ClientDashboard from './pages/ClientDashboard/';
 import CartPage from './Pages/cartPage';
 import Checkout from './Pages/checkout';
 import ForgotPassword from './Pages/forgotPassword';
+import ResetPassword from './Pages/resetPassword';
+import EmailSentConfirmation from './Pages/emailSentConfirmation';
 
 const App = () => {
   return (
@@ -17,6 +19,8 @@ const App = () => {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="email-sent" element={<EmailSentConfirmation />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/client-dashboard" element={<ClientDashboard />} /> 
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<Checkout />} /> 
