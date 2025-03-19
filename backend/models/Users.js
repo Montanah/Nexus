@@ -20,6 +20,10 @@ const UsersSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    avatar: {
+        type: String,
+        default: null,
+    },
     is2FAEnabled: {
         type: Boolean,
         default: false,

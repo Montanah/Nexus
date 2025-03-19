@@ -28,9 +28,9 @@ const UserProfile = ({ userId }) => {
         const userData = await fetchUser(userId, token);
         console.log('userData:', JSON.stringify(userData, null, 2));  // Checking the user data
         setUser({
-          name: userData.name || 'Unknown User',
-          email: userData.email || 'No email provided',
-          avatar: userData.avatar || 'https://maxm-imggenurl.web.val.run/user-avatar-placeholder',
+          name: userData?.data?.name || 'Unknown User',
+          email: userData?.data?.email || 'No email provided',
+          avatar: userData?.data?.avatar || 'https://maxm-imggenurl.web.val.run/user-avatar-placeholder',
         });
       } catch (err) {
         console.error('Error fetching user data:', err);
