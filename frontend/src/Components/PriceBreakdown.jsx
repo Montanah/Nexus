@@ -18,7 +18,7 @@ const PriceBreakdown = ({ productPrice, setProductPrice, finalCharge }) => (
         Final Charge
       </label>
       <input
-        value={finalCharge.toFixed(2)}
+        value={typeof finalCharge === 'number' && !isNaN(finalCharge) ? finalCharge.toFixed(2) : '0.00'}
         disabled
         className="w-full md:w-32 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base bg-gray-100"
       />

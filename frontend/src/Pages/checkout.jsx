@@ -36,7 +36,7 @@ const Checkout = () => {
         setCartItems(items);
 
         if (items.length === 0) {
-          navigate('/client-dashboard');
+          navigate('/new-order');
         }
       } catch (err) {
         setError('Failed to load cart items');
@@ -65,7 +65,7 @@ const Checkout = () => {
 
   // Handle edit item
   const handleEdit = (item) => {
-    navigate('/client-dashboard', { state: { itemToEdit: item } });
+    navigate('/new-order', { state: { itemToEdit: item } });
   };
 
   // Handle input change for payment fields
@@ -86,14 +86,26 @@ const Checkout = () => {
       setLoading(true);
       setError(null);
 
+      const paymentDetails = {
+        cartItems,
+        total,
+        paymentMethod: selectedPaymentMethod === 'mpesa' ? 'M-Pesa' :
+                      selectedPaymentMethod === 'airtel' ? 'Airtel Money' :
+                      selectedPaymentMethod === 'card' ? 'Card' : 'PayPal',
+        orderNumber: `ORD-${Date.now()}`, // Fallback; updated by API response
+        clientName: 'User Name', // Replace with useAuth().user.name if available
+      };
+
       if (selectedPaymentMethod === 'mpesa') {
-        const paymentData = await initiateMpesaMobilePayment(userId, cartItems, total, selectedPaymentMethod);
+        const paymentData = await initiateMpesaMobilePayment(userId, cartItems, total);
+        paymentDetails.orderNumber = paymentData.orderNumber || paymentDetails.orderNumber;
         console.log('M-Pesa payment initiated:', paymentData);
-        navigate('/checkout-success');
-      } else if (selectedPaymentMethod === 'airtel') { 
-        const paymentData = await initiateAirtelMobilePayment(userId, cartItems, total, selectedPaymentMethod);
+        navigate('/payment-success', { state: paymentDetails });
+      } else if (selectedPaymentMethod === 'airtel') {
+        const paymentData = await initiateAirtelMobilePayment(userId, cartItems, total);
+        paymentDetails.orderNumber = paymentData.orderNumber || paymentDetails.orderNumber;
         console.log('Airtel payment initiated:', paymentData);
-        navigate('/checkout-success');
+        navigate('/payment-success', { state: paymentDetails });
       } else if (selectedPaymentMethod === 'card' || selectedPaymentMethod === 'paypal') {
         const session = await createCheckoutSession(userId, cartItems, total, voucherCode);
         const stripe = await stripePromise;
@@ -101,6 +113,7 @@ const Checkout = () => {
         if (error) {
           setError(error.message);
         }
+        // Stripe redirects to /checkout-success (handled by success_url)
       } else {
         setError('Please select a payment method');
       }

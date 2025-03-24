@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
-import { FaShoppingCart } from 'react-icons/fa';
+import { FaShoppingCart, FaPlus, FaMinus, FaBox } from 'react-icons/fa';
 import Sidebar from '../Components/Sidebar';
 import UserProfile from '../Components/UserProfile';
 import InputField from '../Components/DashboardInputField';
@@ -11,7 +11,7 @@ import ActionButtons from '../Components/ActionButtons';
 import { checkout, addToCart, saveProduct, updateProduct } from '../Services/api';
 import CountryStateCityComponent from '../Components/State';
 
-const ClientDashboard = () => {
+const NewOrder = () => {
   const { userId, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,6 +20,7 @@ const ClientDashboard = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
+  // State for single product input
   const [productId, setProductId] = useState(null);
   const [productName, setProductName] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -34,12 +35,15 @@ const ClientDashboard = () => {
   const [deliveryDate, setDeliveryDate] = useState('');
   const [shippingRestrictions, setShippingRestrictions] = useState('');
   const [productPrice, setProductPrice] = useState('');
-  const [finalCharge, setFinalCharge] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
+
+  // State for cart (multiple items)
+  const [cart, setCart] = useState([]);
 
   const quantityOptions = Array.from({ length: 10 }, (_, i) => i + 1);
   const categoryOptions = ['Electronics', 'Clothing', 'Books', 'Accessories', 'Other'];
 
+  // Load item to edit (if any)
   useEffect(() => {
     const { itemToEdit } = location.state || {};
     if (itemToEdit) {
@@ -58,89 +62,125 @@ const ClientDashboard = () => {
       setDeliveryDate(itemToEdit.delivery?.deliveryDate || '');
       setShippingRestrictions(itemToEdit.shippingRestrictions || '');
       setProductPrice(itemToEdit.productPrice || '');
-      setFinalCharge(itemToEdit.finalCharge || 0);
     }
   }, [location.state]);
 
-  const calculateFinalCharge = () => {
-    const basePrice = parseFloat(productPrice) || 0;
-    const quantityMultiplier = quantity;
+  // Calculate final charge for a single item
+  const calculateFinalCharge = useCallback((price, qty) => {
+    const basePrice = parseFloat(price) || 0;
+    const quantityMultiplier = parseInt(qty) || 0;
     const markup = 1.15;
-    setFinalCharge(basePrice * quantityMultiplier * markup);
-  };
+    return basePrice * quantityMultiplier * markup; // Return number, not string
+  }, []);
 
-  useEffect(() => {
-    calculateFinalCharge();
-  }, [productPrice, quantity]);
-
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => setSuccess(null), 3000);
-      return () => clearTimeout(timer);
+  // Add item to cart
+  const handleAddItemToCart = () => {
+    if (!productName || !productPrice || !country || !state || !city || !deliveryDate) {
+      setError('Please fill all required fields');
+      return;
     }
-  }, [success]);
 
-  const handleCheckout = async () => {
-    const formData = {
+    const newItem = {
       userId,
       productId,
       productName,
       quantity,
-      finalCharge,
+      finalCharge: calculateFinalCharge(productPrice, quantity),
       delivery: { country, state, city, deliveryDate },
       productDescription,
       category,
-      productPhotos: productPhotos.map((photo) => photo.name || photo),
+      productPhotos: productPhotos.map(photo => photo.name || photo),
       weight,
       dimensions,
       shippingRestrictions,
       productPrice,
     };
 
+    setCart(prevCart => {
+      const existingItem = prevCart.find(item => item.productName === newItem.productName);
+      if (existingItem) {
+        return prevCart.map(item =>
+          item.productName === newItem.productName
+            ? { ...item, quantity: item.quantity + quantity, finalCharge: calculateFinalCharge(productPrice, item.quantity + quantity) }
+            : item
+        );
+      }
+      return [...prevCart, newItem];
+    });
+
+    // Reset form after adding
+    setProductName('');
+    setQuantity(1);
+    setProductDescription('');
+    setCategory('');
+    setProductPhotos([]);
+    setWeight('');
+    setDimensions('');
+    setCountry('');
+    setState('');
+    setCity('');
+    setDeliveryDate('');
+    setShippingRestrictions('');
+    setProductPrice('');
+    setIsEditing(false);
+  };
+
+  // Remove item or decrease quantity from cart
+  const removeFromCart = (itemId) => {
+    const existingItem = cart.find(cartItem => cartItem.productId === itemId || cartItem.productName === itemId);
+    if (existingItem.quantity > 1) {
+      setCart(cart.map(cartItem =>
+        cartItem.productId === itemId || cartItem.productName === itemId
+          ? { ...cartItem, quantity: cartItem.quantity - 1, finalCharge: calculateFinalCharge(cartItem.productPrice, cartItem.quantity - 1) }
+          : cartItem
+      ));
+    } else {
+      setCart(cart.filter(cartItem => cartItem.productId !== itemId && cartItem.productName !== itemId));
+    }
+  };
+
+  // Total calculation
+  const total = cart.reduce((sum, item) => sum + parseFloat(item.finalCharge), 0).toFixed(2);
+
+  // API Handlers
+  const handleCheckout = async () => {
+    if (cart.length === 0) {
+      setError('Cart is empty');
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
-      const data = await checkout(formData);
-      console.log('Checkout successful:', data);
+      console.log('Checkout formData:', { userId, cart });
+      const data = await checkout({ userId, cart });
+      console.log('Checkout response:', data);
       setSuccess('Checkout successful');
-      return true;
+      setCart([]);
+      navigate('/payment-success', { state: { cart, total, paymentMethod: 'Pending', orderNumber: data.orderNumber } });
     } catch (err) {
-      setError('Checkout failed');
-      console.error('Error during checkout:', err);
-      throw err;
+      setError('Checkout failed: ' + (err.response?.data?.message || err.message));
+      console.error('Error during checkout:', err.response || err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleAddToCart = async () => {
-    const formData = {
-      userId,
-      productId,
-      productName,
-      quantity,
-      finalCharge,
-      delivery: { country, state, city, deliveryDate },
-      productDescription,
-      category,
-      productPhotos: productPhotos.map((photo) => photo.name || photo),
-      weight,
-      dimensions,
-      shippingRestrictions,
-      productPrice,
-    };
-
+    if (cart.length === 0) {
+      setError('Cart is empty');
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
-      const data = await addToCart(formData);
+      const data = await addToCart({ userId, cart });
       console.log('Added to cart:', data);
       setSuccess('Added to cart successfully');
-      return true;
+      setCart([]);
+      navigate('/cart');
     } catch (err) {
       setError('Failed to add to cart');
       console.error('Error adding to cart:', err);
-      throw err;
     } finally {
       setLoading(false);
     }
@@ -148,77 +188,15 @@ const ClientDashboard = () => {
 
   const handleSaveProduct = async (e) => {
     e.preventDefault();
-    if (!productName || !country || !state || !city || !deliveryDate || !productPrice) {
-      setError('Please fill all required fields');
-      return;
-    }
-
-    const formData = {
-      userId,
-      productId,
-      productName,
-      quantity,
-      finalCharge,
-      delivery: { country, state, city, deliveryDate },
-      productDescription,
-      category,
-      productPhotos: productPhotos.map((photo) => photo.name || photo),
-      weight,
-      dimensions,
-      shippingRestrictions,
-      productPrice,
-    };
-
-    try {
-      setLoading(true);
-      setError(null);
-      let data;
-      if (isEditing && productId) {
-        data = await updateProduct(userId, productId, formData);
-        console.log('Item updated:', data);
-        setSuccess('Item updated successfully');
-      } else {
-        data = await saveProduct(formData);
-        console.log('Product saved:', data);
-        setSuccess('Product saved successfully');
-      }
-      setProductId(null);
-      setProductName('');
-      setQuantity(1);
-      setProductDescription('');
-      setCategory('');
-      setProductPhotos([]);
-      setWeight('');
-      setDimensions('');
-      setCountry('');
-      setState('');
-      setCity('');
-      setDeliveryDate('');
-      setShippingRestrictions('');
-      setProductPrice('');
-      setFinalCharge(0);
-      setIsEditing(false);
-      navigate('/cart');
-      return true;
-    } catch (err) {
-      setError(isEditing ? 'Failed to update item' : 'Failed to save product');
-      console.error('Save error:', err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    handleAddItemToCart(); // Add to local cart first
   };
 
   const handleLogout = async () => {
     try {
       setLoading(true);
       setError(null);
-      const result = await logout();
-      if (result.success) {
-        navigate('/login');
-      } else {
-        setError(result.error || 'Logout failed');
-      }
+      await logout();
+      navigate('/login');
     } catch (err) {
       setError('Logout failed');
       console.error('Logout error:', err);
@@ -241,7 +219,7 @@ const ClientDashboard = () => {
       <div className="flex-1 p-4 sm:p-6 md:p-8 pb-24 sm:pb-28 md:pb-32 lg:ml-0">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
           <h1 className="text-2xl sm:text-3xl font-bold text-blue-600">
-            {isEditing ? 'Edit Product Listing' : 'Create Product Listing'}
+            {isEditing ? 'Edit Product Listing' : 'Create New Order'}
           </h1>
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
             <Link
@@ -262,6 +240,8 @@ const ClientDashboard = () => {
         {loading && <p className="text-gray-600 text-center">Loading...</p>}
         {error && <p className="text-red-500 text-center">{error}</p>}
         {success && <p className="text-green-500 text-center">{success}</p>}
+
+        {/* Form for adding new item */}
         <form onSubmit={handleSaveProduct} className="space-y-6">
           <div className="flex flex-col md:flex-row gap-4">
             <InputField
@@ -350,18 +330,80 @@ const ClientDashboard = () => {
           <PriceBreakdown
             productPrice={productPrice}
             setProductPrice={setProductPrice}
-            finalCharge={finalCharge}
+            finalCharge={calculateFinalCharge(productPrice, quantity)}
+            cart={cart}
           />
-          <ActionButtons
-            onAddToCart={handleAddToCart}
-            onCheckout={handleCheckout}
-            onSave={handleSaveProduct}
-          />
+          <button
+            type="button"
+            onClick={handleAddItemToCart}
+            className="justify-center bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto"
+          >
+            Add Item to Cart
+          </button>
         </form>
+
+        {/* Cart Display */}
+        <div className="mt-6 bg-cyan-200 rounded-xl shadow-md p-6">
+          <h3 className="text-lg md:text-xl font-semibold text-blue-600 mb-4">Your Cart</h3>
+          {cart.length === 0 ? (
+            <p className="text-gray-600 text-center">Your cart is empty.</p>
+          ) : (
+            <>
+              <ul className="space-y-4">
+                {cart.map((item, index) => (
+                  <li key={index} className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      {item.productPhotos.length > 0 ? (
+                        <img src={item.productPhotos[0]} alt={item.productName} className="w-12 h-12 object-cover rounded mr-4" />
+                      ) : (
+                        <FaBox className="text-indigo-600 text-2xl mr-4" />
+                      )}
+                      <div>
+                        <p className="text-gray-900 font-medium">{item.productName}</p>
+                        <p className="text-gray-600 text-sm">
+                          ${item.productPrice} x {item.quantity} = ${item.finalCharge.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => removeFromCart(item.productId || item.productName)}
+                        className="p-1 bg-red-500 text-white rounded hover:bg-red-600"
+                      >
+                        <FaMinus />
+                      </button>
+                      <span className="text-gray-700">{item.quantity}</span>
+                      <button
+                        onClick={() => {
+                          setCart(cart.map(cartItem =>
+                            cartItem.productName === item.productName
+                              ? { ...cartItem, quantity: cartItem.quantity + 1, finalCharge: calculateFinalCharge(cartItem.productPrice, cartItem.quantity + 1) }
+                              : cartItem
+                          ));
+                        }}
+                        className="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                      >
+                        <FaPlus />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-6 flex justify-between items-center">
+                <p className="text-lg md:text-xl font-semibold text-blue-600">Total: ${total}</p>
+                <ActionButtons
+                  onAddToCart={handleAddToCart}
+                  onCheckout={handleCheckout}
+                  onSave={handleSaveProduct}
+                />
+              </div>
+            </>
+          )}
+        </div>
       </div>
       <UserProfile userId={userId} />
     </div>
   );
 };
 
-export default ClientDashboard;
+export default NewOrder;

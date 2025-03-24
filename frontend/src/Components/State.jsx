@@ -31,7 +31,7 @@ const CountryStateCityComponent = ({
   return (
     <div className="flex flex-col md:flex-row gap-4">
       <div className="w-full">
-        <label className="block text-sm md:text-base font-medium text-gray-700 mb-1">
+        <label className="block mb-2 text-blue-600 text-sm sm:text-base">
           Country
         </label>
         <Dropdown
@@ -46,7 +46,7 @@ const CountryStateCityComponent = ({
       </div>
 
       <div className="w-full">
-        <label className="block text-sm md:text-base font-medium text-gray-700 mb-1">
+        <label className="block mb-2 text-blue-600 text-sm sm:text-base">
           State
         </label>
         <Dropdown
@@ -61,7 +61,7 @@ const CountryStateCityComponent = ({
       </div>
 
       <div className="w-full">
-        <label className="block text-sm md:text-base font-medium text-gray-700 mb-1">
+        <label className="block mb-2 text-blue-600 text-sm sm:text-base">
           City
         </label>
         <Dropdown

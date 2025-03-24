@@ -61,9 +61,17 @@ export const logoutUser = async (token) => {
   return response.data;
 };
 
+// fetch orders
+export const fetchOrders = async (userId) => {
+  const response = await api.get(`/api/orders/${userId}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
+  return response.data; // e.g., [{ id, itemName, photo, quantity, unitPrice, totalPrice, details, ... }]
+};
+
 // Checkout
 export const checkout = async (formData) => {
-  const response = await api.post('/api/checkout', formData);
+  const response = await api.post('/checkout', formData);
   return response.data;
 };
 
@@ -101,30 +109,36 @@ export const deleteCartItem = async (userId, productId) => {
   return response.data;
 };
 
-// Initiate Mpesa mobile payment (M-Pesa or Airtel Money)
-export const initiateMpesaMobilePayment = async (userId, cartItems, total, paymentMethod) => {
-  const response = await api.post('/api/daraja-api endpoint', {  // Replace 'daraja-api endpoint' with the actual endpoint
+// Initiate M-Pesa payment
+export const initiateMpesaMobilePayment = async (userId, cartItems, total) => {
+  const response = await api.post('/api/mpesa-payment', {
     userId,
     cartItems,
     total,
-    paymentMethod,
   }, {
     headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
   });
-  return response.data;
+  return response.data; // e.g., { orderNumber: "MPESA123", status: "success" }
 };
 
-// Initiate Airtel mobile payment (M-Pesa or Airtel Money)
-export const initiateAirtelMobilePayment = async (userId, cartItems, total, paymentMethod) => {
-  const response = await api.post('/api/mobile-payment', {
+// Initiate Airtel payment
+export const initiateAirtelMobilePayment = async (userId, cartItems, total) => {
+  const response = await api.post('/api/airtel-payment', {
     userId,
     cartItems,
     total,
-    paymentMethod,
   }, {
     headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
   });
-  return response.data;
+  return response.data; // e.g., { orderNumber: "AIRTEL456", status: "success" }
+};
+
+// Fetch payment details for use with stripe success redirect
+export const fetchPaymentDetails = async (sessionId) => {
+  const response = await api.get(`/api/payment-details/${sessionId}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
+  return response.data; // { cartItems, total, paymentMethod, orderNumber, clientName }
 };
 
 // Create Stripe checkout session
@@ -134,10 +148,28 @@ export const createCheckoutSession = async (userId, cartItems, total, voucherCod
     cartItems,
     total,
     voucherCode,
+    successUrl: `${window.location.origin}/payment-success`, // Added for Stripe
+    cancelUrl: `${window.location.origin}/checkout`, // Added for Stripe
   }, {
     headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
   });
-  return response.data;
+  return response.data; // e.g., { id: "stripe-session-id" }
+};
+
+// Traveler Dashboard API calls
+export const getTravelerOrders = async (filters) => {
+  const response = await api.get('/api/travelers/orders', { params: filters });
+  return response;
+};
+
+export const getTravelerEarnings = async (travelerId, params = {}) => {
+  const response = await api.get(`/api/travelers/${travelerId}/earnings`, { params });
+  return response;
+};
+
+export const getTravelerHistory = async (travelerId) => {
+  const response = await api.get(`/api/travelers/${travelerId}/history`);
+  return response;
 };
 
 export default api;
