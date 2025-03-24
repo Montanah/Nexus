@@ -13,6 +13,7 @@ import EmailSentConfirmation from './Pages/emailSentConfirmation';
 import PaymentSuccess from './Pages/paymentSuccess';
 import TravelerDashboard from './Pages/travelerDashboard';
 import Settings from './Pages/settings';
+import RatingForm from './Pages/ratingsForm';
 // import Help from './Pages/help';
 // import Notifications from './Pages/notifications';
 
@@ -33,6 +34,7 @@ const App = () => {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/traveler-dashboard" element={<TravelerDashboard />} />
+          <Route path="/rate-order/:orderNumber" element={<RatingForm />} />
           <Route path="/settings" element={<Settings />} />
           {/* <Route path="/help" element={<Help />} />
           <Route path="/notifications" element={<Notifications/>} /> */}

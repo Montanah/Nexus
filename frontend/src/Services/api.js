@@ -172,4 +172,35 @@ export const getTravelerHistory = async (travelerId) => {
   return response;
 };
 
+// Traveler & Client rating API calls
+export const rateClient = async (data) => {
+  const response = await api.post('/api/ratings/traveler-to-client', data);
+  return response;
+};
+
+export const rateTraveler = async (data) => {
+  const response = await api.post('/api/ratings/client-to-traveler', data);
+  return response;
+};
+
+export const getTravelerRatings = async (travelerId) => {
+  const response = await api.get(`/api/ratings/traveler/${travelerId}`);
+  return response;
+};
+
+export const getClientRatings = async (clientId) => {
+  const response = await api.get(`/api/ratings/client/${clientId}`);
+  return response;
+};
+
+// Client Dashboard API calls
+export const getClientOrders = async (clientId) => {
+  const response = await api.get(`/api/clients/${clientId}/orders`);
+  return response;
+};
+
+export const getClientEarnings = async (clientId, params = {}) => {
+  const response = await api.get(`/api/clients/${clientId}/earnings`, { params });
+  return response;
+};
 export default api;

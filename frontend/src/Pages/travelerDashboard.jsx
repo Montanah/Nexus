@@ -15,7 +15,7 @@ const TravelerDashboard = () => {
   const [history, setHistory] = useState([]);
   const [period, setPeriod] = useState('all');
 
-  // Mock filter options (could be fetched from API in a real app)
+  // Mock filter options (can befetched from API)
   const categoryOptions = ['All', 'Electronics', 'Accessories', 'Clothing'];
   const destinationOptions = ['All', 'USA, New York', 'UK, London', 'Canada, Toronto'];
 
