@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './Context/AuthContext';
 import LandingPage from './Pages/landingPage/';
 import SignUp from './Pages/signUp/';
@@ -14,8 +14,14 @@ import PaymentSuccess from './Pages/paymentSuccess';
 import TravelerDashboard from './Pages/travelerDashboard';
 import Settings from './Pages/settings';
 import RatingForm from './Pages/ratingsForm';
+import ProductDetails from './Pages/productDetails';
 // import Help from './Pages/help';
 // import Notifications from './Pages/notifications';
+
+const RatingFormWithLocation = () => {
+  const location = useLocation();
+  return <RatingForm isTraveler={location.state?.isTraveler} />;
+};
 
 const App = () => {
   return (
@@ -34,7 +40,8 @@ const App = () => {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/traveler-dashboard" element={<TravelerDashboard />} />
-          <Route path="/rate-order/:orderNumber" element={<RatingForm />} />
+          <Route path="/product-details/:productId" element={<ProductDetails />} />
+          <Route path="/rate-product/:productId" element={<RatingFormWithLocation />} />
           <Route path="/settings" element={<Settings />} />
           {/* <Route path="/help" element={<Help />} />
           <Route path="/notifications" element={<Notifications/>} /> */}

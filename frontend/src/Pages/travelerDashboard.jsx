@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../Context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { getTravelerOrders, getTravelerEarnings, getTravelerHistory } from '../Services/api';
+import { getAvailableProducts, getTravelerEarnings, getTravelerHistory } from '../Services/api';
 import Sidebar from '../Components/Sidebar';
 import UserProfile from '../Components/UserProfile';
 
@@ -9,24 +9,24 @@ const TravelerDashboard = () => {
   const { userId } = useAuth();
   const navigate = useNavigate();
 
-  const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]); // Changed from orders to products
   const [filters, setFilters] = useState({ category: 'All', destination: 'All', priceMin: '', priceMax: '', urgency: '' });
   const [earnings, setEarnings] = useState({ totalEarnings: '0.00', pendingPayments: '0.00', rating: { average: 0, count: 0 } });
   const [history, setHistory] = useState([]);
   const [period, setPeriod] = useState('all');
 
-  // Mock filter options (can befetched from API)
+  // Mock filter options (could be fetched from API)
   const categoryOptions = ['All', 'Electronics', 'Accessories', 'Clothing'];
   const destinationOptions = ['All', 'USA, New York', 'UK, London', 'Canada, Toronto'];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const ordersResponse = await getTravelerOrders(filters);
+        const productsResponse = await getAvailableProducts(filters); // Fetch products, not orders
         const earningsResponse = await getTravelerEarnings(userId, { period });
         const historyResponse = await getTravelerHistory(userId);
 
-        setOrders(ordersResponse.data.orders);
+        setProducts(productsResponse.data.products);
         setEarnings(earningsResponse.data);
         setHistory(historyResponse.data.history);
       } catch (error) {
@@ -36,8 +36,8 @@ const TravelerDashboard = () => {
     fetchData();
   }, [filters, userId, period]);
 
-  const handleViewDetails = (orderNumber) => {
-    navigate(`/order-details/${orderNumber}`);
+  const handleViewDetails = (productId) => {
+    navigate(`/product-details/${productId}`);
   };
 
   const handlePeriodChange = (e) => {
@@ -46,12 +46,9 @@ const TravelerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-200 flex flex-col lg:flex-row relative">
-      {/* Sidebar */}
       <Sidebar />
-
-      {/* Main Content */}
       <div className="flex-1 p-4 sm:p-6 md:p-8 pb-24 sm:pb-28 md:pb-32 lg:ml-0">
-        <h1 className="text-2xl sm:text-3xl font-bold text-blue-600 mb-6">Orders for Fulfillment</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-blue-600 mb-6">Products for Fulfillment</h1>
 
         {/* Filters */}
         <div className="mb-6 flex flex-col sm:flex-row gap-4">
@@ -103,32 +100,32 @@ const TravelerDashboard = () => {
           </select>
         </div>
 
-        {/* Swipeable Order List */}
+        {/* Swipeable Product List */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold text-blue-600 mb-4">Available Orders</h2>
+          <h2 className="text-xl font-semibold text-blue-600 mb-4">Available Products</h2>
           <div className="flex overflow-x-auto space-x-4 pb-4">
-            {orders.length === 0 ? (
-              <p className="text-gray-600">No orders available.</p>
+            {products.length === 0 ? (
+              <p className="text-gray-600">No products available.</p>
             ) : (
-              orders.map(order => (
+              products.map(product => (
                 <div
-                  key={order.orderNumber}
+                  key={product.productId}
                   className="flex-shrink-0 w-64 bg-gray-50 p-4 rounded-md border shadow-sm"
                 >
-                  {order.productPhotos && order.productPhotos.length > 0 ? (
+                  {product.productPhotos && product.productPhotos.length > 0 ? (
                     <img
-                      src={order.productPhotos[0]} // Use first photo if available
-                      alt={order.productName}
+                      src={product.productPhotos[0]}
+                      alt={product.productName}
                       className="w-full h-32 object-cover rounded-md mb-2"
                     />
                   ) : null}
-                  <p className="font-medium text-gray-700">{order.productName}</p>
-                  <p className="text-sm text-gray-600">{`${order.deliveryDestination.country}, ${order.deliveryDestination.city}`}</p>
-                  <p className="text-sm text-gray-600">Reward: ${order.rewardAmount}</p>
-                  <p className="text-sm text-gray-600">Urgency: {order.urgencyLevel}</p>
-                  <p className="text-sm text-gray-600">Price: ${order.price}</p>
+                  <p className="font-medium text-gray-700">{product.productName}</p>
+                  <p className="text-sm text-gray-600">{`${product.delivery.country}, ${product.delivery.city}`}</p>
+                  <p className="text-sm text-gray-600">Reward: ${product.rewardAmount}</p>
+                  <p className="text-sm text-gray-600">Urgency: {product.urgencyLevel}</p>
+                  <p className="text-sm text-gray-600">Price: ${product.productPrice}</p>
                   <button
-                    onClick={() => handleViewDetails(order.orderNumber)}
+                    onClick={() => handleViewDetails(product.productId)}
                     className="mt-2 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
                   >
                     View Details
@@ -167,8 +164,6 @@ const TravelerDashboard = () => {
           </button>
         </div>
       </div>
-
-      {/* User Profile */}
       <UserProfile userId={userId} />
     </div>
   );

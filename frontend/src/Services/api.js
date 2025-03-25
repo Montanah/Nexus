@@ -61,33 +61,13 @@ export const logoutUser = async (token) => {
   return response.data;
 };
 
-// fetch orders
-export const fetchOrders = async (userId) => {
-  const response = await api.get(`/api/orders/${userId}`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
-  });
-  return response.data; // e.g., [{ id, itemName, photo, quantity, unitPrice, totalPrice, details, ... }]
-};
-
-// Checkout
-export const checkout = async (formData) => {
-  const response = await api.post('/checkout', formData);
-  return response.data;
-};
-
 // Add to cart
 export const addToCart = async (formData) => {
   const response = await api.post('/api/cart', formData);
   return response.data;
 };
 
-// Save product listing
-export const saveProduct = async (formData) => {
-  const response = await api.post('/api/products', formData);
-  return response.data;
-};
-
-// Update product listing
+// Update product in cart
 export const updateProduct = async (userId, productId, formData) => {
   const response = await api.put(`/api/cart/${userId}/${productId}`, formData);
   return response.data;
@@ -106,6 +86,51 @@ export const deleteCartItem = async (userId, productId) => {
   const response = await api.delete(`/api/cart/${userId}/${productId}`, {
     headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
   });
+  return response.data;
+};
+
+// fetch orders/products for a specific client
+export const fetchOrders = async (userId) => {
+  const response = await api.get(`/api/products/${userId}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
+  return response.data; // e.g., [{ id, itemName, photo, quantity, unitPrice, totalPrice, details, ... }]
+};
+
+// Product-related endpoints for travelers
+// Retrieve all products
+export const getAvailableProducts = async (filters) => {
+  const response = await api.get('/api/products/', { params: filters }); 
+  return response;
+};
+
+// Retrieve a specific product
+export const getProductDetails = async (productId) => {
+  const response = await api.get(`/api/products/${productId}`);
+  return response;
+};
+
+// Save product listing
+export const saveProduct = async (formData) => {
+  const response = await api.post('/api/products', formData);
+  return response.data;
+};
+
+// Update a product/order
+export const updateProductDetails = async (productId, formData) => {
+  const response = await api.put(`/api/products/${productId}`, formData);
+  return response.data;
+}
+
+// Delete a product/order
+export const deleteProduct = async (productId) => {
+  const response = await api.delete(`/api/products/${productId}`);
+  return response.data;
+}
+
+// Checkout
+export const checkout = async (formData) => {
+  const response = await api.post('/checkout', formData);
   return response.data;
 };
 
@@ -162,13 +187,13 @@ export const getTravelerOrders = async (filters) => {
   return response;
 };
 
-export const getTravelerEarnings = async (travelerId, params = {}) => {
-  const response = await api.get(`/api/travelers/${travelerId}/earnings`, { params });
+export const getTravelerEarnings = async (userId, params = {}) => {
+  const response = await api.get(`/api/travelers/${userId}/earnings`, { params });
   return response;
 };
 
-export const getTravelerHistory = async (travelerId) => {
-  const response = await api.get(`/api/travelers/${travelerId}/history`);
+export const getTravelerHistory = async (userId) => {
+  const response = await api.get(`/api/travelers/${userId}/history`);
   return response;
 };
 
@@ -183,24 +208,24 @@ export const rateTraveler = async (data) => {
   return response;
 };
 
-export const getTravelerRatings = async (travelerId) => {
-  const response = await api.get(`/api/ratings/traveler/${travelerId}`);
+export const getTravelerRatings = async (userId) => {
+  const response = await api.get(`/api/ratings/traveler/${userId}`);
   return response;
 };
 
-export const getClientRatings = async (clientId) => {
-  const response = await api.get(`/api/ratings/client/${clientId}`);
+export const getClientRatings = async (userId) => {
+  const response = await api.get(`/api/ratings/client/${userId}`);
   return response;
 };
 
 // Client Dashboard API calls
-export const getClientOrders = async (clientId) => {
-  const response = await api.get(`/api/clients/${clientId}/orders`);
+export const getClientOrders = async (userId) => {
+  const response = await api.get(`/api/clients/${userId}/orders`);
   return response;
 };
 
-export const getClientEarnings = async (clientId, params = {}) => {
-  const response = await api.get(`/api/clients/${clientId}/earnings`, { params });
+export const getClientEarnings = async (userId, params = {}) => {
+  const response = await api.get(`/api/clients/${userId}/earnings`, { params });
   return response;
 };
 export default api;
