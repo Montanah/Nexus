@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const mongoosePaginate = require('mongoose-paginate-v2');
 
 const productSchema = new mongoose.Schema({
     client: {
@@ -13,14 +14,19 @@ const productSchema = new mongoose.Schema({
     quantity: {
         type: Number,
         required: true,
-    },         
+    },
     productDescription: {
         type: String,
         required: true,
     },
     productCategory: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Category",
+        required: true
+    },
+    categoryName:{
         type: String,
-        required: true,
+        required: true
     },
     productWeight: {
         type: Number,
@@ -40,7 +46,7 @@ const productSchema = new mongoose.Schema({
         },
         country: {
             type: String,
-            required: true, 
+            required: true,
         },
         town: {
             type: String,
@@ -61,20 +67,20 @@ const productSchema = new mongoose.Schema({
     },
     productMarkup: {
         type: Number,
-        default: function() {
+        default: function () {
             return this.productFee * 0.15;
         }
     },
     totalPrice: {
         type: Number,
-        default: function() {
+        default: function () {
             return this.productFee + this.productMarkup;
         }
-    }, 
-    urgencyLevel: { 
-        type: String, 
-        enum: ["low", "medium", "high"], 
-        default: "medium" 
+    },
+    urgencyLevel: {
+        type: String,
+        enum: ["low", "medium", "high"],
+        default: "medium"
     },
 
     // Traveler
@@ -88,5 +94,7 @@ const productSchema = new mongoose.Schema({
         default: false
     }
 }, { timestamps: true });
+
+productSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model("Product", productSchema);

@@ -18,76 +18,14 @@ const upload = multer({ storage });
 // Routes
 /**
  * @swagger
- * components:
- *   schemas:
- *     Product:
- *       type: object
- *       required:
- *         - productName
- *         - productDescription
- *         - productCategory
- *         - productWeight
- *         - productDimensions
- *         - destination
- *         - productFee
- *       properties:
- *         id:
- *           type: string
- *           description: The auto-generated id of the product
- *         productName:
- *           type: string
- *           description: Name of the product
- *         productDescription:
- *           type: string
- *           description: A short description of the product
- *         productCategory:
- *           type: string
- *           description: Category of the product
- *         productWeight:
- *           type: number
- *           description: Weight of the product in kg
- *         productDimensions:
- *           type: string
- *           description: Dimensions of the product (e.g., "10x20x5 cm")
- *         destination:
- *           type: object
- *           properties:
- *             city:
- *               type: string
- *             country:
- *               type: string
- *           description: Destination details
- *         productFee:
- *           type: number
- *           description: The fee for the product
- *         productMarkup:
- *           type: number
- *           description: Markup amount added to the base product fee
- *         totalPrice:
- *           type: number
- *           description: Total price including markup
- *         urgencyLevel:
- *           type: string
- *           enum: [low, medium, high]
- *           description: Urgency level for delivery
- *       example:
- *         productName: "Laptop"
- *         productDescription: "Gaming laptop with RTX 3060"
- *         productCategory: "Electronics"
- *         productWeight: 2.5
- *         productDimensions: "35x25x2 cm"
- *         destination:
- *           city: "Nairobi"
- *           country: "Kenya"
- *         productFee: 1000
- *         productMarkup: 150
- *         totalPrice: 1150
- *         urgencyLevel: "high"
+ * tags:
+ *   name: Products
+ *   description: Product management and search
  */
 
 /**
  * @swagger
- * /products/:
+ * /api/products/:
  *   post:
  *     summary: Create a new product
  *     tags: [Products]
@@ -135,117 +73,245 @@ const upload = multer({ storage });
  *       500:
  *         description: Internal server error
  */
-router.post("/", authenticateClient, upload.array("images", 5), productController.createProduct);
+// router.post("/", authenticateClient, upload.array("images", 5), productController.createProduct);
+router.post("/", authenticateClient, upload.array("images", 5), productController.createProductAndAddToCart);
 
 /**
  * @swagger
- * /products/:
- *   get:
- *     summary: Retrieve all products
+ * /api/products/search/:
+ *   post:
+ *     summary: Search and filter products
+ *     description: |
+ *       Unified product search endpoint with advanced filtering, sorting and pagination.
+ *       Returns products matching the specified criteria.
  *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 description: Product ID for single product lookup
+ *                 example: "507f1f77bcf86cd799439011"
+ *               clientId:
+ *                 type: string
+ *                 description: Filter by client ID
+ *                 example: "611f1f77bcf86cd799439022"
+ *               search:
+ *                 type: string
+ *                 description: Text search across name, description and category
+ *                 example: "smartphone"
+ *               page:
+ *                 type: integer
+ *                 description: Page number for pagination
+ *                 default: 1
+ *                 minimum: 1
+ *                 example: 1
+ *               limit:
+ *                 type: integer
+ *                 description: Number of items per page
+ *                 default: 10
+ *                 minimum: 1
+ *                 maximum: 100
+ *                 example: 10
+ *               minPrice:
+ *                 type: number
+ *                 description: Minimum product price filter
+ *                 example: 100
+ *               maxPrice:
+ *                 type: number
+ *                 description: Maximum product price filter
+ *                 example: 500
+ *               category:
+ *                 type: string
+ *                 description: Filter by category name
+ *                 example: "Electronics"
+ *               urgencyLevel:
+ *                 type: string
+ *                 enum: [low, medium, high]
+ *                 description: Filter by urgency level
+ *                 example: "high"
+ *               sortField:
+ *                 type: string
+ *                 enum: [createdAt, productName, totalPrice, urgencyLevel]
+ *                 default: "createdAt"
+ *                 description: Field to sort by
+ *               sortOrder:
+ *                 type: string
+ *                 enum: [asc, desc]
+ *                 default: "desc"
+ *                 description: Sort direction
  *     responses:
  *       200:
- *         description: Successfully retrieved products
- *       500:
- *         description: Server error
- */      
-router.get("/", productController.getAllProducts);
-
-/**
- * @swagger
- * /products/{userid}:
- *   get:
- *     summary: Retrieve all products for a specific client
- *     tags: [Products]
- *     parameters:
- *       - in: path
- *         name: userid
- *         required: true
- *         description: The ID of the client whose products are to be retrieved
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Successfully retrieved products
+ *         description: Successful operation
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 description:
+ *                   type: string
+ *                   example: "Success"
  *                 success:
  *                   type: boolean
  *                   example: true
- *                 products:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       _id:
- *                         type: string
- *                         example: "603c72ef2f7b2b3c2e7fded3"
- *                       name:
- *                         type: string
- *                         example: "Product 1"
- *                       client:
- *                         type: string
- *                         example: "603c72ef2f7b2b3c2e7fded4"
- *                       price:
- *                         type: number
- *                         example: 99.99
- *                       description:
- *                         type: string
- *                         example: "A description of the product."
- *       500:
- *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Error fetching products"
- *                 error:
+ *                 data:
  *                   type: object
- *                   additionalProperties: true
+ *                   properties:
+ *                     products:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Product'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                           example: 25
+ *                         pages:
+ *                           type: integer
+ *                           example: 3
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 10
+ *                         hasNext:
+ *                           type: boolean
+ *                           example: true
+ *                         hasPrev:
+ *                           type: boolean
+ *                           example: false
+ *                     filters:
+ *                       type: object
+ *                       description: Applied filters for reference
+ *       400:
+ *         description: Invalid request parameters
+ *       401:
+ *         description: Unauthorized - Missing or invalid token
+ *       404:
+ *         description: Product not found (when searching by specific ID)
+ *       500:
+ *         description: Internal server error
  */
-router.get("/:userid", productController.getClientProducts);
 
 /**
  * @swagger
- * /products/{productid}:
- *   get:
- *     summary: Retrieve a specific product
- *     tags: [Products]
- *     parameters:
- *       - in: path
- *         name: productid
- *         required: true
- *         description: The ID of the product to be retrieved
- *         schema:
+ * components:
+ *   schemas:
+ *     Product:
+ *       type: object
+ *       properties:
+ *         _id:
  *           type: string
- *     responses:
- *       200:
- *         description: Successfully retrieved products"
- *       500:
- *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Error fetching products"
- *                 error:
- *                   type: object
- *                   additionalProperties: true
+ *           example: "507f1f77bcf86cd799439011"
+ *         productName:
+ *           type: string
+ *           example: "iPhone 13 Pro"
+ *         quantity:
+ *           type: number
+ *           example: 1
+ *         productDescription:
+ *           type: string
+ *           example: "Latest Apple smartphone"
+ *         productCategory:
+ *           $ref: '#/components/schemas/Category'
+ *         categoryName:
+ *           type: string
+ *           example: "Electronics"
+ *         productWeight:
+ *           type: number
+ *           example: 0.2
+ *         productDimensions:
+ *           type: string
+ *           example: "6.1 x 3 x 0.3 inches"
+ *         productPhotos:
+ *           type: array
+ *           items:
+ *             type: string
+ *             format: uri
+ *             example: "https://example.com/image.jpg"
+ *         destination:
+ *           type: object
+ *           properties:
+ *             city:
+ *               type: string
+ *               example: "New York"
+ *             country:
+ *               type: string
+ *               example: "USA"
+ *             town:
+ *               type: string
+ *               example: "Manhattan"
+ *         productFee:
+ *           type: number
+ *           example: 999.99
+ *         productMarkup:
+ *           type: number
+ *           example: 149.99
+ *         totalPrice:
+ *           type: number
+ *           example: 1149.98
+ *         urgencyLevel:
+ *           type: string
+ *           enum: [low, medium, high]
+ *           example: "medium"
+ *         client:
+ *           $ref: '#/components/schemas/Client'
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           example: "2023-01-01T00:00:00Z"
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           example: "2023-01-01T00:00:00Z"
+ * 
+ *     Category:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           example: "507f1f77bcf86cd799439011"
+ *         categoryName:
+ *           type: string
+ *           example: "Electronics"
+ * 
+ *     Client:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           example: "611f1f77bcf86cd799439022"
+ *         name:
+ *           type: string
+ *           example: "John Doe"
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: "john@example.com"
+ * 
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  */
-router.get("/product/:productId", productController.getProductById);
+// Unified POST search endpoint
+router.post('/search/', productController.searchProducts);
 
 /**
  * @swagger
- * /products/:id:
+ * /api/products/:id:
  *   put:
  *     summary: Update a specific product
  *     tags: [Products]
@@ -302,7 +368,7 @@ router.put("/:id", authenticateClient, productController.updateProduct);
 
 /**
  * @swagger
- * /products/:id:
+ * /api/products/:id:
  *   delete:
  *     summary: Delete a specific product
  *     tags: [Products]
@@ -324,5 +390,93 @@ router.put("/:id", authenticateClient, productController.updateProduct);
  *         description: Internal server error
  */
 router.delete("/:id", authenticateClient, productController.deleteProduct);
+
+/**@swagger
+ * /api/products/category/:
+ *   post:
+ *     summary: Create a new Category
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               categoryName:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Product created successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error 
+ */
+
+router.post("/category/", authenticateClient, productController.createCategory);
+
+/**
+ * **
+ * @swagger
+ * /api/products/category/:id:
+ *   put:
+ *     summary: Update a specific category
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the category to be updated
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               categoryName:
+ *                 type: string
+  *     responses:
+ *       200:
+ *         description: Category updated successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.put("/category/:id", authenticateClient, productController.updateCategory);
+
+/**
+ * @swagger
+ * /products/category/:id:
+ *   delete:
+ *     summary: Delete a specific Category
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the category to be deleted
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Category deleted successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+ 
+router.delete("/category/:id", authenticateClient, productController.deleteCategory);
 
 module.exports = router;

@@ -1,52 +1,40 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
 
 const travelerSchema = new mongoose.Schema({
-    name: {
-        type: String,
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,  
+        ref: "Users",
+        required: true  
+    },
+    totalEarnings: {
+        type: Number,  
+        default: 0
+    },
+    pendingPayments: {
+        type: Number,  
         required: true,
+        default: 0
     },
-    email: {
-        type: String,
-        required: true,
-        unique: true,
+    travelerRating: {
+        type: Number,
+        min: 1,
+        max: 5,
+        default: 0
     },
-    password: {
-        type: String,
-        required: true,
-    },
-    role: {
-        type: String,
-        default: "traveler",
-    },
-    is2FAEnabled: {
-        type: Boolean,
-        default: false,
-    },
-    secret2FA: {
-        type: String,
-        default: null,
-    },  
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    updatedAt: {
-        type: Date, 
-        default: Date.now,
-    },
-});
+    history: [{  
+        orderNumber: String,
+        rewardAmount: Number,
+        status: {
+            type: String,
+            enum: ["Completed", "Pending"],  
+            default: "Pending"
+        },
+        completedAt: {
+            type: Date,
+            default: null
+        }
+    }],
+}, { timestamps: true });
 
-// Hash password
-travelerSchema.pre("save", async function (next) {
-    if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
-});
-
-//compare passwords
-travelerSchema.methods.comparePassword = async function (password) {
-    return await bcrypt.compare(password, this.password);
-  };
 
 module.exports = mongoose.model("Traveler", travelerSchema);

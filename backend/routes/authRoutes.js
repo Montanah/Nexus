@@ -378,5 +378,7 @@ router.post('/resetPassword', authController.resetPassword);
  */
 router.post('/verifyLoginOTP', authController.verifyLoginOTP);
 
+router.put("/user/:id", authenticateClient, authController.updateUserProfile);
+
 
 module.exports = router;

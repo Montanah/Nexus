@@ -1,4 +1,4 @@
-const response = (res, status, result = '') => {
+const response = (res, status, data = '') => {
     const descriptions = {
         200: 'Success',
         201: 'Created',
@@ -13,7 +13,8 @@ const response = (res, status, result = '') => {
     const results = {
         status,
         description: desc,
-        data: typeof result === 'object' ? result : { message: result }
+        success: true,
+        data,
     };
 
     return res.status(status).json(results);

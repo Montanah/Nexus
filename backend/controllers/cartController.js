@@ -16,7 +16,6 @@ const Order = require("../models/Order");
  * @throws Will send a response with status 500 if an error occurs while adding the product to the cart.
  */
 
-
 exports.addToCart = async (req, res) => {
     try {
         const userID = req.user.id;
@@ -56,13 +55,13 @@ exports.getCart = async (req, res) => {
         const cart = await Cart.findOne({ user: userID }).populate("items.product");
 
         if (!cart) {
-            return response(res, 200, "Cart is empty", { items: [] });
+            return response(res, 200, {"message": "Cart is empty", items: [] });
         }
 
-        response(res, 200, "Cart retrieved successfully", { cart });
+        return response(res, 200, {"message": "Cart retrieved successfully", cart });
     } catch (error) {
-        console.error("Error fetching cart:", error);
-        response(res, 500, "Error fetching cart", error);
+        console.error("Error fetching cart:", error.message);
+        return response(res, 500, { "message":"Error fetching cart", error });
     }
 };
 
@@ -76,13 +75,50 @@ exports.removeFromCart = async (req, res) => {
             return response(res, 404, "Cart not found");
         }
 
+        const initialItemCount = cart.items.length;
+
         cart.items = cart.items.filter(item => item.product.toString() !== productID);
+
+        if (cart.items.length === initialItemCount) {
+            return response(res, 404, "Product not found in cart");
+        }
         await cart.save();
 
-        response(res, 200, "Product removed from cart", { cart });
+        const updatedCart = await Cart.findById(cart._id).populate('items.product', 'productName price');
+
+        return response(res, 200, {"message":"Product removed from cart",
+            cart: updatedCart,
+            removedProductId: productID });
     } catch (error) {
         console.error("Error removing from cart:", error);
-        response(res, 500, "Error removing from cart", error);
+        return response(res, 500, "Error removing from cart", error);
+    }
+};
+
+exports.clearCart = async (req, res) => {
+    try {
+        const userID = req.user.id;
+        const cart = await Cart.findOneandUpdate(
+            { user: userID },
+            { $set: { items: [] } },
+            { new: true }
+        );
+        if (!result) {
+            return response(res, 404, "Cart not found");
+        }
+
+        return response(res, 200, "Cart cleared successfully", {
+            success: true,
+            cartId: result._id
+        });
+
+    } catch (error) {
+        console.error("Error clearing cart:", error);
+        return response(res, 500, {
+            "message": "Error clearing cart", 
+            success: false,
+            error: error.message
+        });
     }
 };
 

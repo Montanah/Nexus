@@ -19,17 +19,17 @@ require('dotenv').config();
 exports.createUser = async (req, res) => {
     const { name, email, phone_number, password } = req.body;
     try {
-         // Check if user exists
+        // Check if user exists
         let user = await Users.findOne({ email });
         if (user) return response(res, 400, "User already exists");
 
-         // Generate verification code
+        // Generate verification code
         //const verificationCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
         const verificationCode = generateOTP();
         const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min expiry
 
         user = new Users({ name, email, phone_number, password, verificationCode, verificationCodeExpires, });
-        
+
         await user.save();
 
         sendEmail(email, "Verify Your Account", `Your verification code is: ${verificationCode}`);
@@ -38,14 +38,22 @@ exports.createUser = async (req, res) => {
         //     from: process.env.TWILIO_PHONE_NUMBER,
         //     to: phone_number,
         //   });
-        return response(res, 201, { message: "User registered successfully", user});
-        //res.status(201).json({ message: "User registered successfully" });
+        return response(res, 201, {
+            message: "User registered successfully", "user": {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                isVerified: user.isVerified,
+                avatar: user.avatar,
+                phone_number: user.phone_number
+            }
+        });
     } catch (error) {
-        console.error("Error registering user:", error); 
-        
-        return response(res, 500, { 
-            message: "Error registering user", 
-            error: error.message || "An unknown error occurred" 
+        console.error("Error registering user:", error);
+
+        return response(res, 500, {
+            message: "Error registering user",
+            error: error.message || "An unknown error occurred"
         });
     }
 };
@@ -62,7 +70,7 @@ exports.enable2FA = async (req, res) => {
 
         // Generate a TOTP secret
         const secret = speakeasy.generateSecret({ name: `MyApp (${user.email})` });
-        user.secret2FA = secret.base32; 
+        user.secret2FA = secret.base32;
         user.is2FAEnabled = true;
         await user.save();
 
@@ -105,7 +113,7 @@ exports.verify2FA = async (req, res) => {
             secret: user.secret2FA,
             encoding: "base32",
             token,
-            window: 1, 
+            window: 1,
         });
 
         if (verified) {
@@ -120,35 +128,35 @@ exports.verify2FA = async (req, res) => {
 
 exports.verifyUser = async (req, res) => {
     const { email, code } = req.body;
-  
+
     try {
-      const user = await Users.findOne({ email });
-  
-      if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
-  
-      if (user.isVerified) return response(res, 400, "User already verified"); // res.status(400).json({ message: "User already verified" });
-  
-      if (user.verificationCode !== code || new Date() > user.verificationCodeExpires) {
-        return response(res, 400, "Invalid or expired code"); // res.status(400).json({ message: "Invalid or expired code" });
-      }
-  
-      // Mark user as verified
-      user.isVerified = true;
-      user.verificationCode = undefined;
-      user.verificationCodeExpires = undefined;
-      await user.save();
-  
-      response(res, 200, "Verification successful. You can now log in."); // res.status(200).json({ message: "Verification successful. You can now log in." });
-  
+        const user = await Users.findOne({ email });
+
+        if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
+
+        if (user.isVerified) return response(res, 400, "User already verified"); // res.status(400).json({ message: "User already verified" });
+
+        if (user.verificationCode !== code || new Date() > user.verificationCodeExpires) {
+            return response(res, 400, "Invalid or expired code"); // res.status(400).json({ message: "Invalid or expired code" });
+        }
+
+        // Mark user as verified
+        user.isVerified = true;
+        user.verificationCode = undefined;
+        user.verificationCodeExpires = undefined;
+        await user.save();
+
+        response(res, 200, "Verification successful. You can now log in."); // res.status(200).json({ message: "Verification successful. You can now log in." });
+
     } catch (error) {
-      console.error(error);
-      response(res, 500, "Verification failed", error); // res.status(500).json({ message: "Verification failed", error });
+        console.error(error);
+        response(res, 500, "Verification failed", error); // res.status(500).json({ message: "Verification failed", error });
     }
-  };
-  
+};
+
 //login a user
 exports.login = async (req, res) => {
-   
+
     const { email, password } = req.body;
     try {
         let user;
@@ -160,9 +168,9 @@ exports.login = async (req, res) => {
         }
 
         if (!user.is2FAEnabled) {
-            return res.status(400).json({ message: "Please enable 2FA to continue"})
-        } 
-        
+            return res.status(400).json({ message: "Please enable 2FA to continue" })
+        }
+
 
         //Match password
         const isPasswordValid = await user.comparePassword(password);
@@ -183,65 +191,65 @@ exports.login = async (req, res) => {
 
 exports.loginUser = async (req, res) => {
     const { email, password } = req.body;
-  
+
     try {
-      const user = await Users.findOne({ email });
+        const user = await Users.findOne({ email });
 
-     
-  
-      if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
-      console.log(user.isVerified)
-      if (!user.isVerified) return response(res, 403, "Account not verified. Check your email/SMS"); // res.status(403).json({ message: "Account not verified. Check your email/SMS" });
-      
-      //if (!user.is2FAEnabled) return response(res, 400, "Please enable 2FA to continue"); // { return res.status(400).json({ message: "Please enable 2FA to continue"})      } 
-      
-      //Match password
-      const isPasswordValid = await user.comparePassword(password);
-      if (!isPasswordValid) {
-          return response(res, 401, "Invalid password"); // res.status(401).json({ message: "Invalid password" });
-      }
 
-    //   //generate JWT token
-    //   console.log("JWT_SECRET:", process.env.JWT_SECRET);
-    //   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-    //       expiresIn: "1h",
-    //   });
-    //   return response(res, 200, {
-    //     message: "Login successful",
-    //     token,
-    //     user: { 
-    //         _id: user._id, 
-    //         name: user.name, 
-    //         email: user.email, 
-    //         isVerified: user.isVerified
-    //     }
-    // });
-    //   //res.status(200).json({ message: "Login successful", token, user});
 
-    // Generate OTP for login verification
-    const verificationCode = generateOTP();
-    const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); 
-    
-    // Save OTP and expiry in the database
-    user.loginVerificationCode = verificationCode;
-    user.loginVerificationCodeExpires = verificationCodeExpires;
-    await user.save();
-    
-    // Send OTP via email
-    sendEmail(email, "Login Verification Code", `Your login verification code is: ${verificationCode}`);
-    
-    return response(res, 200, {
-        message: "Verification code sent to your email.",
-        userId: user._id
-    });
-  
+        if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
+        console.log(user.isVerified)
+        if (!user.isVerified) return response(res, 403, "Account not verified. Check your email/SMS"); // res.status(403).json({ message: "Account not verified. Check your email/SMS" });
+
+        //if (!user.is2FAEnabled) return response(res, 400, "Please enable 2FA to continue"); // { return res.status(400).json({ message: "Please enable 2FA to continue"})      } 
+
+        //Match password
+        const isPasswordValid = await user.comparePassword(password);
+        if (!isPasswordValid) {
+            return response(res, 401, "Invalid password"); // res.status(401).json({ message: "Invalid password" });
+        }
+
+        //   //generate JWT token
+        //   console.log("JWT_SECRET:", process.env.JWT_SECRET);
+        //   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+        //       expiresIn: "1h",
+        //   });
+        //   return response(res, 200, {
+        //     message: "Login successful",
+        //     token,
+        //     user: { 
+        //         _id: user._id, 
+        //         name: user.name, 
+        //         email: user.email, 
+        //         isVerified: user.isVerified
+        //     }
+        // });
+        //   //res.status(200).json({ message: "Login successful", token, user});
+
+        // Generate OTP for login verification
+        const verificationCode = generateOTP();
+        const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+        // Save OTP and expiry in the database
+        user.loginVerificationCode = verificationCode;
+        user.loginVerificationCodeExpires = verificationCodeExpires;
+        await user.save();
+
+        // Send OTP via email
+        sendEmail(email, "Login Verification Code", `Your login verification code is: ${verificationCode}`);
+
+        return response(res, 200, {
+            message: "Verification code sent to your email.",
+            userId: user._id
+        });
+
     } catch (error) {
-      response(res, 500, { message: "Login error", error: error.message });
-      //res.status(500).json({ message: "Login error", error });
+        response(res, 500, { message: "Login error", error: error.message });
+        //res.status(500).json({ message: "Login error", error });
     }
-  };
+};
 
-exports.verifyLoginOTP = async (req, res ) => {
+exports.verifyLoginOTP = async (req, res) => {
     const { userId, verificationCode } = req.body;
 
     try {
@@ -271,50 +279,51 @@ exports.verifyLoginOTP = async (req, res ) => {
         return response(res, 200, {
             message: "Login successful",
             token,
-            user: { 
-                _id: user._id, 
-                name: user.name, 
-                email: user.email, 
-                isVerified: user.isVerified
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                isVerified: user.isVerified,
+                avatar: user.avatar
             }
         });
 
     } catch (error) {
         response(res, 500, { message: "OTP verification error", error: error.message });
     }
-   
+
 };
 
 exports.resendVerification = async (req, res) => {
     const { email } = req.body;
-  
-    try {
-      const user = await Users.findOne({ email });
-  
-      if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
-  
-      if (user.isVerified) return response(res, 400, "User already verified") // res.status(400).json({ message: "User already verified" });
-  
-      // Generate new code
-      const verificationCode = generateOTP();
-      //const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
-  
-      user.verificationCode = verificationCode;
-      user.verificationCodeExpires = verificationCodeExpires;
-      await user.save();
 
-      // Send Email  
-      sendEmail(email, "New Verification Code", `Your new verification code is: ${verificationCode}`);
-    
-      response(res, 200, "New code sent. Check your email"); //      res.status(200).json({ message: "New code sent. Check your email" });
-  
+    try {
+        const user = await Users.findOne({ email });
+
+        if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
+
+        if (user.isVerified) return response(res, 400, "User already verified") // res.status(400).json({ message: "User already verified" });
+
+        // Generate new code
+        const verificationCode = generateOTP();
+        //const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+        user.verificationCode = verificationCode;
+        user.verificationCodeExpires = verificationCodeExpires;
+        await user.save();
+
+        // Send Email  
+        sendEmail(email, "New Verification Code", `Your new verification code is: ${verificationCode}`);
+
+        response(res, 200, "New code sent. Check your email"); //      res.status(200).json({ message: "New code sent. Check your email" });
+
     } catch (error) {
-      console.error(error);
-      response(res, 500, "Error resending code", error); // res.status(500).json({ message: "Error resending code", error });
+        console.error(error);
+        response(res, 500, "Error resending code", error); // res.status(500).json({ message: "Error resending code", error });
     }
-  };
-    
+};
+
 
 /**
  * Social login handler
@@ -323,100 +332,137 @@ exports.resendVerification = async (req, res) => {
  */
 exports.socialLogin = (req, res) => {
     const user = req.user;
-  
+
     // Generate JWT token
     // We use the user's ID and role in the payload,
     // and sign it with the JWT secret
     // The token will expire after 1 hour
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+        expiresIn: "1h",
     });
-  
+
     // Return the JWT token in the response
-    response(res, 200, { message: "Login successful", token }); // res.status(200).json({ message: "Login successful", token });
-  };
-  
+    return response(res, 200, { message: "Login successful", token }); // res.status(200).json({ message: "Login successful", token });
+};
+
 //Log out user
-  exports.logout = async (req, res) => {
+exports.logout = async (req, res) => {
     try {
-        response(res, 200, "Logged out successfully"); // res.clearCookie("token");
+        return response(res, 200, "Logged out successfully");
     } catch (error) {
-        response(res, 500, "Error logging out user", error); // res.status(500).json({ message: "Error logging out user", error });
+        return response(res, 500, { "message": "Error logging out user", "error": error });
     }
 };
 
 //get user details
 exports.getUserDetails = async (req, res) => {
     try {
-        const user = await Users.findById(req.params.id).select("-password"); 
+        const user = await Users.findById(req.params.id).select("-password");
         if (!user) {
-            return response(res, 404, "User not found"); // res.status(404).json({ message: "User not found" });
+            return response(res, 404, "User not found");
         }
 
-        response(res, 200, user); // res.status(200).json(user);
+        return response(res, 200, {
+            message: "Login successful", "user": {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                isVerified: user.isVerified,
+                avatar: user.avatar,
+                phone_number: user.phone_number
+            }
+        });
     } catch (error) {
-        response(res, 500, "Error fetching user details", error); // res.status(500).json({ message: "Error fetching user details", error });
-    }
-};
+        response(res, 500, "Error fetching user details", error);
+    };
+}
 
 //forget password
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
-  
-    try {
-      // Check if user exists
-      const user = await Users.findOne({ email });
-      
-      if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
-  
-      // Generate new code
-      const resetToken = generateOTP();
-      //const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const resetTokenExpires = new Date(Date.now() + 10 * 60 * 1000);
-  
-      //save reset token to the database
-      user.verificationCode = resetToken;
-      user.verificationCodeExpires = resetTokenExpires;
-      await user.save();
-  
-      // Send Email  
-      sendEmail(email, "Reset Password", `Your reset code is: ${resetToken}`);
 
-      response(res, 200, "Reset code sent. Check your email");
+    try {
+        const user = await Users.findOne({ email });
+
+        if (!user) return response(res, 400, "User not found");
+
+        // Generate new code
+        const resetToken = generateOTP();
+        //const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const resetTokenExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+        user.verificationCode = resetToken;
+        user.verificationCodeExpires = resetTokenExpires;
+        await user.save();
+
+        // Send Email  
+        sendEmail(email, "Reset Password", `Your reset code is: ${resetToken}`);
+
+        response(res, 200, "Reset code sent. Check your email");
 
     } catch (error) {
-      console.error(error);
-      response(res, 500, { 
-        message: "Error processing forgot password request", 
-        error: error.message || "An unknown error occurred"
-        });
-    }
-  };
-
-  exports.resetPassword = async (req, res) => {
-    const { email, password, resetToken } = req.body;
-  
-    try {
-      // Check if user exists
-      const user = await Users.findOne({ email });
-  
-      if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
-  
-      
-      // Check if reset token has expired    
-      if (user.resetTokenExpires < Date.now()) return response(res, 400, "Reset token has expired"); // res.status(400).json({ message: "Reset token has expired" });
-  
-      user.verificationCode = undefined;
-      user.verificationCodeExpires = undefined;
-
-      await user.save();
-
-      return response(res, 200, "Password reset successful"); // res.status(200).json({ message: "Password reset successful" });
-    } catch (error) {
-      console.error("Error in reset password:",error);
-      response(res, 500, { 
-        message: "Error processing reset password request", 
-        error: error.message || "An unknown error occurred"
+        console.error(error);
+        response(res, 500, {
+            message: "Error processing forgot password request",
+            error: error.message || "An unknown error occurred"
         });
     }
 };
+
+exports.resetPassword = async (req, res) => {
+    const { email, password, resetToken } = req.body;
+
+    try {
+        // Check if user exists
+        const user = await Users.findOne({ email });
+
+        if (!user) return response(res, 400, "User not found"); // res.status(400).json({ message: "User not found" });
+
+
+        // Check if reset token has expired    
+        if (user.resetTokenExpires < Date.now()) return response(res, 400, "Reset token has expired"); // res.status(400).json({ message: "Reset token has expired" });
+
+        user.verificationCode = undefined;
+        user.verificationCodeExpires = undefined;
+
+        await user.save();
+
+        return response(res, 200, "Password reset successful"); // res.status(200).json({ message: "Password reset successful" });
+    } catch (error) {
+        console.error("Error in reset password:", error);
+        response(res, 500, {
+            message: "Error processing reset password request",
+            error: error.message || "An unknown error occurred"
+        });
+    }
+};
+
+exports.updateUserProfile = async (req, res) => {
+    try {
+        const { name, email, phone_number, avatar } = req.body;
+    
+        const user = await Users.findById(req.params.id);
+        if (!user) {
+            return response(res, 404, "User not found");
+        }
+        user.name = name || user.name;
+        user.email = email || user.email;
+        user.phone_number = phone_number || user.phone_number;
+        user.avatar = avatar || user.avatar;
+
+        await user.save();
+
+        return response(res, 200, {
+            "message": "User updated successfully", "user": {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                isVerified: user.isVerified,
+                avatar: user.avatar,
+                phone_number: user.phone_number
+            }
+        });
+    } catch (error) {
+        return response(res, 500, { "message": "Error updating user", "error": error });
+    }
+}
