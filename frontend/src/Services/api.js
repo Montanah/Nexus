@@ -61,9 +61,23 @@ export const logoutUser = async (token) => {
   return response.data;
 };
 
+// Category API call
+export const getCategories = async () => {
+  const response = await api.get('/api/categories');
+  return response;
+};
+
 // Add to cart
 export const addToCart = async (formData) => {
   const response = await api.post('/api/cart', formData);
+  return response.data;
+};
+
+// Product photo upload
+export const uploadProductPhotos = async (formData) => {
+  const response = await api.post('/api/products/photos', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return response.data;
 };
 
@@ -195,6 +209,20 @@ export const getTravelerEarnings = async (userId, params = {}) => {
 export const getTravelerHistory = async (userId) => {
   const response = await api.get(`/api/travelers/${userId}/history`);
   return response;
+};
+
+// Assign fullfilment to traveler
+export const assignFulfillment = async (productId, userId) => {
+  const response = await api.post('/api/products/assign', { productId, userId });
+  return response.data;
+};
+
+// Photo proof upload endpoint
+export const uploadProof = async (formData) => {
+  const response = await api.post('/api/products/proof', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
 };
 
 // Traveler & Client rating API calls

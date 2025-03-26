@@ -8,7 +8,7 @@ import InputField from '../Components/DashboardInputField';
 import PhotoUpload from '../Components/PhotoUpload';
 import PriceBreakdown from '../Components/PriceBreakdown';
 import ActionButtons from '../Components/ActionButtons';
-import { checkout, addToCart, saveProduct, updateProduct } from '../Services/api';
+import { checkout, addToCart, saveProduct, updateProduct, getCategories } from '../Services/api';
 import CountryStateCityComponent from '../Components/State';
 
 const NewOrder = () => {
@@ -41,7 +41,20 @@ const NewOrder = () => {
   const [cart, setCart] = useState([]);
 
   const quantityOptions = Array.from({ length: 10 }, (_, i) => i + 1);
-  const categoryOptions = ['Electronics', 'Clothing', 'Books', 'Accessories', 'Other'];
+  
+   // Fetch categories
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await getCategories();
+        setCategoryOptions(response.data.categories);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Load item to edit (if any)
   useEffect(() => {
@@ -250,14 +263,14 @@ const NewOrder = () => {
               onChange={setProductName}
               placeholder="Enter product name"
               required
-              className="w-full md:w-60 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              className="w-full md:w-60 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
             <InputField
               label="Quantity"
               value={quantity}
               onChange={setQuantity}
               options={quantityOptions}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
           </div>
           <InputField
@@ -273,7 +286,7 @@ const NewOrder = () => {
             value={category}
             onChange={setCategory}
             options={categoryOptions}
-            className="w-full md:w-35 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+            className="w-full md:w-35 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           />
           <PhotoUpload
             photos={productPhotos}
@@ -286,14 +299,14 @@ const NewOrder = () => {
               value={weight}
               onChange={setWeight}
               placeholder="Enter weight"
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
             <InputField
               label="Dimensions (Optional)"
               value={dimensions}
               onChange={setDimensions}
               placeholder="L x W x H"
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
           </div>
           <div className="space-y-4">

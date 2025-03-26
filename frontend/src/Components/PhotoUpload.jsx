@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import axios from 'axios';
+import PropTypes from 'prop-types';
+import { uploadProductPhotos } from '../Services/api';
 
 const PhotoUpload = ({ photos, setPhotos }) => {
   const [uploadStatus, setUploadStatus] = useState('No File Chosen');
@@ -21,7 +22,7 @@ const PhotoUpload = ({ photos, setPhotos }) => {
     files.forEach((file) => formData.append('photos', file));
 
     try {
-      const response = await axios.post('/api/upload-photos', formData, {
+      const response = await uploadProductPhotos(formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       console.log('Photos uploaded successfully:', response.data);
@@ -83,6 +84,10 @@ const PhotoUpload = ({ photos, setPhotos }) => {
       </div>
     </div>
   );
+};
+PhotoUpload.propTypes = {
+  photos: PropTypes.arrayOf(PropTypes.object).isRequired,
+  setPhotos: PropTypes.func.isRequired,
 };
 
 export default PhotoUpload;
