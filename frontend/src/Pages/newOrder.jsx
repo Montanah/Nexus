@@ -8,7 +8,7 @@ import InputField from '../Components/DashboardInputField';
 import PhotoUpload from '../Components/PhotoUpload';
 import PriceBreakdown from '../Components/PriceBreakdown';
 import ActionButtons from '../Components/ActionButtons';
-import { checkout, addToCart, saveProduct, updateProduct } from '../Services/api';
+import { checkout, addToCart, saveProduct, updateProduct, getCategories } from '../Services/api';
 import CountryStateCityComponent from '../Components/State';
 
 const NewOrder = () => {
@@ -41,7 +41,20 @@ const NewOrder = () => {
   const [cart, setCart] = useState([]);
 
   const quantityOptions = Array.from({ length: 10 }, (_, i) => i + 1);
-  const categoryOptions = ['Electronics', 'Clothing', 'Books', 'Accessories', 'Other'];
+  
+   // Fetch categories
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await getCategories();
+        setCategoryOptions(response.data.categories);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Load item to edit (if any)
   useEffect(() => {
