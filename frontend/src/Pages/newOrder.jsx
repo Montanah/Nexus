@@ -263,14 +263,14 @@ const NewOrder = () => {
               onChange={setProductName}
               placeholder="Enter product name"
               required
-              className="w-full md:w-60 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              className="w-full md:w-60 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
             <InputField
               label="Quantity"
               value={quantity}
               onChange={setQuantity}
               options={quantityOptions}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
           </div>
           <InputField
@@ -286,7 +286,7 @@ const NewOrder = () => {
             value={category}
             onChange={setCategory}
             options={categoryOptions}
-            className="w-full md:w-35 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+            className="w-full md:w-35 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           />
           <PhotoUpload
             photos={productPhotos}
@@ -299,14 +299,14 @@ const NewOrder = () => {
               value={weight}
               onChange={setWeight}
               placeholder="Enter weight"
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
             <InputField
               label="Dimensions (Optional)"
               value={dimensions}
               onChange={setDimensions}
               placeholder="L x W x H"
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
           </div>
           <div className="space-y-4">
