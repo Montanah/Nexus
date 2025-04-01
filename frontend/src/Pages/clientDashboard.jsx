@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../Components/Sidebar';
-import UserProfile from '../Components/UserProfile'; 
+import UserProfile from '../Components/UserProfile';
 import { FaSearch, FaPlus, FaBox } from 'react-icons/fa';
 import { useAuth } from '../Context/AuthContext';
-import { fetchOrders } from '../Services/api';
+import { fetchOrders, updateDeliveryStatus } from '../Services/api';
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
@@ -13,6 +13,7 @@ const ClientDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Fetch orders on mount
   useEffect(() => {
@@ -23,6 +24,7 @@ const ClientDashboard = () => {
         setOrders(fetchedOrders);
       } catch (err) {
         console.error('Failed to fetch orders:', err);
+        setError('Failed to load orders');
       } finally {
         setLoading(false);
       }
@@ -38,12 +40,33 @@ const ClientDashboard = () => {
     setSelectedOrder(selectedOrder?.id === order.id ? null : order);
   };
 
+  const handleConfirmDelivery = async (orderId, deliveryId) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const order = orders.find(o => o.id === orderId);
+      const currentStatus = order.deliveryStatus;
+      let newStatus = 'client_confirmed';
+      if (currentStatus === 'traveler_confirmed') {
+        newStatus = 'delivered';
+      }
+      const updatedOrder = await updateDeliveryStatus(deliveryId, newStatus, token);
+      setOrders(prev =>
+        prev.map(o => (o.id === orderId ? { ...o, deliveryStatus: updatedOrder.deliveryStatus, delivered: newStatus === 'delivered' } : o))
+      );
+      setSelectedOrder(prev => (prev?.id === orderId ? { ...prev, deliveryStatus: updatedOrder.deliveryStatus, delivered: newStatus === 'delivered' } : prev));
+    } catch (err) {
+      setError('Failed to confirm delivery: ' + err.message);
+    }
+  };
+
+  const handleRateTraveler = (orderId) => {
+    navigate(`/rate-product/${orderId}`, { state: { isTraveler: false } });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-200 flex flex-col lg:flex-row relative">
       <Sidebar />
       <div className="flex-1 p-4 sm:p-6 md:p-8 pb-24 sm:pb-28 md:pb-32 lg:ml-0">
-        {/* <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4"> */}
-        {/* Main Content */}
         <div className="flex-1 p-6 overflow-y-auto">
           {/* Search Bar and New Order Button */}
           <div className="flex justify-between items-center mb-6">
@@ -70,6 +93,8 @@ const ClientDashboard = () => {
             <h2 className="text-2xl font-bold text-indigo-900 mb-4">Order List</h2>
             {loading ? (
               <p className="text-gray-600 text-center">Loading orders...</p>
+            ) : error ? (
+              <p className="text-red-600 text-center">{error}</p>
             ) : filteredOrders.length === 0 ? (
               <p className="text-gray-600 text-center">No orders found.</p>
             ) : (
@@ -117,9 +142,9 @@ const ClientDashboard = () => {
                     { label: 'Payment Status', value: selectedOrder.paymentStatus || 'Pending' },
                     { label: 'Date to be Delivered', value: selectedOrder.deliveryDate || 'TBD' },
                     { label: 'Delivered', value: selectedOrder.delivered ? 'Yes' : 'No' },
+                    { label: 'Delivery Status', value: selectedOrder.deliveryStatus || 'Pending' },
                   ].map((step, index) => (
                     <div key={index} className="flex items-start mb-6 relative">
-                      {/* Number Circle */}
                       <div className="flex flex-col items-center mr-4">
                         <div
                           className={`w-6 h-6 rounded-full flex items-center justify-center text-white ${
@@ -130,11 +155,10 @@ const ClientDashboard = () => {
                         >
                           {index + 1}
                         </div>
-                        {index < 3 && (
+                        {index < 4 && (
                           <div className="h-10 w-px bg-gray-300 absolute top-6 left-2.5" />
                         )}
                       </div>
-                      {/* Label and Value */}
                       <div>
                         <p className="text-gray-700 font-medium">{step.label}</p>
                         <p className="text-gray-600">{step.value}</p>
@@ -142,6 +166,23 @@ const ClientDashboard = () => {
                     </div>
                   ))}
                 </div>
+                {selectedOrder.deliveryStatus !== 'delivered' && (
+                  <button
+                    onClick={() => handleConfirmDelivery(selectedOrder.id, selectedOrder.deliveryId)}
+                    className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    disabled={selectedOrder.deliveryStatus === 'client_confirmed'}
+                  >
+                    {selectedOrder.deliveryStatus === 'client_confirmed' ? 'Awaiting Traveler' : 'Confirm Delivery'}
+                  </button>
+                )}
+                {selectedOrder.deliveryStatus === 'delivered' && (
+                  <button
+                    onClick={() => handleRateTraveler(selectedOrder.id)}
+                    className="mt-4 w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    Rate Traveler
+                  </button>
+                )}
               </div>
 
               {/* Traveler Info */}
@@ -157,7 +198,7 @@ const ClientDashboard = () => {
         </div>
       </div>
       <div>
-      <UserProfile userId={userId} />
+        <UserProfile userId={userId} />
       </div>
     </div>
   );

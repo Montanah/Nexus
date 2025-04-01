@@ -217,9 +217,15 @@ export const assignFulfillment = async (productId, userId) => {
   return response.data;
 };
 
-// Photo proof upload endpoint
-export const uploadProof = async (formData) => {
-  const response = await api.post('/api/products/proof', formData, {
+// Update delivery status
+export const updateDeliveryStatus = async (deliveryId, status) => {
+  const response = await api.put(`/api/update/${deliveryId}`, { status });
+  return response.data;
+}
+
+// Upload proof of delivery
+export const uploadDeliveryProof = async (formData) => {
+  const response = await api.post('/api/proof', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;

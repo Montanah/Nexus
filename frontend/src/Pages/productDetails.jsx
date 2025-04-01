@@ -3,10 +3,9 @@ import { useAuth } from '../Context/AuthContext';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import PhotoUpload from '../Components/PhotoUpload';
-import {getProductDetails, assignFulfillment, uploadProof} from '../Services/api';
+import { getProductDetails, assignFulfillment, uploadDeliveryProof, updateDeliveryStatus } from '../Services/api';
 
-const ProductDetails = ({ productId, onClose}) => {
-
+const ProductDetails = ({ productId, onClose }) => {
   const { userId } = useAuth();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
@@ -16,7 +15,6 @@ const ProductDetails = ({ productId, onClose}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch product details using apiService
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -38,8 +36,24 @@ const ProductDetails = ({ productId, onClose}) => {
     try {
       const updatedProduct = await assignFulfillment(productId, userId);
       setIsAccepted(true);
-      setProduct(updatedProduct); // Update local state with API response
+      setProduct(updatedProduct);
       console.log(`Traveler ${userId} accepted fulfillment for ${productId}`);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleConfirmDelivery = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const currentStatus = product.deliveryStatus;
+      let newStatus = 'traveler_confirmed';
+      if (currentStatus === 'client_confirmed') {
+        newStatus = 'delivered';
+      }
+      const updatedProduct = await updateDeliveryStatus(product.deliveryId, newStatus, token);
+      setProduct(updatedProduct);
+      console.log(`Traveler ${userId} confirmed delivery for ${productId}`);
     } catch (err) {
       setError(err.message);
     }
@@ -51,9 +65,10 @@ const ProductDetails = ({ productId, onClose}) => {
       return;
     }
     try {
+      const token = localStorage.getItem('authToken');
       const formData = new FormData();
       productPhotos.forEach(photo => formData.append('photos', photo));
-      const response = await uploadProof(productId, userId, formData);
+      const response = await uploadDeliveryProof(productId, userId, formData, token);
       if (!response.ok) throw new Error('Failed to upload proof');
       console.log('Proof uploaded:', { productId, userId, photos: productPhotos });
       setUploadError(null);
@@ -89,6 +104,8 @@ const ProductDetails = ({ productId, onClose}) => {
     );
   }
 
+  const canUploadAndRate = product.deliveryStatus === 'delivered';
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center pt-4 sm:pt-20 overflow-y-auto">
       <div className="w-full sm:w-96 bg-white rounded-xl shadow-md p-6 relative max-h-[80vh] overflow-y-auto">
@@ -122,6 +139,7 @@ const ProductDetails = ({ productId, onClose}) => {
           <p className="text-gray-600"><span className="font-medium">Reward:</span> ${product.rewardAmount}</p>
           <p className="text-gray-600"><span className="font-medium">Urgency:</span> {product.urgencyLevel}</p>
           <p className="text-gray-600"><span className="font-medium">Price:</span> ${product.productPrice}</p>
+          <p className="text-gray-600"><span className="font-medium">Delivery Status:</span> {product.deliveryStatus}</p>
         </div>
 
         {!isAccepted && product.assignedTraveler === null && (
@@ -133,7 +151,17 @@ const ProductDetails = ({ productId, onClose}) => {
           </button>
         )}
 
-        {isAccepted && (
+        {isAccepted && product.deliveryStatus !== 'delivered' && (
+          <button
+            onClick={handleConfirmDelivery}
+            className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            disabled={product.deliveryStatus === 'traveler_confirmed'}
+          >
+            {product.deliveryStatus === 'traveler_confirmed' ? 'Awaiting Client Confirmation' : 'Confirm Delivery'}
+          </button>
+        )}
+
+        {canUploadAndRate && (
           <>
             <PhotoUpload
               photos={productPhotos}
@@ -164,6 +192,7 @@ const ProductDetails = ({ productId, onClose}) => {
     </div>
   );
 };
+
 ProductDetails.propTypes = {
   productId: PropTypes.string.isRequired,
   onClose: PropTypes.func.isRequired,
