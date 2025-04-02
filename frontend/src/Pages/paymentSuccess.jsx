@@ -136,7 +136,7 @@ const PaymentSuccess = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-gray-600 text-sm">Qty: {item.quantity}</p>
-                      <p className="text-indigo-600 font-semibold">${item.finalCharge.toFixed(2)}</p>
+                      <p className="text-indigo-600 font-semibold">KES{item.finalCharge.toFixed(2)}</p>
                     </div>
                   </li>
                 ))}

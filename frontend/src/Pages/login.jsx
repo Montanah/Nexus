@@ -8,6 +8,7 @@ import SocialLogin from '../Components/SocialLogin';
 import Footer from '../Components/Footer';
 
 const Login = () => {
+  const [step, setStep] = useState('credentials'); // 'credentials' or 'otp'
   const { socialLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -87,8 +88,14 @@ const Login = () => {
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-indigo-900 mb-2 text-center">Welcome back</h2>
           </div>
-          <LoginForm navigate={navigate} />
-          <SocialLogin onSocialSignup={handleSocialLogin} loading={socialLoading} error={socialError} />
+          <LoginForm navigate={navigate} setStep={setStep} step={step} />
+          {step === 'credentials' && (
+            <SocialLogin 
+              onSocialSignup={handleSocialLogin} 
+              loading={socialLoading} 
+              error={socialError}
+            />
+          )}
         </div>
       </div>
 

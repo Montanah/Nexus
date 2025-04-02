@@ -304,11 +304,11 @@ const Checkout = () => {
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Price Summary</h3>
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal:</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>KES{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-lg font-semibold text-purple-700 mt-2">
                 <span>Total:</span>
-                <span>${total}</span>
+                <span>KES{total}</span>
               </div>
             </div>
 

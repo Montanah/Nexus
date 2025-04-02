@@ -384,7 +384,7 @@ const NewOrder = () => {
                       <div>
                         <p className="text-gray-900 font-medium">{item.productName}</p>
                         <p className="text-gray-600 text-sm">
-                          ${item.productPrice} x {item.quantity} = ${item.finalCharge.toFixed(2)}
+                          ${item.productPrice} x {item.quantity} = KES{item.finalCharge.toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -413,7 +413,7 @@ const NewOrder = () => {
                 ))}
               </ul>
               <div className="mt-6 flex justify-between items-center">
-                <p className="text-lg md:text-xl font-semibold text-blue-600">Total: ${total}</p>
+                <p className="text-lg md:text-xl font-semibold text-blue-600">Total: KES{total}</p>
                 <ActionButtons
                   onAddToCart={handleAddToCart}
                   onCheckout={handleCheckout}

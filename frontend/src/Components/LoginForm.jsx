@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../Context/AuthContext';
 import InputField from './InputField';
+import propTypes from 'prop-types';
 
-const LoginForm = ({ navigate }) => {
+const LoginForm = ({ navigate, setStep, step }) => {
   const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -10,7 +11,6 @@ const LoginForm = ({ navigate }) => {
     role: '',
     token: '',
   });
-  const [step, setStep] = useState('credentials'); // 'credentials' or 'otp'
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -23,6 +23,7 @@ const LoginForm = ({ navigate }) => {
     setShowPassword(!showPassword);
   };
 
+  // In LoginForm component, update the handleCredentialSubmit:
   const handleCredentialSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -38,7 +39,7 @@ const LoginForm = ({ navigate }) => {
       const response = await login(formData.email, formData.password);
       console.log('Login response:', response);
       if (response.success && response.step === 'otp') {
-        setStep('otp');
+        setStep('otp'); // Update the step in parent component
       }
     } catch (err) {
       setError(err.message || 'An error occurred');
@@ -134,7 +135,7 @@ const LoginForm = ({ navigate }) => {
         <InputField
           type="text"
           name="token"
-          placeholder="Enter 2FA Code"
+          placeholder="Enter 6-digit code"
           value={formData.token}
           onChange={handleChange}
         />
@@ -159,6 +160,12 @@ const LoginForm = ({ navigate }) => {
       </button>
     </form>
   );
+};
+
+LoginForm.propTypes = {
+  navigate: propTypes.func.isRequired,
+  setStep: propTypes.func.isRequired,
+  step: propTypes.string.isRequired,
 };
 
 export default LoginForm;

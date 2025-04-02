@@ -21,15 +21,27 @@ export const signup = async (userData) => {
   return response.data;
 };
 
+// Verify user
+export const verifyUser = async (verificationData) => {
+  const response = await api.post('/auth/verifyUser', verificationData);
+  return response.data;
+};
+
+// Resend verification code
+export const resendVerificationCode = async (email) => {
+  const response = await api.post('/auth/resendVerificationCode', { email });
+  return response.data;
+};
+
 // Login
 export const loginUser = async (credentials) => {
-  const response = await api.post('/api/auth/loginUser', credentials);
+  const response = await api.post('/auth/loginUser', credentials);
   return response.data;
 };
 
 // Verify OTP
 export const verifyLoginOTP = async (otpData) => {
-  const response = await api.post('/api/auth/verifyLoginOTP', otpData);
+  const response = await api.post('/auth/verifyLoginOTP', otpData);
   return response.data;
 };
 
@@ -63,7 +75,7 @@ export const logoutUser = async (token) => {
 
 // Category API call
 export const getCategories = async () => {
-  const response = await api.get('/api/products/category/');
+  const response = await api.get('/api/products/category');
   return response;
 };
 
@@ -105,7 +117,7 @@ export const deleteCartItem = async (userId, productId) => {
 
 // fetch orders/products for a specific client
 export const fetchOrders = async (userId) => {
-  const response = await api.get(`/api/products/${userId}`, {
+  const response = await api.get(`/orders/${userId}`, {
     headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
   });
   return response.data; // e.g., [{ id, itemName, photo, quantity, unitPrice, totalPrice, details, ... }]

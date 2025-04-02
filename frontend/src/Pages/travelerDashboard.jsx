@@ -116,19 +116,19 @@ const TravelerDashboard = () => {
             placeholder="Min Price"
             value={filters.priceMin}
             onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })}
-            className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]"
+            className="px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]"
           />
           <input
             type="number"
             placeholder="Max Price"
             value={filters.priceMax}
             onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })}
-            className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]"
+            className="px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]"
           />
           <select
             value={filters.urgency}
             onChange={(e) => setFilters({ ...filters, urgency: e.target.value })}
-            className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]"
+            className="px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]"
           >
             <option value="">Urgency</option>
             <option value="Low">Low</option>
@@ -211,12 +211,12 @@ const TravelerDashboard = () => {
 
         {/* Total Earnings Overview */}
         <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center mb-4">
             <h2 className="text-xl font-semibold text-blue-600">Total Earnings Overview</h2>
             <select
               value={period}
               onChange={handlePeriodChange}
-              className="ml-4 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="ml-4 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="all">All Time</option>
               <option value="week">This Week</option>
