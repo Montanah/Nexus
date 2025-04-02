@@ -478,5 +478,21 @@ router.put("/category/:id", authenticateClient, productController.updateCategory
  */
  
 router.delete("/category/:id", authenticateClient, productController.deleteCategory);
+/**
+ * @swagger
+ * /products/category/:
+ *   get:
+ *     summary: get all Category
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: Category fetched successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+ 
+router.get("/category/", productController.getCategories);
 
 module.exports = router;

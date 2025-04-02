@@ -91,12 +91,13 @@ const SignupForm = ({ navigate }) => {
     setError('');
 
     try {
-      const response = await axios.post(`${baseUrl}/auth/register`, {
+      const response = await axios.post(`${baseUrl}/api/auth/register`, {
         name: formData.name,
         email: formData.email,
         phone_number: formData.phone_number, // Changed from phonenumber
         password: formData.password,
       });
+      console.log('Signup response:', response);
       if (response.status === 201) {
         console.log('Signup successful:', response?.data?.message);
         setStep('verify'); // Move to verification step

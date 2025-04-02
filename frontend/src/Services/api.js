@@ -23,31 +23,31 @@ export const signup = async (userData) => {
 
 // Login
 export const loginUser = async (credentials) => {
-  const response = await api.post('/auth/loginUser', credentials);
+  const response = await api.post('/api/auth/loginUser', credentials);
   return response.data;
 };
 
 // Verify OTP
 export const verifyLoginOTP = async (otpData) => {
-  const response = await api.post('/auth/verifyLoginOTP', otpData);
+  const response = await api.post('/api/auth/verifyLoginOTP', otpData);
   return response.data;
 };
 
 // Forgot password
 export const forgotPassword = async (email) => {
-  const response = await api.post('/auth/forgotPassword', { email });
+  const response = await api.post('/api/auth/forgotPassword', { email });
   return response.data;
 };
 
 // Reset password
 export const resetPassword = async (token , newPassword) => {
-  const response = await api.post('/auth/resetPassword', {token, password: newPassword});
+  const response = await api.post('/api/auth/resetPassword', {token, password: newPassword});
   return response.data;
 };
 
 // Fetch user data based on userId
 export const fetchUser = async (userId, token) => {
-  const response = await api.get(`/auth/user/${userId}`, {
+  const response = await api.get(`/api/auth/user/${userId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -55,7 +55,7 @@ export const fetchUser = async (userId, token) => {
 
 // Logout
 export const logoutUser = async (token) => {
-  const response = await api.post('/auth/logout', {}, {
+  const response = await api.post('/api/auth/logout', {}, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -63,7 +63,7 @@ export const logoutUser = async (token) => {
 
 // Category API call
 export const getCategories = async () => {
-  const response = await api.get('/api/categories');
+  const response = await api.get('/api/products/category/');
   return response;
 };
 
@@ -144,7 +144,7 @@ export const deleteProduct = async (productId) => {
 
 // Checkout
 export const checkout = async (formData) => {
-  const response = await api.post('/checkout', formData);
+  const response = await api.post('/api/checkout', formData);
   return response.data;
 };
 

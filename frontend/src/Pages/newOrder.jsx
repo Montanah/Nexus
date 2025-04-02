@@ -48,13 +48,22 @@ const NewOrder = () => {
     const fetchCategories = async () => {
       try {
         const response = await getCategories();
-        setCategoryOptions(response.data.categories);
+        setCategoryOptions(response.data.data.categories);
+        // const formattedOptions = response.data.data.categories.map(cat => ({
+        //   value: cat._id,        
+        //   label: cat.categoryName 
+        // }));
+        // setCategoryOptions(formattedOptions);
       } catch (err) {
         console.error('Error fetching categories:', err);
       }
     };
     fetchCategories();
   }, []);
+
+  // const handleCategoryChange = (e) => {
+  //   setCategory(e.target.value); 
+  // };
 
   // Load item to edit (if any)
   useEffect(() => {
@@ -284,6 +293,7 @@ const NewOrder = () => {
           <InputField
             label="Category"
             value={category}
+            // onChange={handleCategoryChange}
             onChange={setCategory}
             options={categoryOptions}
             className="w-full md:w-35 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"

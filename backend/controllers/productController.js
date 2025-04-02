@@ -338,6 +338,14 @@ exports.updateCategory = async (req, res) => {
     }
 }
 
+exports.getCategories = async (req, res) => {
+    try {
+        const categories = await Category.find();
+        return response(res, 200, {"message": "Categories fetched successfully", categories });
+    } catch (error) {
+        return response(res, 500, "Error fetching categories", error);
+    }
+}
 exports.deleteCategory = async (req, res) => {
     try {
         const category = await Category.findById(req.params.id);
