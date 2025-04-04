@@ -47,19 +47,19 @@ export const verifyLoginOTP = async (otpData) => {
 
 // Forgot password
 export const forgotPassword = async (email) => {
-  const response = await api.post('/api/auth/forgotPassword', { email });
+  const response = await api.post('/auth/forgotPassword', { email });
   return response.data;
 };
 
 // Reset password
 export const resetPassword = async (token , newPassword) => {
-  const response = await api.post('/api/auth/resetPassword', {token, password: newPassword});
+  const response = await api.post('/auth/resetPassword', {token, password: newPassword});
   return response.data;
 };
 
 // Fetch user data based on userId
 export const fetchUser = async (userId, token) => {
-  const response = await api.get(`/api/auth/user/${userId}`, {
+  const response = await api.get(`/auth/user/${userId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -67,7 +67,7 @@ export const fetchUser = async (userId, token) => {
 
 // Logout
 export const logoutUser = async (token) => {
-  const response = await api.post('/api/auth/logout', {}, {
+  const response = await api.post('/auth/logout', {}, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -75,19 +75,19 @@ export const logoutUser = async (token) => {
 
 // Category API call
 export const getCategories = async () => {
-  const response = await api.get('/api/products/category');
+  const response = await api.get('/products/category');
   return response;
 };
 
 // Add to cart
 export const addToCart = async (formData) => {
-  const response = await api.post('/api/cart', formData);
+  const response = await api.post('/cart', formData);
   return response.data;
 };
 
 // Product photo upload
 export const uploadProductPhotos = async (formData) => {
-  const response = await api.post('/api/products/photos', formData, {
+  const response = await api.post('/products/photos', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
@@ -95,13 +95,13 @@ export const uploadProductPhotos = async (formData) => {
 
 // Update product in cart
 export const updateProduct = async (userId, productId, formData) => {
-  const response = await api.put(`/api/cart/${userId}/${productId}`, formData);
+  const response = await api.put(`/cart/${userId}/${productId}`, formData);
   return response.data;
 };
 
 // Fetch cart items for a user
 export const fetchCart = async (userId) => {
-  const response = await api.get(`/api/cart/${userId}`, {
+  const response = await api.get(`/cart/${userId}`, {
     headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
   });
   return response.data.items || [];
@@ -109,7 +109,7 @@ export const fetchCart = async (userId) => {
 
 // Delete cart item
 export const deleteCartItem = async (userId, productId) => {
-  const response = await api.delete(`/api/cart/${userId}/${productId}`, {
+  const response = await api.delete(`/cart/${userId}/${productId}`, {
     headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
   });
   return response.data;
@@ -126,25 +126,25 @@ export const fetchOrders = async (userId) => {
 // Product-related endpoints for travelers
 // Retrieve all products
 export const getAvailableProducts = async (filters) => {
-  const response = await api.get('/api/products/', { params: filters }); 
+  const response = await api.get('/products/', { params: filters }); 
   return response;
 };
 
 // Retrieve a specific product
 export const getProductDetails = async (productId) => {
-  const response = await api.get(`/api/products/${productId}`);
+  const response = await api.get(`/products/${productId}`);
   return response;
 };
 
 // Save product listing
 export const saveProduct = async (formData) => {
-  const response = await api.post('/api/products', formData);
+  const response = await api.post('/products', formData);
   return response.data;
 };
 
 // Update a product/order
 export const updateProductDetails = async (productId, formData) => {
-  const response = await api.put(`/api/products/${productId}`, formData);
+  const response = await api.put(`/products/${productId}`, formData);
   return response.data;
 }
 
@@ -156,13 +156,13 @@ export const deleteProduct = async (productId) => {
 
 // Checkout
 export const checkout = async (formData) => {
-  const response = await api.post('/api/checkout', formData);
+  const response = await api.post('/checkout', formData);
   return response.data;
 };
 
 // Initiate M-Pesa payment
 export const initiateMpesaMobilePayment = async (userId, cartItems, total) => {
-  const response = await api.post('/api/mpesa-payment', {
+  const response = await api.post('/mpesa-payment', {
     userId,
     cartItems,
     total,
@@ -174,7 +174,7 @@ export const initiateMpesaMobilePayment = async (userId, cartItems, total) => {
 
 // Initiate Airtel payment
 export const initiateAirtelMobilePayment = async (userId, cartItems, total) => {
-  const response = await api.post('/api/airtel-payment', {
+  const response = await api.post('/airtel-payment', {
     userId,
     cartItems,
     total,
@@ -186,7 +186,7 @@ export const initiateAirtelMobilePayment = async (userId, cartItems, total) => {
 
 // Fetch payment details for use with stripe success redirect
 export const fetchPaymentDetails = async (sessionId) => {
-  const response = await api.get(`/api/payment-details/${sessionId}`, {
+  const response = await api.get(`/payment-details/${sessionId}`, {
     headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
   });
   return response.data; // { cartItems, total, paymentMethod, orderNumber, clientName }
@@ -194,7 +194,7 @@ export const fetchPaymentDetails = async (sessionId) => {
 
 // Create Stripe checkout session
 export const createCheckoutSession = async (userId, cartItems, total, voucherCode) => {
-  const response = await api.post('/api/create-checkout-session', {
+  const response = await api.post('/create-checkout-session', {
     userId,
     cartItems,
     total,
@@ -209,35 +209,35 @@ export const createCheckoutSession = async (userId, cartItems, total, voucherCod
 
 // Traveler Dashboard API calls
 export const getTravelerOrders = async (filters) => {
-  const response = await api.get('/api/travelers/orders', { params: filters });
+  const response = await api.get('/travelers/orders', { params: filters });
   return response;
 };
 
 export const getTravelerEarnings = async (userId, params = {}) => {
-  const response = await api.get(`/api/travelers/${userId}/earnings`, { params });
+  const response = await api.get(`/travelers/${userId}/earnings`, { params });
   return response;
 };
 
 export const getTravelerHistory = async (userId) => {
-  const response = await api.get(`/api/travelers/${userId}/history`);
+  const response = await api.get(`/travelers/${userId}/history`);
   return response;
 };
 
 // Assign fullfilment to traveler
 export const assignFulfillment = async (productId, userId) => {
-  const response = await api.post('/api/products/assign', { productId, userId });
+  const response = await api.post('/products/assign', { productId, userId });
   return response.data;
 };
 
 // Update delivery status
 export const updateDeliveryStatus = async (deliveryId, status) => {
-  const response = await api.put(`/api/update/${deliveryId}`, { status });
+  const response = await api.put(`/update/${deliveryId}`, { status });
   return response.data;
 }
 
 // Upload proof of delivery
 export const uploadDeliveryProof = async (formData) => {
-  const response = await api.post('/api/proof', formData, {
+  const response = await api.post('/proof', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
@@ -245,33 +245,33 @@ export const uploadDeliveryProof = async (formData) => {
 
 // Traveler & Client rating API calls
 export const rateClient = async (data) => {
-  const response = await api.post('/api/ratings/traveler-to-client', data);
+  const response = await api.post('/ratings/traveler-to-client', data);
   return response;
 };
 
 export const rateTraveler = async (data) => {
-  const response = await api.post('/api/ratings/client-to-traveler', data);
+  const response = await api.post('/ratings/client-to-traveler', data);
   return response;
 };
 
 export const getTravelerRatings = async (userId) => {
-  const response = await api.get(`/api/ratings/traveler/${userId}`);
+  const response = await api.get(`/ratings/traveler/${userId}`);
   return response;
 };
 
 export const getClientRatings = async (userId) => {
-  const response = await api.get(`/api/ratings/client/${userId}`);
+  const response = await api.get(`/ratings/client/${userId}`);
   return response;
 };
 
 // Client Dashboard API calls
 export const getClientOrders = async (userId) => {
-  const response = await api.get(`/api/clients/${userId}/orders`);
+  const response = await api.get(`/clients/${userId}/orders`);
   return response;
 };
 
 export const getClientEarnings = async (userId, params = {}) => {
-  const response = await api.get(`/api/clients/${userId}/earnings`, { params });
+  const response = await api.get(`/clients/${userId}/earnings`, { params });
   return response;
 };
 export default api;

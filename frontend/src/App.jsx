@@ -11,6 +11,7 @@ import ForgotPassword from './Pages/forgotPassword';
 import ResetPassword from './Pages/resetPassword';
 import EmailSentConfirmation from './Pages/emailSentConfirmation';  
 import PaymentSuccess from './Pages/paymentSuccess';
+import PaymentFailure from './Pages/paymentFailure';
 import TravelerDashboard from './Pages/travelerDashboard';
 import Settings from './Pages/settings';
 import RatingForm from './Pages/ratingsForm';
@@ -39,6 +40,7 @@ const App = () => {
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/payment-failure" element={<PaymentFailure />} />
           <Route path="/traveler-dashboard" element={<TravelerDashboard />} />
           <Route path="/product-details/:productId" element={<ProductDetails />} />
           <Route path="/rate-product/:productId" element={<RatingFormWithLocation />} />

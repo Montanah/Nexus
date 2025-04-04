@@ -19,7 +19,7 @@ const Checkout = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [paymentDetails, setPaymentDetails] = useState({}); // Added for handleInputChange
+  const [paymentDetails, setPaymentDetails] = useState({}); // For card number, phone number, etc.
 
   // Fetch cart items on mount
   useEffect(() => {
@@ -77,49 +77,75 @@ const Checkout = () => {
   // Apply voucher (placeholder)
   const applyVoucher = () => {
     console.log('Voucher applied:', voucherCode);
-    // TODO: Implement voucher logic (e.g., API call to validate voucher and adjust total)
+    // TODO: Implement voucher logic
   };
 
-  // Handle pay with conditional logic for payment methods
+  // Handle pay with failure navigation
   const handlePay = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const paymentDetails = {
-        cartItems,
-        total,
+      if (!selectedPaymentMethod) {
+        setError('Please select a payment method');
+        setLoading(false);
+        return;
+      }
+
+      const paymentDetailsForFailure = {
         paymentMethod: selectedPaymentMethod === 'mpesa' ? 'M-Pesa' :
-                      selectedPaymentMethod === 'airtel' ? 'Airtel Money' :
-                      selectedPaymentMethod === 'card' ? 'Card' : 'PayPal',
-        orderNumber: `ORD-${Date.now()}`, // Fallback; updated by API response
-        clientName: 'User Name', // Replace with useAuth().user.name if available
+                       selectedPaymentMethod === 'airtel' ? 'Airtel Money' :
+                       selectedPaymentMethod === 'card' ? 'Credit Card' : 'PayPal',
+        paymentDetails: selectedPaymentMethod === 'card' ? paymentDetails.cardNumber || 'Unknown Card' :
+                        selectedPaymentMethod === 'paypal' ? paymentDetails.paypalEmail || 'Unknown Email' :
+                        paymentDetails.phoneNumber || 'Unknown Phone',
+        totalAmount: total,
       };
 
       if (selectedPaymentMethod === 'mpesa') {
-        const paymentData = await initiateMpesaMobilePayment(userId, cartItems, total);
-        paymentDetails.orderNumber = paymentData.orderNumber || paymentDetails.orderNumber;
-        console.log('M-Pesa payment initiated:', paymentData);
-        navigate('/payment-success', { state: paymentDetails });
+        try {
+          const paymentData = await initiateMpesaMobilePayment(userId, cartItems, total);
+          paymentDetailsForFailure.orderNumber = paymentData.orderNumber || `ORD-${Date.now()}`;
+          navigate('/payment-success', { state: paymentDetailsForFailure });
+        } catch (err) {
+          navigate('/payment-failure', {
+            state: { ...paymentDetailsForFailure, reason: err.message || 'M-Pesa payment declined' },
+          });
+        }
       } else if (selectedPaymentMethod === 'airtel') {
-        const paymentData = await initiateAirtelMobilePayment(userId, cartItems, total);
-        paymentDetails.orderNumber = paymentData.orderNumber || paymentDetails.orderNumber;
-        console.log('Airtel payment initiated:', paymentData);
-        navigate('/payment-success', { state: paymentDetails });
+        try {
+          const paymentData = await initiateAirtelMobilePayment(userId, cartItems, total);
+          paymentDetailsForFailure.orderNumber = paymentData.orderNumber || `ORD-${Date.now()}`;
+          navigate('/payment-success', { state: paymentDetailsForFailure });
+        } catch (err) {
+          navigate('/payment-failure', {
+            state: { ...paymentDetailsForFailure, reason: err.message || 'Airtel payment declined' },
+          });
+        }
       } else if (selectedPaymentMethod === 'card' || selectedPaymentMethod === 'paypal') {
         const session = await createCheckoutSession(userId, cartItems, total, voucherCode);
         const stripe = await stripePromise;
         const { error } = await stripe.redirectToCheckout({ sessionId: session.id });
         if (error) {
-          setError(error.message);
+          navigate('/payment-failure', {
+            state: { ...paymentDetailsForFailure, reason: error.message || 'Payment declined by issuer' },
+          });
         }
-        // Stripe redirects to /checkout-success (handled by success_url)
-      } else {
-        setError('Please select a payment method');
+        // Success is handled by Stripe's success_url
       }
     } catch (err) {
-      setError('Failed to initiate payment');
-      console.error('Payment error:', err);
+      navigate('/payment-failure', {
+        state: {
+          paymentMethod: selectedPaymentMethod === 'mpesa' ? 'M-Pesa' :
+                         selectedPaymentMethod === 'airtel' ? 'Airtel Money' :
+                         selectedPaymentMethod === 'card' ? 'Credit Card' : 'PayPal',
+          paymentDetails: selectedPaymentMethod === 'card' ? paymentDetails.cardNumber || 'Unknown Card' :
+                          selectedPaymentMethod === 'paypal' ? paymentDetails.paypalEmail || 'Unknown Email' :
+                          paymentDetails.phoneNumber || 'Unknown Phone',
+          totalAmount: total,
+          reason: err.message || 'Failed to initiate payment',
+        },
+      });
     } finally {
       setLoading(false);
     }
