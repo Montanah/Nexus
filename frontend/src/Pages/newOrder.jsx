@@ -26,6 +26,8 @@ const NewOrder = () => {
   const [quantity, setQuantity] = useState(1);
   const [productDescription, setProductDescription] = useState('');
   const [category, setCategory] = useState('');
+  const [customCategory, setCustomCategory] = useState(''); // New state for custom category input
+  const [categoryOptions, setCategoryOptions] = useState([]); // Properly defined
   const [productPhotos, setProductPhotos] = useState([]);
   const [weight, setWeight] = useState('');
   const [dimensions, setDimensions] = useState('');
@@ -41,29 +43,24 @@ const NewOrder = () => {
   const [cart, setCart] = useState([]);
 
   const quantityOptions = Array.from({ length: 10 }, (_, i) => i + 1);
-  
-   // Fetch categories
-  const [categoryOptions, setCategoryOptions] = useState([]);
+
+  // Fetch categories on mount
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await getCategories();
-        setCategoryOptions(response.data.data.categories);
-        // const formattedOptions = response.data.data.categories.map(cat => ({
-        //   value: cat._id,        
-        //   label: cat.categoryName 
-        // }));
-        // setCategoryOptions(formattedOptions);
+        setLoading(true);
+        const response = await getCategories(); // From ../Services/api
+        const categories = response.data.data.categories || response.data; // Adjust based on API response
+        setCategoryOptions(categories);
       } catch (err) {
         console.error('Error fetching categories:', err);
+        setError('Failed to load categories');
+      } finally {
+        setLoading(false);
       }
     };
     fetchCategories();
   }, []);
-
-  // const handleCategoryChange = (e) => {
-  //   setCategory(e.target.value); 
-  // };
 
   // Load item to edit (if any)
   useEffect(() => {
@@ -92,13 +89,21 @@ const NewOrder = () => {
     const basePrice = parseFloat(price) || 0;
     const quantityMultiplier = parseInt(qty) || 0;
     const markup = 1.15;
-    return basePrice * quantityMultiplier * markup; // Return number, not string
+    return basePrice * quantityMultiplier * markup;
   }, []);
 
   // Add item to cart
   const handleAddItemToCart = () => {
     if (!productName || !productPrice || !country || !state || !city || !deliveryDate) {
       setError('Please fill all required fields');
+      return;
+    }
+
+    // Use customCategory if provided, otherwise use dropdown selection
+    const effectiveCategory = customCategory || category;
+
+    if (!effectiveCategory) {
+      setError('Please select or enter a category');
       return;
     }
 
@@ -110,7 +115,7 @@ const NewOrder = () => {
       finalCharge: calculateFinalCharge(productPrice, quantity),
       delivery: { country, state, city, deliveryDate },
       productDescription,
-      category,
+      category: effectiveCategory, // Use effective category
       productPhotos: productPhotos.map(photo => photo.name || photo),
       weight,
       dimensions,
@@ -135,6 +140,7 @@ const NewOrder = () => {
     setQuantity(1);
     setProductDescription('');
     setCategory('');
+    setCustomCategory(''); // Reset custom category
     setProductPhotos([]);
     setWeight('');
     setDimensions('');
@@ -274,13 +280,13 @@ const NewOrder = () => {
               required
               className="w-full md:w-60 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
-            <InputField
+            {/* <InputField
               label="Quantity"
               value={quantity}
               onChange={setQuantity}
               options={quantityOptions}
               className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-            />
+            /> */}
           </div>
           <InputField
             label="Product Description"
@@ -290,14 +296,31 @@ const NewOrder = () => {
             rows={4}
             className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           />
-          <InputField
-            label="Category"
-            value={category}
-            // onChange={handleCategoryChange}
-            onChange={setCategory}
-            options={categoryOptions}
-            className="w-full md:w-35 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-          />
+          {/* Category Dropdown and Custom Input */}
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
+            <div className="w-full md:w-40">
+              <InputField
+                label="Category"
+                value={category}
+                onChange={setCategory}
+                options={categoryOptions.map(cat => ({
+                  value: cat._id,
+                  label: cat.name || cat.categoryName,
+                }))}
+                className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              />
+            </div>
+            <div className="w-full md:w-40">
+              <label className="block text-md font-medium text-blue-600 mb-2">Custom Category</label>
+              <input
+                type="text"
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                placeholder="Enter new category"
+                className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              />
+            </div>
+          </div>
           <PhotoUpload
             photos={productPhotos}
             setPhotos={setProductPhotos}
@@ -384,7 +407,7 @@ const NewOrder = () => {
                       <div>
                         <p className="text-gray-900 font-medium">{item.productName}</p>
                         <p className="text-gray-600 text-sm">
-                          ${item.productPrice} x {item.quantity} = KES{item.finalCharge.toFixed(2)}
+                          KES {item.productPrice} x {item.quantity} = KES {item.finalCharge.toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -413,7 +436,7 @@ const NewOrder = () => {
                 ))}
               </ul>
               <div className="mt-6 flex justify-between items-center">
-                <p className="text-lg md:text-xl font-semibold text-blue-600">Total: KES{total}</p>
+                <p className="text-lg md:text-xl font-semibold text-blue-600">Total: KES {total}</p>
                 <ActionButtons
                   onAddToCart={handleAddToCart}
                   onCheckout={handleCheckout}

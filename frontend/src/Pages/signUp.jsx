@@ -32,7 +32,10 @@ const SignUp = () => {
   const [showVerifyPassword, setShowVerifyPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [socialLoading, setSocialLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState({ // Track loading per platform
+    google: false,
+    apple: false,
+  });
   const [socialError, setSocialError] = useState('');
 
   // Form validation
@@ -172,16 +175,30 @@ const SignUp = () => {
 
   // Social login handlers
   const handleSocialSignup = (platform) => {
-    setSocialLoading(true);
+    setSocialLoading((prev) => ({ ...prev, [platform]: true })); // Set loading for specific platform
     setSocialError('');
 
-    const redirectUri = `${window.location.origin}/signup`;
+    const redirectUri = 'http://localhost:3001/auth/google/callback';
 
     if (platform === 'google') {
-      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=GOOGLE_CLIENT_ID&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile`;
+      const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!googleClientId) {
+        setSocialError('Google Client ID is missing.');
+        setSocialLoading((prev) => ({ ...prev, [platform]: false }));
+        return;
+      }
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile`;
+      console.log('Google Auth URL:', googleAuthUrl);
       window.location.href = googleAuthUrl;
     } else if (platform === 'apple') {
-      const appleAuthUrl = `https://appleid.apple.com/auth/authorize?client_id=APPLE_CLIENT_ID&redirect_uri=${redirectUri}&response_type=code%20id_token&scope=name%20email&response_mode=form_post`;
+      const appleClientId = import.meta.env.VITE_APPLE_CLIENT_ID;
+      if (!appleClientId) {
+        setSocialError('Apple Client ID is missing.');
+        setSocialLoading((prev) => ({ ...prev, [platform]: false }));
+        return;
+      }
+      const appleAuthUrl = `https://appleid.apple.com/auth/authorize?client_id=${appleClientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile`;
+      console.log('Apple Auth URL:', appleAuthUrl);
       window.location.href = appleAuthUrl;
     }
   };
@@ -193,14 +210,14 @@ const SignUp = () => {
       <div className="flex-grow flex items-center justify-center">
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8 mt-10">
           <div className="text-right mb-4">
-            <button 
-              onClick={() => navigate('/login')} 
+            <button
+              onClick={() => navigate('/login')}
               className="text-indigo-600 hover:underline text-sm"
             >
               Already have an account? Sign In
             </button>
           </div>
-          
+
           <h2 className="text-3xl font-bold text-center mb-6 text-indigo-900">
             {step === 'register' ? 'Create an Account' : 'Verify Your Account'}
           </h2>
@@ -233,7 +250,7 @@ const SignUp = () => {
                   error={formErrors.phone_number}
                 />
                 <InputField
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   name="password"
                   placeholder="Password"
                   value={formData.password}
@@ -244,7 +261,7 @@ const SignUp = () => {
                   showPassword={showPassword}
                 />
                 <InputField
-                  type={showVerifyPassword ? "text" : "password"}
+                  type={showVerifyPassword ? 'text' : 'password'}
                   name="verifyPassword"
                   placeholder="Verify Password"
                   value={formData.verifyPassword}
@@ -254,9 +271,9 @@ const SignUp = () => {
                   toggleVisibility={() => togglePasswordVisibility('verifyPassword')}
                   showPassword={showVerifyPassword}
                 />
-                
+
                 {error && <p className="text-red-500 text-sm">{error}</p>}
-                
+
                 <button
                   type="submit"
                   className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
@@ -268,7 +285,7 @@ const SignUp = () => {
 
               <SocialLogin
                 onSocialSignup={handleSocialSignup}
-                loading={socialLoading}
+                loading={socialLoading} // Pass object instead of boolean
                 error={socialError}
               />
             </>
@@ -287,9 +304,9 @@ const SignUp = () => {
                   required
                 />
               </div>
-              
+
               {error && <p className="text-red-500 text-sm">{error}</p>}
-              
+
               <button
                 type="submit"
                 className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
@@ -302,9 +319,13 @@ const SignUp = () => {
 
           <div className="text-center text-sm text-gray-500 mt-6">
             By signing up, you agree to our{' '}
-            <a href="#" className="text-indigo-600 hover:underline">Terms of Use</a>{' '}
+            <a href="#" className="text-indigo-600 hover:underline">
+              Terms of Use
+            </a>{' '}
             &{' '}
-            <a href="#" className="text-indigo-600 hover:underline">Privacy Policy</a>
+            <a href="#" className="text-indigo-600 hover:underline">
+              Privacy Policy
+            </a>
           </div>
         </div>
       </div>

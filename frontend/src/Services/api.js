@@ -17,49 +17,49 @@ api.interceptors.response.use(
 
 // Signup 
 export const signup = async (userData) => {
-  const response = await api.post('/auth/register', userData);
+  const response = await api.post('/api/auth/register', userData);
   return response.data;
 };
 
 // Verify user
 export const verifyUser = async (verificationData) => {
-  const response = await api.post('/auth/verifyUser', verificationData);
+  const response = await api.post('/api/auth/verifyUser', verificationData);
   return response.data;
 };
 
 // Resend verification code
 export const resendVerificationCode = async (email) => {
-  const response = await api.post('/auth/resendVerificationCode', { email });
+  const response = await api.post('/api/auth/resendVerificationCode', { email });
   return response.data;
 };
 
 // Login
 export const loginUser = async (credentials) => {
-  const response = await api.post('/auth/loginUser', credentials);
+  const response = await api.post('/api/auth/loginUser', credentials);
   return response.data;
 };
 
 // Verify OTP
 export const verifyLoginOTP = async (otpData) => {
-  const response = await api.post('/auth/verifyLoginOTP', otpData);
+  const response = await api.post('/api/auth/verifyLoginOTP', otpData);
   return response.data;
 };
 
 // Forgot password
 export const forgotPassword = async (email) => {
-  const response = await api.post('/auth/forgotPassword', { email });
+  const response = await api.post('/api/auth/forgotPassword', { email });
   return response.data;
 };
 
 // Reset password
 export const resetPassword = async (token , newPassword) => {
-  const response = await api.post('/auth/resetPassword', {token, password: newPassword});
+  const response = await api.post('/api/auth/resetPassword', {token, password: newPassword});
   return response.data;
 };
 
 // Fetch user data based on userId
 export const fetchUser = async (userId, token) => {
-  const response = await api.get(`/auth/user/${userId}`, {
+  const response = await api.get(`/api/auth/user/${userId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -67,7 +67,7 @@ export const fetchUser = async (userId, token) => {
 
 // Logout
 export const logoutUser = async (token) => {
-  const response = await api.post('/auth/logout', {}, {
+  const response = await api.post('/api/auth/logout', {}, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -75,13 +75,13 @@ export const logoutUser = async (token) => {
 
 // Category API call
 export const getCategories = async () => {
-  const response = await api.get('/products/category');
+  const response = await api.get('/api/products/category');
   return response;
 };
 
 // Add to cart
 export const addToCart = async (formData) => {
-  const response = await api.post('/cart', formData);
+  const response = await api.post('/api/cart', formData);
   return response.data;
 };
 

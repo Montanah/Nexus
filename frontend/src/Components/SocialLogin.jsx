@@ -12,14 +12,14 @@ const SocialLogin = ({ onSocialSignup, loading, error }) => (
       <SocialButton
         platform="google"
         onClick={onSocialSignup}
-        loading={loading}
+        loading={loading} // Pass the object
         iconSrc="https://www.svgrepo.com/show/303108/google-icon-logo.svg"
         label="Google"
       />
       <SocialButton
         platform="apple"
         onClick={onSocialSignup}
-        loading={loading}
+        loading={loading} // Pass the object
         iconSrc="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
         label="Apple"
       />
