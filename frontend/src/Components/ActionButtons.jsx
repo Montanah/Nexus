@@ -1,20 +1,17 @@
 import { useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 
-const ActionButtons = ({ onCheckout, onAddToCart, onSave }) => {
+const ActionButtons = ({ onCheckout, onSave }) => {
   const navigate = useNavigate();
 
   const handleCheckout = async () => {
-    await onCheckout(); // Trigger POST in ClientDashboard
-    navigate('/checkout-success'); // Redirect after success
-  };
-
-  const handleAddToCart = async () => {
-    await onAddToCart(); // Trigger POST in ClientDashboard
+    await onCheckout();
+    navigate('/checkout');
   };
 
   const handleSave = async (e) => {
-    e.preventDefault(); // Prevent form submission if not desired
-    await onSave(e); // Trigger POST in ClientDashboard
+    e.preventDefault();
+    await onSave(e);
   };
 
   return (
@@ -27,21 +24,18 @@ const ActionButtons = ({ onCheckout, onAddToCart, onSave }) => {
         Checkout
       </button>
       <button
-        type="button"
-        onClick={handleAddToCart}
-        className="w-full md:w-auto flex-1 bg-blue-500 text-white px-3 py-1 sm:px-3 sm:py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 hover:bg-blue-600 text-sm sm:text-base leading-tight"
-      >
-        Add to Cart
-      </button>
-      <button
         type="submit"
         onClick={handleSave}
         className="w-full md:w-auto flex-1 bg-indigo-500 text-white px-3 py-1 sm:px-3 sm:py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400 hover:bg-indigo-600 text-sm sm:text-base"
       >
-        Save
+        Add More
       </button>
     </div>
   );
+};
+ActionButtons.propTypes = {
+  onCheckout: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
 };
 
 export default ActionButtons;

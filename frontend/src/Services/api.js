@@ -81,7 +81,11 @@ export const getCategories = async () => {
 
 // Add to cart
 export const addToCart = async (formData) => {
-  const response = await api.post('/api/cart', formData);
+  const response = await api.post('/cart', formData, 
+    {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+    }
+  );
   return response.data;
 };
 
@@ -156,7 +160,7 @@ export const deleteProduct = async (productId) => {
 
 // Checkout
 export const checkout = async (formData) => {
-  const response = await api.post('/checkout', formData);
+  const response = await api.post('/api/orders/checkout', formData);
   return response.data;
 };
 

@@ -49,7 +49,7 @@ const NewOrder = () => {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const response = await getCategories(); // From ../Services/api
+        const response = await getCategories();
         const categories = response.data.data.categories || response.data; // Adjust based on API response
         setCategoryOptions(categories);
       } catch (err) {
@@ -93,20 +93,18 @@ const NewOrder = () => {
   }, []);
 
   // Add item to cart
-  const handleAddItemToCart = () => {
+  const handleAddToCart = async () => {
     if (!productName || !productPrice || !country || !state || !city || !deliveryDate) {
       setError('Please fill all required fields');
       return;
     }
-
-    // Use customCategory if provided, otherwise use dropdown selection
-    const effectiveCategory = customCategory || category;
-
+     // Use customCategory if provided, otherwise use dropdown selection
+     const effectiveCategory = customCategory || category;
+     
     if (!effectiveCategory) {
       setError('Please select or enter a category');
       return;
     }
-
     const newItem = {
       userId,
       productId,
@@ -115,32 +113,46 @@ const NewOrder = () => {
       finalCharge: calculateFinalCharge(productPrice, quantity),
       delivery: { country, state, city, deliveryDate },
       productDescription,
-      category: effectiveCategory, // Use effective category
+      category: effectiveCategory,
       productPhotos: productPhotos.map(photo => photo.name || photo),
       weight,
       dimensions,
       shippingRestrictions,
       productPrice,
     };
-
-    setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.productName === newItem.productName);
-      if (existingItem) {
-        return prevCart.map(item =>
-          item.productName === newItem.productName
-            ? { ...item, quantity: item.quantity + quantity, finalCharge: calculateFinalCharge(productPrice, item.quantity + quantity) }
-            : item
-        );
-      }
-      return [...prevCart, newItem];
-    });
-
-    // Reset form after adding
+  
+    try {
+      setLoading(true);
+      setError(null);
+      // Add to local cart
+      setCart(prevCart => {
+        const existingItem = prevCart.find(item => item.productName === newItem.productName);
+        if (existingItem) {
+          return prevCart.map(item =>
+            item.productName === newItem.productName
+              ? { ...item, quantity: item.quantity + quantity, finalCharge: calculateFinalCharge(productPrice, item.quantity + quantity) }
+              : item
+          );
+        }
+        return [...prevCart, newItem];
+      });
+      // Persist to backend
+      console.log('Adding to cart:', { userId, cart: [newItem] });
+      await addToCart({ userId, cart: [newItem] }); // Send only the new item
+      setSuccess('Item added to cart');
+    } catch (err) {
+      setError('Failed to add item to cart');
+      console.error('Error adding to cart:', err);
+    } finally {
+      setLoading(false);
+    }
+  
+    // Reset form
     setProductName('');
     setQuantity(1);
     setProductDescription('');
     setCategory('');
-    setCustomCategory(''); // Reset custom category
+    setCustomCategory('');
     setProductPhotos([]);
     setWeight('');
     setDimensions('');
@@ -193,30 +205,30 @@ const NewOrder = () => {
     }
   };
 
-  const handleAddToCart = async () => {
-    if (cart.length === 0) {
-      setError('Cart is empty');
-      return;
-    }
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await addToCart({ userId, cart });
-      console.log('Added to cart:', data);
-      setSuccess('Added to cart successfully');
-      setCart([]);
-      navigate('/cart');
-    } catch (err) {
-      setError('Failed to add to cart');
-      console.error('Error adding to cart:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const handleAddToCart = async () => {
+  //   if (cart.length === 0) {
+  //     setError('Cart is empty');
+  //     return;
+  //   }
+  //   try {
+  //     setLoading(true);
+  //     setError(null);
+  //     const data = await addToCart({ userId, cart });
+  //     console.log('Added to cart:', data);
+  //     setSuccess('Added to cart successfully');
+  //     setCart([]);
+  //     navigate('/cart');
+  //   } catch (err) {
+  //     setError('Failed to add to cart');
+  //     console.error('Error adding to cart:', err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleSaveProduct = async (e) => {
     e.preventDefault();
-    handleAddItemToCart(); // Add to local cart first
+    handleAddToCart(); // Add to local cart first
   };
 
   const handleLogout = async () => {
@@ -280,13 +292,13 @@ const NewOrder = () => {
               required
               className="w-full md:w-60 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
-            {/* <InputField
+            <InputField
               label="Quantity"
               value={quantity}
               onChange={setQuantity}
               options={quantityOptions}
-              className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-            /> */}
+              className="w-full md:w-15 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+            />
           </div>
           <InputField
             label="Product Description"
@@ -381,10 +393,11 @@ const NewOrder = () => {
           />
           <button
             type="button"
-            onClick={handleAddItemToCart}
-            className="justify-center bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto"
-          >
-            Add Item to Cart
+            onClick={handleAddToCart}
+            className="flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto"
+            >
+            <FaShoppingCart className="mr-2" />
+              Add To Cart
           </button>
         </form>
 
@@ -437,11 +450,7 @@ const NewOrder = () => {
               </ul>
               <div className="mt-6 flex justify-between items-center">
                 <p className="text-lg md:text-xl font-semibold text-blue-600">Total: KES {total}</p>
-                <ActionButtons
-                  onAddToCart={handleAddToCart}
-                  onCheckout={handleCheckout}
-                  onSave={handleSaveProduct}
-                />
+                <ActionButtons onCheckout={handleCheckout} onSave={handleSaveProduct} />
               </div>
             </>
           )}
