@@ -81,7 +81,8 @@ export const getCategories = async () => {
 
 // Add to cart
 export const addToCart = async (formData) => {
-  const response = await api.post('/cart', formData, 
+  const response = await api.post('/api/products/', formData,
+  // const response = await api.post('/cart', formData, 
     {
       headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
     }
