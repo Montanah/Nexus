@@ -134,7 +134,11 @@ export const getCategories = async () => {
 
 // Add to cart (Protected)
 export const addToCart = async (formData) => {
-  const response = await api.post('/api/products/', formData);
+  const response = await api.post('/api/products/', formData, 
+    {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+    }
+  );
   return response.data;
 };
 
