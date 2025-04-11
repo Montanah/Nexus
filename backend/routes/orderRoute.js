@@ -96,4 +96,107 @@ router.get('/:userId', authenticateClient, checkoutController.getUserOrders);
  */
 router.get('/:userId/:orderNumber', authenticateClient, checkoutController.getOrderDetails);
 
+/**
+ * @swagger
+ * /api/orders/:orderNumber/payment:
+ *   put:
+ *     summary: Update paymentStatus after payment processing
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: orderNumber
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Order number (e.g., ORD-ABC123)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               paymentStatus:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Payment status updated successfully
+ *       400:
+ *         description: Bad request
+ */
+router.put('/:orderNumber/payment', authenticateClient, checkoutController.updatePaymentStatus); // PUT /api/orders/:orderNumber/payment
+
+/**
+ * @swagger
+ * /api/orders/:orderNumber/delivery:
+ *   put:
+ *     summary: Update deliveryStatus after delivery processing
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: orderNumber
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Order number (e.g., ORD-ABC123)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               deliveryStatus:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Delivery status updated successfully
+ *       400:
+ *         description: Bad request
+ */
+router.put('/:orderNumber/delivery', authenticateClient, checkoutController.updateDeliveryStatus);
+
+/**
+ * @swagger
+ * /api/orders/:orderNumber:
+ *   delete:
+ *     summary: Cancel an order if payment is pending.
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: orderNumber
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Order number (e.g., ORD-ABC123)
+ *     responses:
+ *       200:
+ *         description: Order canceled successfully
+ *       400:
+ *         description: Bad request
+ */
+
+router.put('/:orderNumber', authenticateClient, checkoutController.cancelOrder);
+
+/**
+ * @swagger
+ * /api/orders/:orderNumber/claim:
+ *   put:
+ *     summary: Assign a traveler to an order if payment is pending.
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: orderNumber
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Order number (e.g., ORD-ABC123)
+ *     responses:
+ *       200:
+ *         description: Traveler assigned successfully
+ *       400:
+ *         description: Bad request
+ */
+router.put('/:orderNumber/claim', authenticateClient, checkoutController.assignTraveler);
+
 module.exports = router;

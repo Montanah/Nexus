@@ -353,9 +353,9 @@ exports.socialLogin = (req, res) => {
 //Log out user
 exports.logout = async (req, res) => {
     try {
-        const token = req.header("Authorization")?.replace("Bearer ", "");
+        let token = req.header("Authorization")?.replace("Bearer ", ""); // Use 'let' instead of 'const'
         if (!token) {
-            token = req.cookies.accessToken;
+            token = req.cookies.accessToken; // Reassignment now valid
         }
         if (!token) {
             return res.status(400).json({ message: "No token provided" });
@@ -365,7 +365,6 @@ exports.logout = async (req, res) => {
         try {
             decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
         } catch (error) {
-            // If token is expired, try to decode it without verification
             if (error.name === 'TokenExpiredError') {
                 decoded = jwt.decode(token);
             } else {
@@ -380,13 +379,11 @@ exports.logout = async (req, res) => {
             });
         }
 
-        // Delete both tokens from Redis
         await Promise.all([
             redisClient.del(`authToken:${decoded.id}`),
             redisClient.del(`refreshToken:${decoded.id}`)
         ]);
 
-        // Clear cookies
         res.clearCookie('accessToken', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -405,7 +402,6 @@ exports.logout = async (req, res) => {
             message: "Logged out successfully",
             code: "LOGOUT_SUCCESS"
         });
-
     } catch (error) {
         console.error("Logout error:", error);
         return response(res, 500, {

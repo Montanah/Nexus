@@ -70,6 +70,9 @@ export const AuthProvider = ({ children }) => {
       await logoutUser();
       setUser(null);
       setCurrentUserId(null);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login'; 
+      }
     } catch (error) {
       console.error('Logout error:', error);
       throw error;

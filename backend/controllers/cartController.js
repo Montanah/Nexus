@@ -42,10 +42,10 @@ exports.addToCart = async (req, res) => {
         }
 
         await cart.save();
-        response(res, 200, "Product added to cart", { cart });
+        return response(res, 200, "Product added to cart", { cart });
     } catch (error) {
         console.error("Error adding to cart:", error);
-        response(res, 500, "Error adding to cart", error);
+        return response(res, 500, "Error adding to cart", error);
     }
 };
 
