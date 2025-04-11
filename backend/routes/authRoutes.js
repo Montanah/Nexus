@@ -281,7 +281,7 @@ router.post("/verifyUser", authController.verifyUser);
 
 /**
  * @swagger
- * /auth/loginUser:
+ * /api/auth/loginUser:
  *   post:
  *     summary: Login user
  *     tags: [Users]
@@ -380,5 +380,9 @@ router.post('/verifyLoginOTP', authController.verifyLoginOTP);
 
 router.put("/user/:id", authenticateClient, authController.updateUserProfile);
 
+router.get('/restore-session', authController.restoreSession);
 
+router.post('/refresh-token', authController.refreshToken);
+
+router.get('/get-user-id', authController.getUserIdFromCookie);
 module.exports = router;

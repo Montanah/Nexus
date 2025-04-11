@@ -1,28 +1,57 @@
 const jwt = require("jsonwebtoken");
 const Users = require("../models/Users");
+const redisClient = require("../middlewares/redisClient");
 
 exports.authenticateClient = async (req, res, next) => {
-    //const token = req.header("Authorization");
-    const token = req.header("Authorization")?.replace("Bearer ", "");
-
-    if (!token) {
-        return res.status(401).json({ message: "Access denied. No token provided." });
+    let token = req.cookies.accessToken;
+    if (!token && req.headers.authorization) {
+        token = req.headers.authorization.split(' ')[1];
     }
+    
+    if (!token) {
+        return res.status(401).json({
+          status: 'error',
+          code: 'MISSING_TOKEN',
+          message: 'Authentication token is required'
+        });
+      }
 
     try {
-        //const decoded = jwt.verify(token.replace("Bearer ", ""), process.env.JWT_SECRET);
-        // const client = await Users.findById(decoded.id);
-        // if (!client) {
-        //     return res.status(401).json({ message: "Invalid token" });
-        // }
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        
+        const storedToken = await redisClient.get(`authToken:${decoded.id}`);
 
-        // req.user = client;
-       
-        //const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded; // Attach user to request
+        if (!storedToken || storedToken !== token) {
+            return res.status(401).json({ message: "Unauthorized or session expired", code: "INVALIDATED_SESSION" });
+        }
+        //console.log('Received token:', token);
+        //console.log('Stored token:', await redisClient.get(`authToken:${decoded.id}`));
+
+        req.user = decoded; 
         next();
     } catch (error) {
-        res.status(401).json({ message: "Unauthorized" });
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ 
+                message: "Token expired",
+                code: "TOKEN_EXPIRED",
+                shouldRefresh: true
+            });
+        }
+        
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({ 
+                message: "Invalid token",
+                code: "INVALID_TOKEN"
+            });
+        }
+
+        console.error('Authentication error:', error);
+        res.status(500).json({ 
+            message: "Authentication failed",
+            code: "AUTH_ERROR"
+        });
+    
     }
 };
+
+

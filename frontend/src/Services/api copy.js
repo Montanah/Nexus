@@ -2,143 +2,95 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_KEY || 'http://localhost:3001',
-  withCredentials: true, 
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-let isRefreshing = false;
-
-// Request Interceptor: Skip adding headers for public endpoints
-api.interceptors.request.use((config) => {
-  const publicEndpoints = [
-    '/api/auth/loginUser',
-    '/api/auth/register',
-    '/api/auth/refresh-token',
-    '/api/auth/verifyUser',
-    '/api/auth/resendVerificationCode',
-    '/api/auth/forgotPassword',
-    '/api/auth/resetPassword',
-  ];
-
-  if (publicEndpoints.some(endpoint => config.url.includes(endpoint))) {
-    return config;
-  }
-
-  return config;
-});
-
-// Response Interceptor: Handle 401 errors with token refresh
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          await api.post('/api/auth/refresh-token');
-          isRefreshing = false;
-          return api(originalRequest); 
-        } catch (refreshError) {
-          isRefreshing = false;
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login'; 
-            return new Promise(() => {}); 
-          }
-          return Promise.reject(refreshError); 
-        }
-      } else {
-        return new Promise((resolve) => {
-          const checkRefresh = setInterval(() => {
-            if (!isRefreshing) {
-              clearInterval(checkRefresh);
-              resolve(api(originalRequest));
-            }
-          }, 100);
-        });
-      }
-    }
-
-    return Promise.reject(error);
+  (error) => {
+    const message = error.response?.data?.message || error.response?.data?.data?.message || 'An error occurred';
+    return Promise.reject(new Error(message));
   }
 );
 
-// AUTH ENDPOINTS
-// Fetch user data based on userId (Protected)
-export const fetchUserData = async (userId) => {
-  const response = await api.get(`/api/auth/user/${userId}`);
-  return response.data;
-};
-
-// Signup (Public)
+// Signup 
 export const signup = async (userData) => {
   const response = await api.post('/api/auth/register', userData);
   return response.data;
 };
 
-// Verify user (Public)
+// Verify user
 export const verifyUser = async (verificationData) => {
   const response = await api.post('/api/auth/verifyUser', verificationData);
   return response.data;
 };
 
-// Resend verification code (Public)
+// Resend verification code
 export const resendVerificationCode = async (email) => {
   const response = await api.post('/api/auth/resendVerificationCode', { email });
   return response.data;
 };
 
-// Login (Public)
+// Login
 export const loginUser = async (credentials) => {
   const response = await api.post('/api/auth/loginUser', credentials);
   return response.data;
 };
 
-// Verify OTP (Public-ish, but typically after login initiation)
+// Verify OTP
 export const verifyLoginOTP = async (otpData) => {
   const response = await api.post('/api/auth/verifyLoginOTP', otpData);
   return response.data;
 };
 
-// Forgot password (Public)
+// Forgot password
 export const forgotPassword = async (email) => {
   const response = await api.post('/api/auth/forgotPassword', { email });
   return response.data;
 };
 
-// Reset password (Public)
-export const resetPassword = async (token, newPassword) => {
-  const response = await api.post('/api/auth/resetPassword', { token, password: newPassword });
+// Reset password
+export const resetPassword = async (token , newPassword) => {
+  const response = await api.post('/api/auth/resetPassword', {token, password: newPassword});
   return response.data;
 };
 
-// Fetch user data (Protected, duplicate of fetchUserData, updated to remove token)
-export const fetchUser = async (userId) => {
-  const response = await api.get(`/api/auth/user/${userId}`);
+// Fetch user data based on userId
+export const fetchUser = async (userId, token) => {
+  const response = await api.get(`/api/auth/user/${userId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return response.data;
 };
 
-// Logout (Protected)
-export const logoutUser = async () => {
-  const response = await api.post('/api/auth/logout', {});
+// Logout
+export const logoutUser = async (token) => {
+  const response = await api.post('/api/auth/logout', {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return response.data;
 };
 
-// PRODUCT AND CART ENDPOINTS
-// Category API call (Public or Protected depending on backend)
+// Category API call
 export const getCategories = async () => {
-  const response = await api.get('/api/products/category/');
+  const response = await api.get('/api/products/category');
   return response;
 };
 
-// Add to cart (Protected)
+// Add to cart
 export const addToCart = async (formData) => {
-  const response = await api.post('/api/products/', formData);
+  const response = await api.post('/api/products/', formData,
+  // const response = await api.post('/cart', formData, 
+    {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+    }
+  );
   return response.data;
 };
 
-// Product photo upload (Protected)
+// Product photo upload
 export const uploadProductPhotos = async (formData) => {
   const response = await api.post('/products/photos', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -146,131 +98,149 @@ export const uploadProductPhotos = async (formData) => {
   return response.data;
 };
 
-// Update product in cart (Protected)
+// Update product in cart
 export const updateProduct = async (userId, productId, formData) => {
   const response = await api.put(`/cart/${userId}/${productId}`, formData);
   return response.data;
 };
 
-// Fetch cart items for a user (Protected)
+// Fetch cart items for a user
 export const fetchCart = async (userId) => {
-  const response = await api.get(`/cart/${userId}`);
+  const response = await api.get(`/cart/${userId}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
   return response.data.items || [];
 };
 
-// Delete cart item (Protected)
+// Delete cart item
 export const deleteCartItem = async (userId, productId) => {
-  const response = await api.delete(`/api/cart/${userId}/${productId}`);
+  const response = await api.delete(`/cart/${userId}/${productId}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
   return response.data;
 };
 
-// Fetch orders for a specific client (Protected)
+// fetch orders/products for a specific client
 export const fetchOrders = async (userId) => {
-  const response = await api.get(`/api/orders/${userId}`);
+  const response = await api.get(`/orders/${userId}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
   return response.data; // e.g., [{ id, itemName, photo, quantity, unitPrice, totalPrice, details, ... }]
 };
 
-// PRODUCT ENDPOINTS FOR TRAVELERS
-// Retrieve all products (Public or Protected)
+// Product-related endpoints for travelers
+// Retrieve all products
 export const getAvailableProducts = async (filters) => {
-  const response = await api.get('/products/', { params: filters });
+  const response = await api.get('/products/', { params: filters }); 
   return response;
 };
 
-// Retrieve a specific product (Public or Protected)
+// Retrieve a specific product
 export const getProductDetails = async (productId) => {
   const response = await api.get(`/products/${productId}`);
   return response;
 };
 
-// Save product listing (Protected)
+// Save product listing
 export const saveProduct = async (formData) => {
   const response = await api.post('/products', formData);
   return response.data;
 };
 
-// Update a product/order (Protected)
+// Update a product/order
 export const updateProductDetails = async (productId, formData) => {
   const response = await api.put(`/products/${productId}`, formData);
   return response.data;
-};
+}
 
-// Delete a product/order (Protected)
+// Delete a product/order
 export const deleteProduct = async (productId) => {
   const response = await api.delete(`/api/products/${productId}`);
   return response.data;
-};
+}
 
-// Checkout (Protected)
+// Checkout
 export const checkout = async (formData) => {
   const response = await api.post('/api/orders/checkout', formData);
   return response.data;
 };
 
-// PAYMENT ENDPOINTS
-// Initiate M-Pesa payment (Protected)
+// Initiate M-Pesa payment
 export const initiateMpesaMobilePayment = async (userId, cartItems, total) => {
-  const response = await api.post('/mpesa-payment', { userId, cartItems, total });
-  return response.data;
+  const response = await api.post('/mpesa-payment', {
+    userId,
+    cartItems,
+    total,
+  }, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
+  return response.data; // e.g., { orderNumber: "MPESA123", status: "success" }
 };
 
-// Initiate Airtel payment (Protected)
+// Initiate Airtel payment
 export const initiateAirtelMobilePayment = async (userId, cartItems, total) => {
-  const response = await api.post('/airtel-payment', { userId, cartItems, total });
-  return response.data;
+  const response = await api.post('/airtel-payment', {
+    userId,
+    cartItems,
+    total,
+  }, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
+  return response.data; // e.g., { orderNumber: "AIRTEL456", status: "success" }
 };
 
-// Fetch payment details (Protected)
+// Fetch payment details for use with stripe success redirect
 export const fetchPaymentDetails = async (sessionId) => {
-  const response = await api.get(`/payment-details/${sessionId}`);
-  return response.data;
+  const response = await api.get(`/payment-details/${sessionId}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+  });
+  return response.data; // { cartItems, total, paymentMethod, orderNumber, clientName }
 };
 
-// Create Stripe checkout session (Protected)
+// Create Stripe checkout session
 export const createCheckoutSession = async (userId, cartItems, total, voucherCode) => {
   const response = await api.post('/create-checkout-session', {
     userId,
     cartItems,
     total,
     voucherCode,
-    successUrl: `${window.location.origin}/payment-success`,
-    cancelUrl: `${window.location.origin}/checkout`,
+    successUrl: `${window.location.origin}/payment-success`, // Added for Stripe
+    cancelUrl: `${window.location.origin}/checkout`, // Added for Stripe
+  }, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
   });
-  return response.data;
+  return response.data; // e.g., { id: "stripe-session-id" }
 };
 
-// TRAVELER DASHBOARD ENDPOINTS
-// Get traveler orders (Protected)
+// Traveler Dashboard API calls
 export const getTravelerOrders = async (filters) => {
   const response = await api.get('/travelers/orders', { params: filters });
   return response;
 };
 
-// Get traveler earnings (Protected)
 export const getTravelerEarnings = async (userId, params = {}) => {
   const response = await api.get(`/travelers/${userId}/earnings`, { params });
   return response;
 };
 
-// Get traveler history (Protected)
 export const getTravelerHistory = async (userId) => {
   const response = await api.get(`/travelers/${userId}/history`);
   return response;
 };
 
-// Assign fulfillment to traveler (Protected)
+// Assign fullfilment to traveler
 export const assignFulfillment = async (productId, userId) => {
   const response = await api.post('/products/assign', { productId, userId });
   return response.data;
 };
 
-// Update delivery status (Protected)
+// Update delivery status
 export const updateDeliveryStatus = async (deliveryId, status) => {
   const response = await api.put(`/update/${deliveryId}`, { status });
   return response.data;
-};
+}
 
-// Upload proof of delivery (Protected)
+// Upload proof of delivery
 export const uploadDeliveryProof = async (formData) => {
   const response = await api.post('/proof', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -278,42 +248,35 @@ export const uploadDeliveryProof = async (formData) => {
   return response.data;
 };
 
-// RATING ENDPOINTS
-// Rate client (Protected)
+// Traveler & Client rating API calls
 export const rateClient = async (data) => {
   const response = await api.post('/ratings/traveler-to-client', data);
   return response;
 };
 
-// Rate traveler (Protected)
 export const rateTraveler = async (data) => {
   const response = await api.post('/ratings/client-to-traveler', data);
   return response;
 };
 
-// Get traveler ratings (Protected)
 export const getTravelerRatings = async (userId) => {
   const response = await api.get(`/ratings/traveler/${userId}`);
   return response;
 };
 
-// Get client ratings (Protected)
 export const getClientRatings = async (userId) => {
   const response = await api.get(`/ratings/client/${userId}`);
   return response;
 };
 
-// CLIENT DASHBOARD ENDPOINTS
-// Get client orders (Protected)
+// Client Dashboard API calls
 export const getClientOrders = async (userId) => {
   const response = await api.get(`/clients/${userId}/orders`);
   return response;
 };
 
-// Get client earnings (Protected)
 export const getClientEarnings = async (userId, params = {}) => {
   const response = await api.get(`/clients/${userId}/earnings`, { params });
   return response;
 };
-
 export default api;

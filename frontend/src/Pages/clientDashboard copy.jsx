@@ -8,26 +8,25 @@ import { fetchOrders, updateDeliveryStatus } from '../Services/api';
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
-  const { userId, loading: authLoading } = useAuth(); // Rename to avoid confusion
+  const { userId } = useAuth();
   const [orders, setOrders] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [orderLoading, setOrderLoading] = useState(true); // Renamed for clarity
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Fetch orders on mount
   useEffect(() => {
     const loadOrders = async () => {
-      if (!userId) return; // Skip if no userId
       try {
-        setOrderLoading(true);
+        setLoading(true);
         const fetchedOrders = await fetchOrders(userId);
         setOrders(fetchedOrders);
       } catch (err) {
         console.error('Failed to fetch orders:', err);
         setError('Failed to load orders');
       } finally {
-        setOrderLoading(false);
+        setLoading(false);
       }
     };
     loadOrders();
@@ -43,13 +42,14 @@ const ClientDashboard = () => {
 
   const handleConfirmDelivery = async (orderId, deliveryId) => {
     try {
+      const token = localStorage.getItem('authToken');
       const order = orders.find(o => o.id === orderId);
       const currentStatus = order.deliveryStatus;
       let newStatus = 'client_confirmed';
       if (currentStatus === 'traveler_confirmed') {
         newStatus = 'delivered';
       }
-      const updatedOrder = await updateDeliveryStatus(deliveryId, newStatus);
+      const updatedOrder = await updateDeliveryStatus(deliveryId, newStatus, token);
       setOrders(prev =>
         prev.map(o => (o.id === orderId ? { ...o, deliveryStatus: updatedOrder.deliveryStatus, delivered: newStatus === 'delivered' } : o))
       );
@@ -62,16 +62,6 @@ const ClientDashboard = () => {
   const handleRateTraveler = (orderId) => {
     navigate(`/rate-product/${orderId}`, { state: { isTraveler: false } });
   };
-
-  // Early returns after hooks
-  if (authLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-
-  if (!userId) {
-    navigate('/login');
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-200 flex flex-col lg:flex-row relative">
@@ -101,7 +91,7 @@ const ClientDashboard = () => {
           {/* Order List */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h2 className="text-2xl font-bold text-indigo-900 mb-4">Order List</h2>
-            {orderLoading ? (
+            {loading ? (
               <p className="text-gray-600 text-center">Loading orders...</p>
             ) : error ? (
               <p className="text-red-600 text-center">{error}</p>
@@ -143,6 +133,7 @@ const ClientDashboard = () => {
           {/* Order Progress and Traveler Info */}
           {selectedOrder && (
             <div className="flex mt-6 gap-6">
+              {/* Order Progress Card */}
               <div className="bg-white rounded-xl shadow-md p-6 w-1/2">
                 <h3 className="text-lg font-semibold text-indigo-900 mb-4">Order Progress</h3>
                 <div className="relative">
@@ -193,6 +184,8 @@ const ClientDashboard = () => {
                   </button>
                 )}
               </div>
+
+              {/* Traveler Info */}
               <div className="bg-white rounded-xl shadow-md p-6 w-1/2">
                 <h3 className="text-lg font-semibold text-indigo-900 mb-4">Traveler Information</h3>
                 <p className="text-gray-900 font-medium">Traveler Name</p>
@@ -204,7 +197,9 @@ const ClientDashboard = () => {
           )}
         </div>
       </div>
-      <UserProfile userId={userId} />
+      <div>
+        <UserProfile userId={userId} />
+      </div>
     </div>
   );
 };

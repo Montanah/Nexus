@@ -13,6 +13,7 @@ const orderRoutes = require("./routes/orderRoute");
 const bodyParser = require("body-parser");
 const passport = require("passport");
 const session = require('express-session');
+const cookieParser = require('cookie-parser');
 
 //swagger
 const swaggerUI = require("swagger-ui-express"), swaggerDocument = require("./swagger.json");
@@ -38,12 +39,15 @@ mongoose.connect(uri)
 
 // Middleware
 app.use(cors({
-    origin: "http://localhost:5173", 
+    origin: true, 
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"], 
+    allowedHeaders: ['Authorization', 'Content-Type'],
   }));
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 app.use(session({
     secret: process.env.JWT_SECRET,
