@@ -134,17 +134,13 @@ export const getCategories = async () => {
 
 // Add to cart (Protected)
 export const addToCart = async (formData) => {
-  const response = await api.post('/api/products/', formData, 
-    {
-      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
-    }
-  );
+  const response = await api.post('/api/products/', formData); 
   return response.data;
 };
 
 // Product photo upload (Protected)
 export const uploadProductPhotos = async (formData) => {
-  const response = await api.post('/products/photos', formData, {
+  const response = await api.post('/api/products/photos', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
@@ -152,13 +148,13 @@ export const uploadProductPhotos = async (formData) => {
 
 // Update product in cart (Protected)
 export const updateProduct = async (userId, productId, formData) => {
-  const response = await api.put(`/cart/${userId}/${productId}`, formData);
+  const response = await api.put(`/api/cart/${userId}/${productId}`, formData);
   return response.data;
 };
 
 // Fetch cart items for a user (Protected)
 export const fetchCart = async (userId) => {
-  const response = await api.get(`/cart/${userId}`);
+  const response = await api.get(`/api/cart/${userId}`);
   return response.data.items || [];
 };
 
@@ -177,14 +173,39 @@ export const fetchOrders = async (userId) => {
 // PRODUCT ENDPOINTS FOR TRAVELERS
 // Retrieve all products (Public or Protected)
 export const getAvailableProducts = async (filters) => {
-  const response = await api.get('/products/', { params: filters });
-  return response;
+  try {
+    const response = await api.post('/products/search/', filters);
+    return response; // Returns { message, products, pagination, filters }
+  } catch (error) {
+    console.error('Error fetching available products:', error);
+    throw error;
+  }
 };
 
 // Retrieve a specific product (Public or Protected)
 export const getProductDetails = async (productId) => {
-  const response = await api.get(`/products/${productId}`);
-  return response;
+  try {
+    const response = await api.post('/products/search/', { id: productId });
+    if (response.data.products && response.data.products.length > 0) {
+      return response.data.products[0]; // Return the first (and only) product
+    }
+    throw new Error('Product not found');
+  } catch (error) {
+    console.error('Error fetching product details:', error);
+    throw error;
+  }
+};
+
+// Search products with filters and keywords
+export const searchProducts = async (searchQuery, filters = {}) => {
+  try {
+    const payload = { ...filters, search: searchQuery };
+    const response = await api.post('/products/search/', payload);
+    return response.data; // Returns { message, products, pagination, filters }
+  } catch (error) {
+    console.error('Error searching products:', error);
+    throw error;
+  }
 };
 
 // Save product listing (Protected)
