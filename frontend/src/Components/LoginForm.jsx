@@ -42,7 +42,9 @@ const LoginForm = ({ navigate, setStep, step }) => {
         setStep('otp'); // Update the step in parent component
       }
     } catch (err) {
-      setError(err.message || 'An error occurred');
+      const errorMessage = err.response?.data || err.message || 'An error occurred';
+      setError(errorMessage);
+      // setError(err.message || 'An error occurred');
     } finally {
       setLoading(false);
     }

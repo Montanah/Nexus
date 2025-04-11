@@ -73,9 +73,9 @@ exports.getUserOrders = async (req, res) => {
     try {
         const { userId } = req.params;
 
-        if (!mongoose.Types.ObjectId.isValid(userId)) {
-            return response(res, 400, 'Invalid user ID');
-        }
+        // if (!mongoose.Types.ObjectId.isValid(userId)) {
+        //     return response(res, 400, 'Invalid user ID');
+        // }
 
         const orders = await Order.find({ userId })
             .populate('items.product', 'productName productDescription totalPrice')

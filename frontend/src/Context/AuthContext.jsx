@@ -1,54 +1,65 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import api, { loginUser, verifyLoginOTP, fetchUser, logoutUser } from '../Services/api'; 
+import api, { loginUser, verifyLoginOTP, logoutUser, fetchUserData } from '../Services/api';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [userId, setUserId] = useState(null);
-  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  
+  const [user, setUser] = useState(null);
+
+  // Check auth status by calling /api/auth/me
+  const checkAuth = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/api/auth/get-user-id');
+      setUserId(response.data.data);
+      console.log('User data:', response.data.data);
+    } catch (error) {
+      setUserId(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      const storedUserId = localStorage.getItem('userId');
-      const storedToken = localStorage.getItem('authToken');
-      if (storedUserId && storedToken) {
-        setUserId(storedUserId);
-        try {
-          const response = await api.get(`/auth/user/${storedUserId}`, {
-            headers: { Authorization: `Bearer ${storedToken}` },
-          });
-          setUser(response.data);
-        } catch (err) {
-          console.error('Failed to fetch user details:', err);
-          setUserId(null);
-          localStorage.removeItem('userId');
-          localStorage.removeItem('authToken');
-        }
-      }
-      setLoading(false);
-    };
-    initializeAuth();
+    checkAuth();
   }, []);
 
-  const login = async (email, password, verificationCode = null) => {
+  const login = async (email, password, verificationCode = null, userId = null) => {
     try {
       setLoading(true);
       if (!verificationCode) {
+        // First step - initiate login
         const response = await loginUser({ email, password });
-        const userId = response.data?.userId;
-        setUserId(userId);
-        localStorage.setItem('userId', userId);
-        return { success: true, step: 'otp', userId };
+    
+        setCurrentUserId(response.data.userId);
+        return { 
+          success: true, 
+          step: 'otp', 
+          userId: response.data.userId 
+        };
       } else {
-        const response = await verifyLoginOTP({ userId, verificationCode });
-        const token = response.data?.token;
-        localStorage.setItem('authToken', token);
-        const userData = await fetchUser(userId, token);
+        // Second step - verify OTP
+        const userIdToVerify =  currentUserId || userId;
+        console.log('User ID to verify:', userIdToVerify);
+        if (!userIdToVerify) {
+          throw new Error('User ID is required for OTP verification');
+        }
+        await verifyLoginOTP({ userId: userIdToVerify, verificationCode });
+        // await checkAuth(); 
+
+        const userData = await fetchUserData(userIdToVerify);
+        console.log('Fetched user data:', userData);
         setUser(userData);
-        return { success: true, step: 'complete', token };
+        // console.log(document.cookie);
+        // setCurrentUserId(null);
+        return { success: true, step: 'complete' };
       }
+  
     } finally {
       setLoading(false);
     }
@@ -56,29 +67,27 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      await logoutUser(token);
-      setUserId(null);
+      await logoutUser();
       setUser(null);
-      localStorage.removeItem('userId');
-      localStorage.removeItem('authToken');
-      return { success: true };
-    } catch (err) {
-      console.error('Logout error:', err);
-      return { success: false, error: 'Logout failed' };
+      setCurrentUserId(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
     }
   };
 
   const value = {
-    userId,
     user,
+    userId,
+    loading,
     login,
     logout,
-    loading,
+    checkAuth 
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
 AuthProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };
