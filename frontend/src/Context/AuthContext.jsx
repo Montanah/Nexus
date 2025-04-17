@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.get('/api/auth/get-user-id');
       setUserId(response.data.data);
       console.log('User data:', response.data.data);
-    } catch (error) {
+    } catch {
       setUserId(null);
     } finally {
       setLoading(false);

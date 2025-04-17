@@ -109,7 +109,7 @@ const LoginForm = ({ navigate, setStep, step }) => {
           <div>
             <button
               onClick={() => navigate('/forgot-password')}
-              className="text-red-500 text-sm hover:text-indigo-700 transition-colors"
+              className="text-indigo-700 text-sm hover:text-red-500 transition-colors"
             >
               Forgot your password?
             </button>

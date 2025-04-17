@@ -4,38 +4,64 @@ import Sidebar from '../Components/Sidebar';
 import UserProfile from '../Components/UserProfile';
 import { FaSearch, FaPlus, FaBox } from 'react-icons/fa';
 import { useAuth } from '../Context/AuthContext';
-import { fetchOrders, updateDeliveryStatus } from '../Services/api';
+import { fetchOrders, updateDeliveryStatus, searchProducts } from '../Services/api';
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
-  const { userId, loading: authLoading } = useAuth(); // Rename to avoid confusion
+  const { userId } = useAuth();
   const [orders, setOrders] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [orderLoading, setOrderLoading] = useState(true); // Renamed for clarity
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Fetch orders on mount
   useEffect(() => {
     const loadOrders = async () => {
-      if (!userId) return; // Skip if no userId
+      if (!userId) {
+        navigate('/login');
+        return;
+      }
       try {
-        setOrderLoading(true);
+        setLoading(true);
         const fetchedOrders = await fetchOrders(userId);
         setOrders(fetchedOrders);
       } catch (err) {
         console.error('Failed to fetch orders:', err);
         setError('Failed to load orders');
       } finally {
-        setOrderLoading(false);
+        setLoading(false);
       }
     };
     loadOrders();
-  }, [userId]);
+  }, [userId, navigate]);
 
-  const filteredOrders = orders.filter(order =>
-    order.itemName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Search orders when query changes
+  useEffect(() => {
+    const searchOrders = async () => {
+      if (!searchQuery || !userId) {
+        // Reset to full list if query is empty
+        try {
+          const fetchedOrders = await fetchOrders(userId);
+          setOrders(fetchedOrders);
+        } catch {
+          setError('Failed to load orders');
+        }
+        return;
+      }
+      try {
+        setLoading(true);
+        const response = await searchProducts(searchQuery, { userId });
+        setOrders(response.products || []);
+      } catch (err) {
+        console.error('Failed to search orders:', err);
+        setError('Failed to search orders');
+      } finally {
+        setLoading(false);
+      }
+    };
+    searchOrders();
+  }, [searchQuery, userId]);
 
   const handleOrderClick = (order) => {
     setSelectedOrder(selectedOrder?.id === order.id ? null : order);
@@ -51,9 +77,17 @@ const ClientDashboard = () => {
       }
       const updatedOrder = await updateDeliveryStatus(deliveryId, newStatus);
       setOrders(prev =>
-        prev.map(o => (o.id === orderId ? { ...o, deliveryStatus: updatedOrder.deliveryStatus, delivered: newStatus === 'delivered' } : o))
+        prev.map(o =>
+          o.id === orderId
+            ? { ...o, deliveryStatus: updatedOrder.deliveryStatus, delivered: newStatus === 'delivered' }
+            : o
+        )
       );
-      setSelectedOrder(prev => (prev?.id === orderId ? { ...prev, deliveryStatus: updatedOrder.deliveryStatus, delivered: newStatus === 'delivered' } : prev));
+      setSelectedOrder(prev =>
+        prev?.id === orderId
+          ? { ...prev, deliveryStatus: updatedOrder.deliveryStatus, delivered: newStatus === 'delivered' }
+          : prev
+      );
     } catch (err) {
       setError('Failed to confirm delivery: ' + err.message);
     }
@@ -62,16 +96,6 @@ const ClientDashboard = () => {
   const handleRateTraveler = (orderId) => {
     navigate(`/rate-product/${orderId}`, { state: { isTraveler: false } });
   };
-
-  // Early returns after hooks
-  if (authLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-
-  if (!userId) {
-    navigate('/login');
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-200 flex flex-col lg:flex-row relative">
@@ -84,7 +108,7 @@ const ClientDashboard = () => {
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
               <input
                 type="text"
-                placeholder="Search orders..."
+                placeholder="Search product orders..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -98,18 +122,18 @@ const ClientDashboard = () => {
             </button>
           </div>
 
-          {/* Order List */}
+          {/* Product Order List */}
           <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-2xl font-bold text-indigo-900 mb-4">Order List</h2>
-            {orderLoading ? (
+            <h2 className="text-2xl font-bold text-indigo-900 mb-4">Product Order List</h2>
+            {loading ? (
               <p className="text-gray-600 text-center">Loading orders...</p>
             ) : error ? (
               <p className="text-red-600 text-center">{error}</p>
-            ) : filteredOrders.length === 0 ? (
+            ) : orders.length === 0 ? (
               <p className="text-gray-600 text-center">No orders found.</p>
             ) : (
               <ul className="space-y-4">
-                {filteredOrders.map((order) => (
+                {orders.map((order) => (
                   <li key={order.id} className="border-b pb-4">
                     <div
                       onClick={() => handleOrderClick(order)}
@@ -143,6 +167,7 @@ const ClientDashboard = () => {
           {/* Order Progress and Traveler Info */}
           {selectedOrder && (
             <div className="flex mt-6 gap-6">
+              {/* Order Progress Card */}
               <div className="bg-white rounded-xl shadow-md p-6 w-1/2">
                 <h3 className="text-lg font-semibold text-indigo-900 mb-4">Order Progress</h3>
                 <div className="relative">
@@ -193,6 +218,8 @@ const ClientDashboard = () => {
                   </button>
                 )}
               </div>
+
+              {/* Traveler Info */}
               <div className="bg-white rounded-xl shadow-md p-6 w-1/2">
                 <h3 className="text-lg font-semibold text-indigo-900 mb-4">Traveler Information</h3>
                 <p className="text-gray-900 font-medium">Traveler Name</p>
@@ -204,7 +231,9 @@ const ClientDashboard = () => {
           )}
         </div>
       </div>
-      <UserProfile userId={userId} />
+      <div>
+        <UserProfile userId={userId} />
+      </div>
     </div>
   );
 };

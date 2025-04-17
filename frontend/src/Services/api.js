@@ -128,13 +128,19 @@ export const logoutUser = async () => {
 // PRODUCT AND CART ENDPOINTS
 // Category API call (Public or Protected depending on backend)
 export const getCategories = async () => {
-  const response = await api.get('/api/products/category/');
+  const response = await api.get('/api/products/category');
   return response;
 };
 
 // Add to cart (Protected)
 export const addToCart = async (formData) => {
   const response = await api.post('/api/products/', formData); 
+  return response.data;
+};
+
+// Create a new category (Protected)
+export const createCategory = async (formData) => {
+  const response = await api.post('/api/products/category', formData);
   return response.data;
 };
 

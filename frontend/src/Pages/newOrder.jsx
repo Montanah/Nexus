@@ -8,7 +8,7 @@ import InputField from '../Components/DashboardInputField';
 import PhotoUpload from '../Components/PhotoUpload';
 import PriceBreakdown from '../Components/PriceBreakdown';
 import ActionButtons from '../Components/ActionButtons';
-import { checkout, addToCart, saveProduct, updateProduct, getCategories } from '../Services/api';
+import { checkout, addToCart, createCategory, getCategories } from '../Services/api';
 import CountryStateCityComponent from '../Components/State';
 
 const NewOrder = () => {
@@ -20,14 +20,13 @@ const NewOrder = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // State for single product input
   const [productId, setProductId] = useState(null);
   const [productName, setProductName] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [productDescription, setProductDescription] = useState('');
   const [category, setCategory] = useState('');
-  const [customCategory, setCustomCategory] = useState(''); // New state for custom category input
-  const [categoryOptions, setCategoryOptions] = useState([]); // Properly defined
+  const [customCategory, setCustomCategory] = useState('');
+  const [categoryOptions, setCategoryOptions] = useState([]);
   const [productPhotos, setProductPhotos] = useState([]);
   const [weight, setWeight] = useState('');
   const [dimensions, setDimensions] = useState('');
@@ -39,30 +38,37 @@ const NewOrder = () => {
   const [productPrice, setProductPrice] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
-  // State for cart (multiple items)
   const [cart, setCart] = useState([]);
 
   const quantityOptions = Array.from({ length: 10 }, (_, i) => i + 1);
 
-  // Fetch categories on mount
+  useEffect(() => {
+    if (!authLoading && !userId) {
+      navigate('/login');
+    }
+  }, [authLoading, userId, navigate]);
+
   useEffect(() => {
     const fetchCategories = async () => {
+      if (!userId) return;
       try {
         setLoading(true);
         const response = await getCategories();
-        const categories = response.data.data.categories || response.data; // Adjust based on API response
+        console.log('Raw response:', response);
+        const categories = Array.isArray(response.data) ? response.data : [];
+        console.log('Processed categories:', categories);
         setCategoryOptions(categories);
       } catch (err) {
-        console.error('Error fetching categories:', err);
-        setError('Failed to load categories');
+        console.error('Fetch categories error:', err.response || err);
+        setError('Failed to load categories from server');
+        setCategoryOptions([]);
       } finally {
         setLoading(false);
       }
     };
     fetchCategories();
-  }, []);
+  }, [userId]);
 
-  // Load item to edit (if any)
   useEffect(() => {
     const { itemToEdit } = location.state || {};
     if (itemToEdit) {
@@ -84,7 +90,6 @@ const NewOrder = () => {
     }
   }, [location.state]);
 
-  // Calculate final charge for a single item
   const calculateFinalCharge = useCallback((price, qty) => {
     const basePrice = parseFloat(price) || 0;
     const quantityMultiplier = parseInt(qty) || 0;
@@ -92,19 +97,30 @@ const NewOrder = () => {
     return basePrice * quantityMultiplier * markup;
   }, []);
 
-  // Add item to cart
-  const handleAddToCart = async () => {
+  const handleAddItemToCart = async (persistToBackend = true) => {
     if (!productName || !productPrice || !country || !state || !city || !deliveryDate) {
       setError('Please fill all required fields');
       return;
     }
-     // Use customCategory if provided, otherwise use dropdown selection
-     const effectiveCategory = customCategory || category;
-     
-    if (!effectiveCategory) {
+
+    let effectiveCategory = customCategory || category;
+    if (!effectiveCategory && persistToBackend) {
       setError('Please select or enter a category');
       return;
     }
+
+    if (customCategory && persistToBackend) {
+      try {
+        const categoryResponse = await createCategory({ categoryName: customCategory });
+        effectiveCategory = categoryResponse.data._id;
+        setCategoryOptions(prev => [...prev, categoryResponse.data]);
+      } catch (err) {
+        console.error('Error creating category:', err.response || err);
+        setError('Failed to create custom category');
+        return;
+      }
+    }
+
     const newItem = {
       userId,
       productId,
@@ -113,18 +129,17 @@ const NewOrder = () => {
       finalCharge: calculateFinalCharge(productPrice, quantity),
       delivery: { country, state, city, deliveryDate },
       productDescription,
-      category: effectiveCategory,
+      category: effectiveCategory || customCategory,
       productPhotos: productPhotos.map(photo => photo.name || photo),
       weight,
       dimensions,
       shippingRestrictions,
       productPrice,
     };
-  
+
     try {
       setLoading(true);
       setError(null);
-      // Add to local cart
       setCart(prevCart => {
         const existingItem = prevCart.find(item => item.productName === newItem.productName);
         if (existingItem) {
@@ -136,18 +151,21 @@ const NewOrder = () => {
         }
         return [...prevCart, newItem];
       });
-      // Persist to backend
-      console.log('Adding to cart:', { userId, cart: [newItem] });
-      await addToCart({ userId, cart: [newItem] }); // Send only the new item
-      setSuccess('Item added to cart');
+
+      if (persistToBackend) {
+        console.log('Adding to cart:', { userId, cart: [newItem] });
+        await addToCart({ userId, cart: [newItem] });
+        setSuccess('Item added to cart');
+      } else {
+        setSuccess('Item saved to cart preview');
+      }
     } catch (err) {
-      setError('Failed to add item to cart');
-      console.error('Error adding to cart:', err);
+      console.error('Error:', err);
+      setError(persistToBackend ? 'Failed to add item to cart' : 'Failed to save item');
     } finally {
       setLoading(false);
     }
-  
-    // Reset form
+
     setProductName('');
     setQuantity(1);
     setProductDescription('');
@@ -165,7 +183,11 @@ const NewOrder = () => {
     setIsEditing(false);
   };
 
-  // Remove item or decrease quantity from cart
+  const handleSaveProduct = (e) => {
+    e.preventDefault();
+    handleAddItemToCart(false);
+  };
+
   const removeFromCart = (itemId) => {
     const existingItem = cart.find(cartItem => cartItem.productId === itemId || cartItem.productName === itemId);
     if (existingItem.quantity > 1) {
@@ -179,10 +201,8 @@ const NewOrder = () => {
     }
   };
 
-  // Total calculation
   const total = cart.reduce((sum, item) => sum + parseFloat(item.finalCharge), 0).toFixed(2);
 
-  // API Handlers
   const handleCheckout = async () => {
     if (cart.length === 0) {
       setError('Cart is empty');
@@ -191,44 +211,16 @@ const NewOrder = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Checkout formData:', { userId, cart });
       const data = await checkout({ userId, cart });
-      console.log('Checkout response:', data);
       setSuccess('Checkout successful');
       setCart([]);
       navigate('/payment-success', { state: { cart, total, paymentMethod: 'Pending', orderNumber: data.orderNumber } });
     } catch (err) {
-      setError('Checkout failed: ' + (err.response?.data?.message || err.message));
       console.error('Error during checkout:', err.response || err);
+      setError('Checkout failed: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
-  };
-
-  // const handleAddToCart = async () => {
-  //   if (cart.length === 0) {
-  //     setError('Cart is empty');
-  //     return;
-  //   }
-  //   try {
-  //     setLoading(true);
-  //     setError(null);
-  //     const data = await addToCart({ userId, cart });
-  //     console.log('Added to cart:', data);
-  //     setSuccess('Added to cart successfully');
-  //     setCart([]);
-  //     navigate('/cart');
-  //   } catch (err) {
-  //     setError('Failed to add to cart');
-  //     console.error('Error adding to cart:', err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  const handleSaveProduct = async (e) => {
-    e.preventDefault();
-    handleAddToCart(); // Add to local cart first
   };
 
   const handleLogout = async () => {
@@ -236,7 +228,6 @@ const NewOrder = () => {
       setLoading(true);
       setError(null);
       await logout();
-      navigate('/login');
     } catch (err) {
       setError('Logout failed');
       console.error('Logout error:', err);
@@ -253,6 +244,10 @@ const NewOrder = () => {
     );
   }
 
+  if (!userId) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-200 flex flex-col lg:flex-row relative">
       <Sidebar />
@@ -262,17 +257,10 @@ const NewOrder = () => {
             {isEditing ? 'Edit Product Listing' : 'Create New Order'}
           </h1>
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-            <Link
-              to="/cart"
-              className="flex items-center justify-center bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto"
-            >
-              <FaShoppingCart className="mr-2" />
-              Cart
+            <Link to="/cart" className="flex items-center justify-center bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto">
+              <FaShoppingCart className="mr-2" /> Cart
             </Link>
-            <button
-              onClick={handleLogout}
-              className="bg-red-500 text-white px-4 py-2 rounded-md text-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto"
-            >
+            <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded-md text-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto">
               Logout
             </button>
           </div>
@@ -281,49 +269,27 @@ const NewOrder = () => {
         {error && <p className="text-red-500 text-center">{error}</p>}
         {success && <p className="text-green-500 text-center">{success}</p>}
 
-        {/* Form for adding new item */}
-        <form onSubmit={handleSaveProduct} className="space-y-6">
+        <form className="space-y-6">
           <div className="flex flex-col md:flex-row gap-4">
-            <InputField
-              label="Product Name"
-              value={productName}
-              onChange={setProductName}
-              placeholder="Enter product name"
-              required
-              className="w-full md:w-60 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-            />
-            <InputField
-              label="Quantity"
-              value={quantity}
-              onChange={setQuantity}
-              options={quantityOptions}
-              className="w-full md:w-15 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-            />
+            <InputField label="Product Name" value={productName} onChange={setProductName} placeholder="Enter product name" required className="w-full md:w-60 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
+            <InputField label="Quantity" value={quantity} onChange={setQuantity} options={quantityOptions} className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
           </div>
-          <InputField
-            label="Product Description"
-            value={productDescription}
-            onChange={setProductDescription}
-            placeholder="Describe your product"
-            rows={4}
-            className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-          />
-          {/* Category Dropdown and Custom Input */}
+          <InputField label="Product Description" value={productDescription} onChange={setProductDescription} placeholder="Describe your product" rows={4} className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
             <div className="w-full md:w-40">
               <InputField
                 label="Category"
                 value={category}
                 onChange={setCategory}
-                options={categoryOptions.map(cat => ({
+                options={categoryOptions.length > 0 ? categoryOptions.map(cat => ({
                   value: cat._id,
-                  label: cat.name || cat.categoryName,
-                }))}
+                  label: cat.categoryName,
+                })) : []}
                 className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
               />
             </div>
             <div className="w-full md:w-40">
-              <label className="block text-md font-medium text-blue-600 mb-2">Custom Category</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Custom Category</label>
               <input
                 type="text"
                 value={customCategory}
@@ -333,75 +299,29 @@ const NewOrder = () => {
               />
             </div>
           </div>
-          <PhotoUpload
-            photos={productPhotos}
-            setPhotos={setProductPhotos}
-            className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-          />
+          <PhotoUpload photos={productPhotos} setPhotos={setProductPhotos} className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
           <div className="flex flex-col md:flex-row gap-4">
-            <InputField
-              label="Weight (Optional)"
-              value={weight}
-              onChange={setWeight}
-              placeholder="Enter weight"
-              className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-            />
-            <InputField
-              label="Dimensions (Optional)"
-              value={dimensions}
-              onChange={setDimensions}
-              placeholder="L x W x H"
-              className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-            />
+            <InputField label="Weight (Optional)" value={weight} onChange={setWeight} placeholder="Enter weight" className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
+            <InputField label="Dimensions (Optional)" value={dimensions} onChange={setDimensions} placeholder="L x W x H" className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
           </div>
           <div className="space-y-4">
-            <h2 className="text-lg md:text-xl font-semibold text-blue-600">
-              Delivery Destination
-            </h2>
+            <h2 className="text-lg md:text-xl font-semibold text-blue-600">Delivery Destination</h2>
             <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
-              <CountryStateCityComponent
-                selectedCountry={country}
-                setSelectedCountry={setCountry}
-                selectedState={state}
-                setSelectedState={setState}
-                selectedCity={city}
-                setSelectedCity={setCity}
-              />
-              <InputField
-                label="Delivery Date"
-                type="date"
-                value={deliveryDate}
-                onChange={setDeliveryDate}
-                required
-                className="w-full md:w-32 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-              />
+              <CountryStateCityComponent selectedCountry={country} setSelectedCountry={setCountry} selectedState={state} setSelectedState={setState} selectedCity={city} setSelectedCity={setCity} />
+              <InputField label="Delivery Date" type="date" value={deliveryDate} onChange={setDeliveryDate} required className="w-full md:w-32 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
             </div>
           </div>
-          <InputField
-            label="Shipping Restrictions (Optional)"
-            value={shippingRestrictions}
-            onChange={setShippingRestrictions}
-            placeholder="Any special shipping instructions"
-            rows={3}
-            className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-          />
-          <PriceBreakdown
-            productPrice={productPrice}
-            setProductPrice={setProductPrice}
-            finalCharge={calculateFinalCharge(productPrice, quantity)}
-            cart={cart}
-          />
+          <InputField label="Shipping Restrictions (Optional)" value={shippingRestrictions} onChange={setShippingRestrictions} placeholder="Any special shipping instructions" rows={3} className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
+          <PriceBreakdown productPrice={productPrice} setProductPrice={setProductPrice} finalCharge={calculateFinalCharge(productPrice, quantity)} cart={cart} />
           <button
             type="button"
-            onClick={handleAddToCart}
-            className="flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto"
-            >
-            <FaShoppingCart className="mr-2" />
-              Add To Cart
+            onClick={() => handleAddItemToCart(true)}
+            className="justify-center bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto"
+          >
+            Add to Cart
           </button>
         </form>
 
-        {/* Cart Display */}
         <div className="mt-6 bg-cyan-200 rounded-xl shadow-md p-6">
           <h3 className="text-lg md:text-xl font-semibold text-blue-600 mb-4">Your Cart</h3>
           {cart.length === 0 ? (
@@ -420,15 +340,12 @@ const NewOrder = () => {
                       <div>
                         <p className="text-gray-900 font-medium">{item.productName}</p>
                         <p className="text-gray-600 text-sm">
-                          KES {item.productPrice} x {item.quantity} = KES {item.finalCharge.toFixed(2)}
+                          ${item.productPrice} x {item.quantity} = KES{item.finalCharge.toFixed(2)}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => removeFromCart(item.productId || item.productName)}
-                        className="p-1 bg-red-500 text-white rounded hover:bg-red-600"
-                      >
+                      <button onClick={() => removeFromCart(item.productId || item.productName)} className="p-1 bg-red-500 text-white rounded hover:bg-red-600">
                         <FaMinus />
                       </button>
                       <span className="text-gray-700">{item.quantity}</span>
@@ -449,7 +366,7 @@ const NewOrder = () => {
                 ))}
               </ul>
               <div className="mt-6 flex justify-between items-center">
-                <p className="text-lg md:text-xl font-semibold text-blue-600">Total: KES {total}</p>
+                <p className="text-lg md:text-xl font-semibold text-blue-600">Total: KES{total}</p>
                 <ActionButtons onCheckout={handleCheckout} onSave={handleSaveProduct} />
               </div>
             </>
