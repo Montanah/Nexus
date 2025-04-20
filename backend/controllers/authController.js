@@ -218,8 +218,32 @@ exports.loginUser = async (req, res) => {
         user.loginVerificationCodeExpires = verificationCodeExpires;
         await user.save();
 
+        const userId = user._id;
+        // Generate tokens
+        const accessToken = generateAccessToken(userId);
+        const refreshToken = generateRefreshToken(userId);
+
+        // Store tokens in Redis
+        await redisClient.set(`authToken:${userId}`, accessToken, { EX: 15 * 60 });
+        await redisClient.set(`refreshToken:${userId}`, refreshToken, { EX: 7 * 24 * 60 * 60 });
+
         // Send OTP via email
         sendEmail(email, "Login Verification Code", `Your login verification code is: ${verificationCode}`);
+
+
+        // Set cookies
+        res.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 15 * 60 * 1000, // 15 minutes
+        });
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
 
         return response(res, 200, {
             message: "Verification code sent to your email.",
@@ -264,9 +288,7 @@ exports.verifyLoginOTP = async (req, res) => {
         // Store tokens in Redis
         await redisClient.set(`authToken:${userId}`, accessToken, { EX: 15 * 60 });
         await redisClient.set(`refreshToken:${userId}`, refreshToken, { EX: 7 * 24 * 60 * 60 });
-        console.log('Stored authToken:', await redisClient.get(`authToken:${userId}`));
-        console.log('Stored refreshToken:', await redisClient.get(`refreshToken:${userId}`));
-
+    
         // Set cookies
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
@@ -281,6 +303,7 @@ exports.verifyLoginOTP = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
+        console.log('Setting cookies:', { accessToken, refreshToken })
         return response(res, 200, {
             message: "Login successful",
             token: accessToken,
@@ -560,12 +583,10 @@ exports.refreshToken = async (req, res) => {
           code: 'MISSING_REFRESH_TOKEN'
         });
       }
-    //   console.log('Received refreshToken:', refreshToken);
+  
       const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    //   console.log('Decoded token:', decoded);
-    //   console.log('Redis key:', `refreshToken:${decoded.id}`);
-    //   const storedRefresh = await redisClient.get(`refreshToken:${decoded.id}`);
-      console.log('Stored refreshToken:', storedRefresh);
+
+      const storedRefresh = await redisClient.get(`refreshToken:${decoded.id}`);
       
       if (refreshToken !== storedRefresh) {
         return res.status(401).json({
@@ -617,12 +638,19 @@ function generateRefreshToken(userId) {
     });
 }
 exports.getUserIdFromCookie = (req, res) => {
-    const cookies = cookie.parse(req.headers.cookie || '');
-    const userId = cookies.userId;
+    try {
+        const accessToken = req.cookies.accessToken;
+        console.log('getUserId: Received accessToken:', accessToken);
 
-    if (!userId) {
-        return response(res, 401, "User not logged in");
-    }
+        if (!accessToken) {
+            return res.status(401).json({ message: 'Access token required' });
+        }
 
-    return response(res, 200, userId);
+        const decoded = jwt.verify(accessToken, process.env.JWT_ACCESS_SECRET);
+        console.log('getUserId: Decoded token:', decoded);
+        res.json({ data: decoded.id });
+  } catch (error) {
+    console.error('getUserId error:', error);
+    res.status(401).json({ message: 'Invalid access token' });
+  }
 };

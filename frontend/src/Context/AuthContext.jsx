@@ -8,18 +8,29 @@ export const AuthProvider = ({ children }) => {
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState(null);
-  
   const [user, setUser] = useState(null);
 
   // Check auth status by calling /api/auth/me
   const checkAuth = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/auth/get-user-id');
-      setUserId(response.data.data);
-      console.log('User data:', response.data.data);
-    } catch {
+      const response = await api.get('/api/auth/get-user-id', { withCredentials: true });
+      const fetchedUserId = response.data.data;
+      console.log('checkAuth userId:', fetchedUserId);
+      setUserId(fetchedUserId);
+
+      // Fetch user data
+      const userData = await fetchUserData(fetchedUserId);
+      console.log('checkAuth userData:', userData);
+      setUser(userData);
+    } catch (error) {
+      console.error('checkAuth failed:', error.response?.data || error.message);
       setUserId(null);
+      setUser(null);
+      // if (error.response?.status === 401) {
+      //   console.log('Retrying checkAuth after 500ms delay...');
+      //   setTimeout(checkAuth, 500);
+      // }
     } finally {
       setLoading(false);
     }
@@ -53,13 +64,16 @@ export const AuthProvider = ({ children }) => {
         // await checkAuth(); 
 
         const userData = await fetchUserData(userIdToVerify);
-        console.log('Fetched user data:', userData);
-        setUser(userData);
+        console.log('Fetched user data now:', userData.data.user);
+        setUser(userData.data.user);
+        setUserId(userIdToVerify);
         // console.log(document.cookie);
-        // setCurrentUserId(null);
+        setCurrentUserId(null);
         return { success: true, step: 'complete' };
       }
-  
+    } catch (error) {
+        console.error('Login error:', error.response?.data || error.message);
+        throw error;
     } finally {
       setLoading(false);
     }
@@ -69,6 +83,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await logoutUser();
       setUser(null);
+      setUserId(null);
       setCurrentUserId(null);
       if (typeof window !== 'undefined') {
         window.location.href = '/login'; 

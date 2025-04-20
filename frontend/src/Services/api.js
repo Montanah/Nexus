@@ -37,10 +37,14 @@ api.interceptors.response.use(
       if (!isRefreshing) {
         isRefreshing = true;
         try {
-          await api.post('/api/auth/refresh-token');
+          console.log('Attempting to refresh token...');
+          const response = await api.post('/api/auth/refresh-token');
+          console.log('Token refresh successful:', response.data);
           isRefreshing = false;
+          console.log('Retrying original request:', originalRequest.url);
           return api(originalRequest); 
         } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
           isRefreshing = false;
           if (typeof window !== 'undefined') {
             window.location.href = '/login'; 
@@ -49,10 +53,12 @@ api.interceptors.response.use(
           return Promise.reject(refreshError); 
         }
       } else {
+        console.log('Token refresh in progress...');
         return new Promise((resolve) => {
           const checkRefresh = setInterval(() => {
             if (!isRefreshing) {
               clearInterval(checkRefresh);
+              console.log('Retrying original request:', originalRequest.url);
               resolve(api(originalRequest));
             }
           }, 100);
