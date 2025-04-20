@@ -48,7 +48,7 @@ const productSchema = new mongoose.Schema({
             type: String,
             required: true,
         },
-        town: {
+        state: {
             type: String,
             required: true,
         },

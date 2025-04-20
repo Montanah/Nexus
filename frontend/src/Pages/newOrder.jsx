@@ -8,7 +8,7 @@ import InputField from '../Components/DashboardInputField';
 import PhotoUpload from '../Components/PhotoUpload';
 import PriceBreakdown from '../Components/PriceBreakdown';
 import ActionButtons from '../Components/ActionButtons';
-import { checkout, addToCart, createCategory, getCategories } from '../Services/api';
+import { checkout, addToCart, createCategory, getCategories, createProduct } from '../Services/api';
 import CountryStateCityComponent from '../Components/State';
 
 const NewOrder = () => {
@@ -24,7 +24,7 @@ const NewOrder = () => {
   const [productName, setProductName] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [productDescription, setProductDescription] = useState('');
-  const [category, setCategory] = useState('');
+  const [productCategory, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
   const [categoryOptions, setCategoryOptions] = useState([]);
   const [productPhotos, setProductPhotos] = useState([]);
@@ -54,8 +54,8 @@ const NewOrder = () => {
       try {
         setLoading(true);
         const response = await getCategories();
-        console.log('Raw response:', response);
-        const categories = Array.isArray(response.data) ? response.data : [];
+        console.log('Raw response:', response?.data?.data?.categories);
+        const categories = Array.isArray(response?.data?.data?.categories) ? response?.data?.data?.categories : [];
         console.log('Processed categories:', categories);
         setCategoryOptions(categories);
       } catch (err) {
@@ -103,7 +103,7 @@ const NewOrder = () => {
       return;
     }
 
-    let effectiveCategory = customCategory || category;
+    let effectiveCategory = customCategory || productCategory;
     if (!effectiveCategory && persistToBackend) {
       setError('Please select or enter a category');
       return;
@@ -123,18 +123,20 @@ const NewOrder = () => {
 
     const newItem = {
       userId,
-      productId,
+      // productId,
       productName,
-      quantity,
-      finalCharge: calculateFinalCharge(productPrice, quantity),
-      delivery: { country, state, city, deliveryDate },
+      quantity: Number(quantity),
+      // finalCharge: calculateFinalCharge(productPrice, quantity),
+      destination: { country, state, city},
+      deliverydate: deliveryDate,
       productDescription,
-      category: effectiveCategory || customCategory,
-      productPhotos: productPhotos.map(photo => photo.name || photo),
-      weight,
-      dimensions,
-      shippingRestrictions,
-      productPrice,
+      productCategory: effectiveCategory || customCategory,
+      productPhotos: productPhotos.map(photo => photo.name || photo) || null,
+      weight: weight || null,
+      dimensions: dimensions || null,
+      shippingRestrictions: shippingRestrictions || '',
+      productFee: Number(productPrice),
+      urgencyLevel: 'medium',
     };
 
     try {
@@ -153,8 +155,12 @@ const NewOrder = () => {
       });
 
       if (persistToBackend) {
-        console.log('Adding to cart:', { userId, cart: [newItem] });
-        await addToCart({ userId, cart: [newItem] });
+        // console.log('Adding to cart:', newItem);
+        // const response = await createProduct(newItem);
+        // console.log('Item added to cart:', response.data);
+        // console.log('Adding to cart:', { userId, cart: [newItem] });
+        // await addToCart({ userId, cart: [newItem] });
+        await addToCart(newItem);
         setSuccess('Item added to cart');
       } else {
         setSuccess('Item saved to cart preview');
@@ -279,7 +285,7 @@ const NewOrder = () => {
             <div className="w-full md:w-40">
               <InputField
                 label="Category"
-                value={category}
+                value={productCategory}
                 onChange={setCategory}
                 options={categoryOptions.length > 0 ? categoryOptions.map(cat => ({
                   value: cat._id,

@@ -79,8 +79,12 @@ exports.createProductAndAddToCart = async (req, res) => {
             urgencyLevel 
         } = req.body;
 
-        if (!productName || !quantity || !productCategory) {
-            return response(res, 400, "Missing required fields");
+        if (!productName || !quantity || !productDescription || !productCategory || !productFee || !deliverydate) {
+            return response(res, 400, "Missing required fields: productName, quantity, productDescription, productCategory, productFee, deliverydate are required");
+        }
+
+        if (!destination || !destination.city || !destination.country || !destination.state) {
+            return response(res, 400, "Invalid destination data: city, country, and state are required");
         }
 
         const clientID = req.user.id;
@@ -89,16 +93,13 @@ exports.createProductAndAddToCart = async (req, res) => {
         if (!client) {
             return response(res, 404, "Client not found");
         }
+
         const existingProduct = await Product.findOne({ 
             productName,
             client: clientID
         });
         if (existingProduct) {
             return response(res, 400, "Product already exists for this user");
-        }
-
-        if (!destination || !destination.city || !destination.country) {
-            return response(res, 400, "Invalid destination data");
         }
 
         const category = await Category.findById(productCategory);
@@ -108,8 +109,18 @@ exports.createProductAndAddToCart = async (req, res) => {
 
         const imageUrls = req.files?.map(file => file.path) || [];
 
-        const productMarkup = productFee * 0.15;
-        const totalPrice = productFee + productMarkup;
+        const parsedWeight = productWeight ? Number(productWeight) : null;
+        if (productWeight && isNaN(parsedWeight)) {
+            return response(res, 400, "Invalid productWeight: must be a number");
+        }
+        const parsedQuantity = Number(quantity);
+        if (isNaN(parsedQuantity) || parsedQuantity <= 0) {
+            return response(res, 400, "Invalid quantity: must be a positive number");
+        }
+        const parsedProductFee = Number(productFee);
+        if (isNaN(parsedProductFee) || parsedProductFee <= 0) {
+            return response(res, 400, "Invalid productFee: must be a positive number");
+        }
 
         let newProduct;
 
@@ -117,20 +128,22 @@ exports.createProductAndAddToCart = async (req, res) => {
             newProduct = new Product({
                 client: clientID,
                 productName,
-                quantity: Number(quantity),
+                quantity: parsedQuantity,
                 productDescription,
                 productCategory: category._id,
                 categoryName: category.categoryName,
-                productWeight: Number(productWeight),
-                productDimensions,
+                productWeight: parsedWeight,
+                productDimensions: productDimensions || null,
                 productPhotos: imageUrls,
-                destination,
-                deliverydate,
-                productFee: Number(productFee),
-                shippingRestrictions,
-                totalPrice: Number(totalPrice),
-                productMarkup: Number(productMarkup),
-                urgencyLevel
+                destination: {
+                    city: destination.city,
+                    country: destination.country,
+                    state: destination.state,
+                },
+                deliverydate: new Date(deliverydate),
+                productFee: parsedProductFee,
+                shippingRestrictions: shippingRestrictions || "",
+                urgencyLevel: urgencyLevel || "medium",
             });
 
             await newProduct.save();

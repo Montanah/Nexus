@@ -144,6 +144,11 @@ export const addToCart = async (formData) => {
   return response.data;
 };
 
+export const createProduct= async (formData) => {
+  const response = await api.post('/api/products/', formData); 
+  return response.data;
+};
+
 // Create a new category (Protected)
 export const createCategory = async (formData) => {
   const response = await api.post('/api/products/category', formData);
