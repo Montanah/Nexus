@@ -8,7 +8,7 @@ import InputField from '../Components/DashboardInputField';
 import PhotoUpload from '../Components/PhotoUpload';
 import PriceBreakdown from '../Components/PriceBreakdown';
 import ActionButtons from '../Components/ActionButtons';
-import { checkout, addToCart, createCategory, getCategories, createProduct } from '../Services/api';
+import { checkout, createCategory, getCategories, createProduct } from '../Services/api';
 import CountryStateCityComponent from '../Components/State';
 
 const NewOrder = () => {
@@ -123,15 +123,13 @@ const NewOrder = () => {
 
     const newItem = {
       userId,
-      // productId,
       productName,
       quantity: Number(quantity),
-      // finalCharge: calculateFinalCharge(productPrice, quantity),
-      destination: { country, state, city},
+      destination: { country, state, city },
       deliverydate: deliveryDate,
       productDescription,
       productCategory: effectiveCategory || customCategory,
-      productPhotos: productPhotos.map(photo => photo.name || photo) || null,
+      productPhotos: productPhotos.map(photo => photo.base64),
       weight: weight || null,
       dimensions: dimensions || null,
       shippingRestrictions: shippingRestrictions || '',
@@ -142,27 +140,26 @@ const NewOrder = () => {
     try {
       setLoading(true);
       setError(null);
-      setCart(prevCart => {
-        const existingItem = prevCart.find(item => item.productName === newItem.productName);
-        if (existingItem) {
-          return prevCart.map(item =>
-            item.productName === newItem.productName
-              ? { ...item, quantity: item.quantity + quantity, finalCharge: calculateFinalCharge(productPrice, item.quantity + quantity) }
-              : item
-          );
-        }
-        return [...prevCart, newItem];
-      });
 
       if (persistToBackend) {
-        // console.log('Adding to cart:', newItem);
-        // const response = await createProduct(newItem);
-        // console.log('Item added to cart:', response.data);
-        // console.log('Adding to cart:', { userId, cart: [newItem] });
-        // await addToCart({ userId, cart: [newItem] });
-        await addToCart(newItem);
-        setSuccess('Item added to cart');
+        // Single API call that creates product and adds to cart
+        const response = await createProduct(newItem);
+        console.log('API Response:', response);
+        
+        if (response.success && response.data.product) {
+          // Update local cart state with the new product
+          setCart(prevCart => [...prevCart, { 
+            ...newItem, 
+            productId: response.data.product._id,
+            finalCharge: response.data.product.totalPrice
+          }]);
+          setSuccess('Item added to cart successfully');
+        } else {
+          throw new Error(response.message || 'Failed to add item to cart');
+        }
       } else {
+        // Just update local cart state for preview
+        setCart(prevCart => [...prevCart, newItem]);
         setSuccess('Item saved to cart preview');
       }
     } catch (err) {
@@ -172,6 +169,7 @@ const NewOrder = () => {
       setLoading(false);
     }
 
+    // Reset form fields
     setProductName('');
     setQuantity(1);
     setProductDescription('');
@@ -199,7 +197,11 @@ const NewOrder = () => {
     if (existingItem.quantity > 1) {
       setCart(cart.map(cartItem =>
         cartItem.productId === itemId || cartItem.productName === itemId
-          ? { ...cartItem, quantity: cartItem.quantity - 1, finalCharge: calculateFinalCharge(cartItem.productPrice, cartItem.quantity - 1) }
+          ? { 
+              ...cartItem, 
+              quantity: cartItem.quantity - 1, 
+              finalCharge: (cartItem.productFee * (cartItem.quantity - 1)) * 1.15 // 15% markup
+            }
           : cartItem
       ));
     } else {
@@ -338,7 +340,7 @@ const NewOrder = () => {
                 {cart.map((item, index) => (
                   <li key={index} className="flex items-center justify-between">
                     <div className="flex items-center">
-                      {item.productPhotos.length > 0 ? (
+                      {item.productPhotos && item.productPhotos.length > 0 ? (
                         <img src={item.productPhotos[0]} alt={item.productName} className="w-12 h-12 object-cover rounded mr-4" />
                       ) : (
                         <FaBox className="text-indigo-600 text-2xl mr-4" />
@@ -346,7 +348,7 @@ const NewOrder = () => {
                       <div>
                         <p className="text-gray-900 font-medium">{item.productName}</p>
                         <p className="text-gray-600 text-sm">
-                          ${item.productPrice} x {item.quantity} = KES{item.finalCharge.toFixed(2)}
+                          KES {(item.productFee * 1.15).toFixed(2)} x {item.quantity} = KES{item.finalCharge.toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -359,7 +361,11 @@ const NewOrder = () => {
                         onClick={() => {
                           setCart(cart.map(cartItem =>
                             cartItem.productName === item.productName
-                              ? { ...cartItem, quantity: cartItem.quantity + 1, finalCharge: calculateFinalCharge(cartItem.productPrice, cartItem.quantity + 1) }
+                              ? { 
+                                  ...cartItem, 
+                                  quantity: cartItem.quantity + 1, 
+                                  finalCharge: (cartItem.productFee * (cartItem.quantity + 1)) * 1.15 // 15% markup
+                                }
                               : cartItem
                           ));
                         }}

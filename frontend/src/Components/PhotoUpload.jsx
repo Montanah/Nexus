@@ -1,90 +1,121 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { uploadProductPhotos } from '../Services/api';
+import { compressImage } from '../utils/imageUtils';
 
-const PhotoUpload = ({ photos, setPhotos }) => {
-  const [uploadStatus, setUploadStatus] = useState('No File Chosen');
-  const fileInputRef = useRef(null);
+const PhotoUpload = ({ photos, setPhotos, className }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleFileUpload = async (event) => {
-    const files = Array.from(event.target.files);
-    if (photos.length + files.length > 5) {
-      alert('Maximum 5 photos allowed');
-      return;
-    }
-
-    const newPhotos = [...photos, ...files];
-    setPhotos(newPhotos);
-    setUploadStatus(`${newPhotos.length} file(s) selected`);
-
-    // Prepare FormData for POST request
-    const formData = new FormData();
-    files.forEach((file) => formData.append('photos', file));
+  const handleFileChange = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
     try {
-      const response = await uploadProductPhotos(formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      console.log('Photos uploaded successfully:', response.data);
-      setUploadStatus(`${newPhotos.length} file(s) uploaded`);
-    } catch (error) {
-      console.error('Error uploading photos:', error);
-      setUploadStatus('Upload failed');
+      setLoading(true);
+      setError(null);
+
+      // Process each file
+      const processedPhotos = await Promise.all(
+        files.map(async (file) => {
+          // Check file type
+          if (!file.type.startsWith('image/')) {
+            throw new Error('Only image files are allowed');
+          }
+
+          // Check file size (5MB limit)
+          if (file.size > 5 * 1024 * 1024) {
+            throw new Error('File size should be less than 5MB');
+          }
+
+          // Compress and convert to base64
+          const base64String = await compressImage(file);
+          return {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            base64: base64String
+          };
+        })
+      );
+
+      // Update photos state
+      setPhotos(prev => [...prev, ...processedPhotos]);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error processing photos:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const removePhoto = (index) => {
-    const newPhotos = [...photos];
-    newPhotos.splice(index, 1);
-    setPhotos(newPhotos);
-    setUploadStatus(newPhotos.length > 0 ? `${newPhotos.length} file(s) selected` : 'No File Chosen');
-  };
-
-  const triggerFileInput = () => {
-    fileInputRef.current.click();
+    setPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
-    <div>
-      <label className="block mb-2 text-blue-600">Upload Photos (Optional, Max 5)</label>
-      <div className="flex items-center space-x-4">
-        <button
-          type="button"
-          onClick={triggerFileInput}
-          className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
-        >
-          Choose File
-        </button>
-        <span className="text-sm text-gray-600">{uploadStatus}</span>
+    <div className={`space-y-4 ${className}`}>
+      <div className="flex flex-col space-y-2">
+        <label className="text-sm font-medium text-gray-700">
+          Product Photos
+        </label>
         <input
           type="file"
           accept="image/*"
           multiple
-          ref={fileInputRef}
-          onChange={handleFileUpload}
-          className="hidden" // Hide the default input
+          onChange={handleFileChange}
+          className="block w-full text-sm text-gray-500
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-md file:border-0
+            file:text-sm file:font-semibold
+            file:bg-indigo-50 file:text-indigo-700
+            hover:file:bg-indigo-100"
+          disabled={loading}
         />
+        {error && (
+          <p className="text-sm text-red-600">{error}</p>
+        )}
+        {loading && (
+          <p className="text-sm text-gray-600">Processing photos...</p>
+        )}
       </div>
-      <div className="flex space-x-2 mt-2">
-        {photos.map((photo, index) => (
-          <div key={index} className="relative">
-            <img
-              src={URL.createObjectURL(photo)}
-              alt={`Photo ${index}`}
-              className="w-20 h-20 object-cover rounded"
-            />
-            <button
-              onClick={() => removePhoto(index)}
-              className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
-      </div>
+
+      {/* Photo Preview */}
+      {photos.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {photos.map((photo, index) => (
+            <div key={index} className="relative group">
+              <img
+                src={photo.base64}
+                alt={`Preview ${index + 1}`}
+                className="w-full h-32 object-cover rounded-lg"
+              />
+              <button
+                type="button"
+                onClick={() => removePhoto(index)}
+                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
+
 PhotoUpload.propTypes = {
   photos: PropTypes.arrayOf(PropTypes.object).isRequired,
   setPhotos: PropTypes.func.isRequired,

@@ -138,13 +138,8 @@ export const getCategories = async () => {
   return response;
 };
 
-// Add to cart (Protected)
-export const addToCart = async (formData) => {
-  const response = await api.post('/api/products/', formData); 
-  return response.data;
-};
-
-export const createProduct= async (formData) => {
+// Create product and add to cart (Protected)
+export const createProduct = async (formData) => {
   const response = await api.post('/api/products/', formData); 
   return response.data;
 };
