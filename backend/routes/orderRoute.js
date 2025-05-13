@@ -56,7 +56,7 @@ router.post('/checkout', authenticateClient, checkoutController.createOrder);
  *         description: Server error
  */
 
-router.get('/:userId', authenticateClient, checkoutController.getUserOrders);
+router.get('/', authenticateClient, checkoutController.getUserOrders);
 
 /**
  * @swagger

@@ -26,7 +26,8 @@ const ClientDashboard = () => {
       try {
         setOrderLoading(true);
         const fetchedOrders = await fetchOrders(userId);
-        setOrders(fetchedOrders);
+        console.log('Fetched orders:', fetchedOrders?.data?.orders);
+        setOrders(fetchedOrders?.data?.orders || []);
       } catch (err) {
         console.error('Failed to fetch orders:', err);
         setError('Failed to load orders');
@@ -37,9 +38,15 @@ const ClientDashboard = () => {
     loadOrders();
   }, [userId, authLoading, navigate]);
 
-  const filteredOrders = orders.filter(order =>
-    order.itemName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // const filteredOrders = orders.filter(order =>
+  //   order.itemName?.toLowerCase().includes(searchQuery.toLowerCase())
+  // );
+  const filteredOrders = Array.isArray(orders)
+    ? orders.filter(order => 
+        order.items.some(item =>
+          item.product.productName.toLowerCase().includes(searchQuery.toLowerCase())
+        ),)
+    : [];
 
   const handleOrderClick = (order) => {
     setSelectedOrder(selectedOrder?.id === order.id ? null : order);
@@ -109,26 +116,35 @@ const ClientDashboard = () => {
             ) : (
               <ul className="space-y-4">
                 {filteredOrders.map((order) => (
-                  <li key={order.id} className="border-b pb-4">
+                  <li key={order._id} className="border-b pb-4">
                     <div
                       onClick={() => handleOrderClick(order)}
                       className="flex items-center justify-between cursor-pointer hover:bg-gray-100 p-2 rounded"
                     >
+                       <span className="text-gray-700 font-medium">{order.orderNumber}</span>
                       <div className="flex items-center">
-                        {order.photo ? (
-                          <img src={order.photo} alt={order.itemName} className="w-12 h-12 object-cover rounded mr-4" />
+                        {order.items[0]?.product?.productPhotos[0] ? (
+                          <img src={order.items[0]?.product?.productPhotos[0]} 
+                            alt={order.items[0]?.product?.productName} className="w-12 h-12 object-cover rounded mr-4" />
                         ) : (
                           <FaBox className="text-indigo-600 text-2xl mr-4" />
                         )}
-                        <span className="text-gray-700 font-medium">{order.itemName}</span>
+                          {order.items.map((item, index) => (
+                            <div key={index} className='text-gray-700 font-medium'>
+                              {item.product.productName} (Qty: {item.quantity})
+                               <span className="text-gray-600">Unit: KES{item.product.totalPrice.toFixed(2)}</span>
+                            </div>
+                          ))} 
+                
+                        {/* <span className="text-gray-700 font-medium">{order.itemName}</span> */}
                       </div>
                       <div className="flex space-x-6">
-                        <span className="text-gray-600">Qty: {order.quantity}</span>
-                        <span className="text-gray-600">Unit: ${order.unitPrice.toFixed(2)}</span>
-                        <span className="text-indigo-600 font-semibold">Total: ${order.totalPrice.toFixed(2)}</span>
+                        {/* <span className="text-gray-600">Qty: {order.quantity}</span> */}
+                        {/* <span className="text-gray-600">Unit: ${order.unitPrice.toFixed(2)}</span> */}
+                        <span className="text-indigo-600 font-semibold">Total: KES {order.totalAmount.toFixed(2)}</span>
                       </div>
                     </div>
-                    {selectedOrder?.id === order.id && (
+                    {selectedOrder?._id === order._id && (
                       <div className="mt-2 pl-16 text-gray-600 text-sm">
                         <p>{order.details || 'No additional details provided.'}</p>
                       </div>

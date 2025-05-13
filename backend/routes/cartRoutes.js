@@ -189,6 +189,5 @@ router.delete("/", authenticate, cartController.clearCart);
 router.post("/wishlist", authenticateClient, cartController.saveForLater);
 router.get("/wishlist", authenticateClient, cartController.getWishlist);
 router.post("/checkout", authenticateClient, cartController.checkout);
-router.get("/orders", authenticateClient, cartController.getUserOrders);
 
 module.exports = router;

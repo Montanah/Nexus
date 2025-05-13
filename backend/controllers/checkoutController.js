@@ -72,14 +72,10 @@ exports.createOrder = async (req, res) => {
 
 exports.getUserOrders = async (req, res) => {
     try {
-        const { userId } = req.params;
-
-        if (req.user.id !== userId) {
-            return response(res, 403, { message: 'Unauthorized' });
-          }
+        const userId = req.user.id;
 
         const orders = await Order.find({ userId })
-            .populate('items.product', 'productName productDescription totalPrice')
+            .populate('items.product', 'productName productDescription totalPrice productPhotos')
             .populate('travelerId', 'name email')
             .sort({ createdAt: -1 }); 
 
@@ -87,7 +83,7 @@ exports.getUserOrders = async (req, res) => {
             return response(res, 404, 'No orders found for this user');
         }
 
-        return response(res, 200, {"message": 'Orders retrieved successfully', orders });
+        return response(res, 200, {"message": 'Orders retrieved successfully', orders: orders });
 
     } catch (error) {
         console.error('Error fetching orders:', error);

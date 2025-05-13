@@ -52,13 +52,46 @@ exports.addToCart = async (req, res) => {
 exports.getCart = async (req, res) => {
     try {
         const userID = req.user.id;
-        const cart = await Cart.findOne({ user: userID }).populate("items.product");
+        
+        // const cart = await Cart.findOne({ user: userID }).populate("items.product");
+        const cart = await Cart.findOne({ user: userID })
+        .populate({
+            path: 'items.product',
+            select: 'productName productFee productPhotos',
+        });
+       console.log(cart);
+        // Sanitization helper
+        const sanitizeCart = (cart) => ({
+            _id: cart._id,
+            items: cart.items
+            .map(item => ({
+                product: {
+                 _id: item.product?.product,
+                        name: item.product?.productName || 'Deleted Product',
+                        price: item.product?.productFee || 0,
+                        imageUrl: item.product?.productPhotos?.[0]?.url || null
+                },
+                quantity: item.quantity
+            })),
+            createdAt: cart.createdAt
+        });
 
         if (!cart) {
-            return response(res, 200, {"message": "Cart is empty", items: [] });
+            return response(res, 200, {
+                "message": "Cart is empty", 
+                items: [],
+                totalItems: 0
+             });
         }
 
-        return response(res, 200, {"message": "Cart retrieved successfully", cart });
+        const sanitizedCart = sanitizeCart(cart);
+        console.log("sanitize cart",sanitizedCart);
+        console.log("items", sanitizedCart.items[0]?.product);
+
+        return response(res, 200, 
+            {"message": "Cart retrieved successfully", 
+                cart: sanitizedCart,
+            totalItems: sanitizedCart.items.length });
     } catch (error) {
         console.error("Error fetching cart:", error.message);
         return response(res, 500, { "message":"Error fetching cart", error });
@@ -103,13 +136,13 @@ exports.clearCart = async (req, res) => {
             { $set: { items: [] } },
             { new: true }
         );
-        if (!result) {
+        if (!cart) {
             return response(res, 404, "Cart not found");
         }
 
         return response(res, 200, "Cart cleared successfully", {
             success: true,
-            cartId: result._id
+            cartId: cart._id
         });
 
     } catch (error) {
@@ -177,15 +210,22 @@ exports.checkout = async (req, res) => {
         // Calculate total price
         let totalAmount = 0;
         cart.items.forEach(item => {
-            totalAmount += item.quantity * item.product.productFee;
+            totalAmount += item.quantity * item.product.totalPrice;
         });
+
+         // Generate unique order number
+        const orderNumber = generateOrderNumber();
 
         // Create an order
         const order = new Order({
-            user: userID,
-            items: cart.items,
+            userId: userID,
+            orderNumber,
+             items: cart.items.map(item => ({
+                product: item.product._id,  
+                quantity: item.quantity
+            })),
             totalAmount,
-            status: "Pending",
+            paymentStatus: "Pending",
         });
 
         await order.save();
@@ -193,7 +233,7 @@ exports.checkout = async (req, res) => {
         // Clear the cart after checkout
         await Cart.findOneAndDelete({ user: userID });
 
-        response(res, 200, "Checkout successful", { order });
+        response(res, 200, {"message":"Checkout successful", order: order });
     } catch (error) {
         console.error("Error during checkout:", error);
         response(res, 500, "Error during checkout", error);
@@ -212,3 +252,9 @@ exports.getUserOrders = async (req, res) => {
     }
 };
 
+
+const generateOrderNumber = () => {
+    const timestamp = Date.now().toString();
+    const random = Math.floor(Math.random() * 9000) + 1000;
+    return `ORD-${timestamp}-${random}`;
+};
