@@ -291,7 +291,7 @@ const NewOrder = () => {
                 onChange={setCategory}
                 options={categoryOptions.length > 0 ? categoryOptions.map(cat => ({
                   value: cat._id,
-                  label: cat.categoryName,
+                  label: cat.name,
                 })) : []}
                 className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
               />
