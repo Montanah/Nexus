@@ -19,7 +19,7 @@ const cookieParser = require('cookie-parser');
 const swaggerUI = require("swagger-ui-express"), swaggerDocument = require("./swagger.json");
 const setupSwagger = require("./swagger");
 
-const { response } = require("./utils/responses"); // response.js exports an object { response }
+const { response } = require("./utils/responses");
 
 require("./controllers/Passport");
 

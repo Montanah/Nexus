@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { fetchUser } from '../Services/api';
 import { useAuth } from '../Context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const UserProfile = ({ userId }) => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [profile, setProfile] = useState({
     name: 'John Doe',
@@ -23,7 +25,7 @@ const UserProfile = ({ userId }) => {
 
       try {
         setLoading(true);
-        console.log("I reached here user:", user);
+        // console.log("I reached here user:", user);
         if (user && user.name && user.email) {
           setProfile({
             name: user.name,
@@ -34,7 +36,7 @@ const UserProfile = ({ userId }) => {
           // Fetch user data
           const userData = await fetchUser(userId);
         
-          console.log('userData:', JSON.stringify(userData, null, 2));
+          // console.log('userData:', JSON.stringify(userData, null, 2));
           setProfile({
             name: userData?.data?.user?.name || 'Unknown User',
             email: userData?.data?.user?.email || 'No email provided',

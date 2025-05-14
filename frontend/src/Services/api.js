@@ -185,7 +185,7 @@ export const createProduct = async (formData) => {
 
 // Create a new category (Protected)
 export const createCategory = async (formData) => {
-  const response = await api.post('/api/products/category', formData);
+  const response = await api.post('/api/products/category/', formData);
   return response.data;
 };
 
@@ -216,7 +216,7 @@ export const deleteCartItem = async (userId, productId) => {
 };
 
 // Fetch orders for a specific client (Protected)
-export const fetchOrders = async (userId) => {
+export const fetchOrders = async () => {
   const response = await api.get(`/api/orders/`);
   return response.data; // e.g., [{ id, itemName, photo, quantity, unitPrice, totalPrice, details, ... }]
 };
@@ -225,8 +225,8 @@ export const fetchOrders = async (userId) => {
 // Retrieve all products (Public or Protected)
 export const getAvailableProducts = async (filters) => {
   try {
-    const response = await api.post('/products/search/', filters);
-    return response; // Returns { message, products, pagination, filters }
+    const response = await api.post('/api/products/search/', filters);
+    return response.data.data; // Returns { message, products, pagination, filters }
   } catch (error) {
     console.error('Error fetching available products:', error);
     throw error;
@@ -278,8 +278,8 @@ export const deleteProduct = async (productId) => {
 };
 
 // Checkout (Protected)
-export const checkout = async (formData) => {
-  const response = await api.post('/api/orders/checkout', formData);
+export const checkout = async () => {
+  const response = await api.post('/api/cart/checkout');
   return response.data;
 };
 

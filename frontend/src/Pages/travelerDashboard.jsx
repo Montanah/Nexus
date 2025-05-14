@@ -27,7 +27,7 @@ const TravelerDashboard = () => {
       try {
         setLoading(true);
         const [productsData, categoriesData, earningsData] = await Promise.all([
-          getAvailableProducts(userId),
+          getAvailableProducts(),
           getCategories(),
           getTravelerEarnings(userId),
         ]);
