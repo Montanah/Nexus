@@ -8,7 +8,11 @@ const orderSchema = new mongoose.Schema({
     orderNumber: {
         type: String,
         required: true, 
-        unique: true
+        unique: true,
+         validate: {
+        validator: v => /^ORD-\d{13}-\d+$/.test(v),
+            message: "Invalid order number format"
+        }
     },
     items: [
         {
@@ -43,7 +47,7 @@ const orderSchema = new mongoose.Schema({
     },
     urgencyLevel: {
         type: mongoose.Schema.Types.String,
-        ref: "Products"
+        ref: "Product"
     },
     clientRating: {
         type: Number,

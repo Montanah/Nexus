@@ -103,22 +103,40 @@ const NewOrder = () => {
       return;
     }
 
-    let effectiveCategory = customCategory || productCategory;
-    if (!effectiveCategory && persistToBackend) {
+    let effectiveCategory = productCategory;
+    let categoryId = productCategory;
+
+    // if (!effectiveCategory && persistToBackend) {
+    //   setError('Please select or enter a category');
+    //   return;
+    // }
+
+    if (customCategory && !productCategory) {
+    if (persistToBackend) {
+        try {
+          setLoading(true);
+          const categoryResponse = await createCategory({ categoryName: customCategory });
+          categoryId = categoryResponse.data.category?._id; 
+          setCategoryOptions(prev => [...prev, { 
+            _id: categoryId, 
+            categoryId: customCategory 
+          }]);
+          effectiveCategory = categoryId; 
+        } catch (err) {
+          console.error('Error creating category:', err.response || err);
+          setError('Failed to create custom category');
+          setLoading(false);
+          return;
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // For preview mode, just use the custom category name
+        effectiveCategory = customCategory;
+      }
+    } else if (!productCategory && !customCategory && persistToBackend) {
       setError('Please select or enter a category');
       return;
-    }
-
-    if (customCategory && persistToBackend) {
-      try {
-        const categoryResponse = await createCategory({ categoryName: customCategory });
-        effectiveCategory = categoryResponse.data._id;
-        setCategoryOptions(prev => [...prev, categoryResponse.data]);
-      } catch (err) {
-        console.error('Error creating category:', err.response || err);
-        setError('Failed to create custom category');
-        return;
-      }
     }
 
     const newItem = {
@@ -128,7 +146,7 @@ const NewOrder = () => {
       destination: { country, state, city },
       deliverydate: deliveryDate,
       productDescription,
-      productCategory: effectiveCategory || customCategory,
+      productCategory: effectiveCategory || categoryId,
       productPhotos: productPhotos.map(photo => photo.base64),
       weight: weight || null,
       dimensions: dimensions || null,

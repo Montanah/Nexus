@@ -131,6 +131,45 @@ export const logoutUser = async () => {
   return response.data;
 };
 
+// Social Authentication
+export const initiateSocialLogin = async (provider, role) => {
+  try {
+    const response = await api.get(`/api/auth/${provider}?state=${role}`);
+    if (response.data && response.data.url) {
+      window.location.href = response.data.url;
+    } else {
+      throw new Error('Failed to get social login URL');
+    }
+  } catch (error) {
+    console.error(`Error initiating ${provider} login:`, error);
+    throw error;
+  }
+};
+
+export const handleSocialCallback = async (provider, code) => {
+  try {
+    const response = await api.post(`/api/auth/${provider}/callback`, { code });
+    return response.data;
+  } catch (error) {
+    console.error(`Error handling ${provider} callback:`, error);
+    throw error;
+  }
+};
+
+export const verifySocialUser = async ({ email, code, provider }) => {
+  try {
+    const response = await api.post('/api/auth/verify-social', {
+      email,
+      code,
+      provider
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error verifying social user:', error);
+    throw error;
+  }
+};
+
 // PRODUCT AND CART ENDPOINTS
 // Category API call (Public or Protected depending on backend)
 export const getCategories = async () => {
@@ -151,7 +190,7 @@ export const createProduct = async (formData) => {
 
 // Create a new category (Protected)
 export const createCategory = async (formData) => {
-  const response = await api.post('/api/products/category', formData);
+  const response = await api.post('/api/products/category/', formData);
   return response.data;
 };
 
@@ -182,8 +221,8 @@ export const deleteCartItem = async (userId, productId) => {
 };
 
 // Fetch orders for a specific client (Protected)
-export const fetchOrders = async (userId) => {
-  const response = await api.get(`/api/orders/${userId}`);
+export const fetchOrders = async () => {
+  const response = await api.get(`/api/orders/`);
   return response.data; // e.g., [{ id, itemName, photo, quantity, unitPrice, totalPrice, details, ... }]
 };
 
@@ -191,8 +230,8 @@ export const fetchOrders = async (userId) => {
 // Retrieve all products (Public or Protected)
 export const getAvailableProducts = async (filters) => {
   try {
-    const response = await api.post('/products/search/', filters);
-    return response; // Returns { message, products, pagination, filters }
+    const response = await api.post('/api/products/search/', filters);
+    return response.data.data; // Returns { message, products, pagination, filters }
   } catch (error) {
     console.error('Error fetching available products:', error);
     throw error;
@@ -244,8 +283,8 @@ export const deleteProduct = async (productId) => {
 };
 
 // Checkout (Protected)
-export const checkout = async (formData) => {
-  const response = await api.post('/api/orders/checkout', formData);
+export const checkout = async () => {
+  const response = await api.post('/api/cart/checkout');
   return response.data;
 };
 
