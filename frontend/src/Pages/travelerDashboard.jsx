@@ -11,12 +11,13 @@ const TravelerDashboard = () => {
   const navigate = useNavigate();
   const userId = useAuth().userId;
   const [products, setProducts] = useState([]);
-  const [filters, setFilters] = useState({ category: 'All', country: '', city: '', priceMin: '', priceMax: '', urgency: '' });
+  const [filters, setFilters] = useState({ category: 'All', country: '', state: '', city: '', priceMin: '', priceMax: '', urgency: '' });
   const [earnings, setEarnings] = useState({ totalEarnings: '0.00', pendingPayments: '0.00', rating: { average: 0, count: 0 } });
   const [period, setPeriod] = useState('all');
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [categories, setCategories] = useState(['All']);
   const [country, setCountry] = useState('');
+  const [state, setState] = useState('');
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -49,11 +50,12 @@ const TravelerDashboard = () => {
     const filteredProducts = products.filter(product => {
       const matchesCategory = filters.category === 'All' || product.productName.includes(filters.category);
       const matchesCountry = !filters.country || product.delivery.country === filters.country;
+      const matchesState = !filters.country || product.delivery.state === filters.state;
       const matchesCity = !filters.city || product.delivery.city === filters.city;
       const matchesPriceMin = !filters.priceMin || product.productPrice >= Number(filters.priceMin);
       const matchesPriceMax = !filters.priceMax || product.productPrice <= Number(filters.priceMax);
       const matchesUrgency = !filters.urgency || product.urgencyLevel === filters.urgency;
-      return matchesCategory && matchesCountry && matchesCity && matchesPriceMin && matchesPriceMax && matchesUrgency;
+      return matchesCategory && matchesCountry && matchesState && matchesCity && matchesPriceMin && matchesPriceMax && matchesUrgency;
     });
     setProducts(filteredProducts);
   }, [filters, products]);
@@ -95,7 +97,7 @@ const TravelerDashboard = () => {
           <select
             value={filters.category}
             onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-            className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]"
+            className="px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]"
           >
             {categories.map(category => (
               <option key={category} value={category}>{category}</option>
@@ -106,6 +108,8 @@ const TravelerDashboard = () => {
             <CountryStateCityComponent
               selectedCountry={country}
               setSelectedCountry={setCountry}
+              selectedState={state}
+              setSelectedState={setState}
               selectedCity={city}
               setSelectedCity={setCity}
             />
@@ -163,7 +167,7 @@ const TravelerDashboard = () => {
                       />
                     ) : null}
                     <p className="font-medium text-gray-700">{product.productName}</p>
-                    <p className="text-sm text-gray-600">{`${product.delivery.country}, ${product.delivery.city}`}</p>
+                    <p className="text-sm text-gray-600">{`${product.delivery.country}, ${product.delivery.state}, ${product.delivery.city}`}</p>
                     <p className="text-sm text-gray-600">Reward: ${product.rewardAmount}</p>
                     <p className="text-sm text-gray-600">Urgency: ${product.urgencyLevel}</p>
                     <p className="text-sm text-gray-600">Price: ${product.productPrice}</p>
@@ -192,7 +196,7 @@ const TravelerDashboard = () => {
                       />
                     ) : null}
                     <p className="font-medium text-gray-700">{product.productName}</p>
-                    <p className="text-sm text-gray-600">{`${product.delivery.country}, ${product.delivery.city}`}</p>
+                    <p className="text-sm text-gray-600">{`${product.delivery.country}, ${product.delivery.state}, ${product.delivery.city}`}</p>
                     <p className="text-sm text-gray-600">Reward: ${product.rewardAmount}</p>
                     <p className="text-sm text-gray-600">Urgency: ${product.urgencyLevel}</p>
                     <p className="text-sm text-gray-600">Price: ${product.productPrice}</p>
