@@ -71,6 +71,12 @@ const productSchema = new mongoose.Schema({
             return this.productFee * 0.15;
         }
     },
+    rewardAmount: {
+        type: Number,
+        default: function () {
+            return this.productMarkup * 0.3;
+        }
+    },
     totalPrice: {
         type: Number,
         default: function () {

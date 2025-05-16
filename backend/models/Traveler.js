@@ -6,23 +6,16 @@ const travelerSchema = new mongoose.Schema({
         ref: "Users",
         required: true  
     },
-    totalEarnings: {
-        type: Number,  
-        default: 0
-    },
-    pendingPayments: {
-        type: Number,  
-        required: true,
-        default: 0
-    },
-    travelerRating: {
-        type: Number,
-        min: 1,
-        max: 5,
-        default: 0
+    earnings: {  
+        totalEarnings: { type: Number, default: 0 },
+        pendingPayments: { type: Number, default: 0 },
+        rating: {
+            average: { type: Number, default: 0 },
+            count: { type: Number, default: 0 }
+            }
     },
     history: [{  
-        orderNumber: String,
+        orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
         rewardAmount: Number,
         status: {
             type: String,

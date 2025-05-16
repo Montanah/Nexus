@@ -54,8 +54,8 @@ const NewOrder = () => {
       try {
         setLoading(true);
         const response = await getCategories();
-        console.log('Raw response:', response?.data?.data?.categories);
-        const categories = Array.isArray(response?.data?.data?.categories) ? response?.data?.data?.categories : [];
+        console.log('Raw response:', response);
+        const categories = Array.isArray(response) ? response : [];
         console.log('Processed categories:', categories);
         setCategoryOptions(categories);
       } catch (err) {

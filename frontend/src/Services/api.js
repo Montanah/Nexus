@@ -174,7 +174,8 @@ export const verifySocialUser = async ({ email, code, provider }) => {
 // Category API call (Public or Protected depending on backend)
 export const getCategories = async () => {
   const response = await api.get('/api/products/category');
-  return response;
+  console.log('getCategories response:', response.data.data.categories);
+  return response.data.data.categories;
 };
 
 // Create product and add to cart (Protected)
@@ -223,12 +224,29 @@ export const fetchOrders = async () => {
 
 // PRODUCT ENDPOINTS FOR TRAVELERS
 // Retrieve all products (Public or Protected)
-export const getAvailableProducts = async (filters) => {
+// export const getAvailableProducts = async (filters = {}) => {
+//   try {
+//     const response = await api.post('/api/products/search/', { ...filters, page: 1 });
+//     console.log('getAvailableProducts response:', response.data.data.products);
+//     return response.data.data.products; // Returns { message, products, pagination, filters }
+//   } catch (error) {
+//     console.error('Error fetching available products:', error);
+//     throw error;
+//   }
+// };
+
+export const getAvailableProducts = async (filters = {}) => {
   try {
-    const response = await api.post('/api/products/search/', filters);
-    return response.data.data; // Returns { message, products, pagination, filters }
+    console.log('Fetching orders with filters:', filters);
+    const response = await api.get('/api/travelers/orders', { params: filters });
+    console.log('getAvailableProducts response:', response.data.data.orders);
+    return response.data.data.orders;
   } catch (error) {
-    console.error('Error fetching available products:', error);
+    console.error('getAvailableProducts error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
     throw error;
   }
 };
@@ -323,9 +341,20 @@ export const getTravelerOrders = async (filters) => {
 };
 
 // Get traveler earnings (Protected)
-export const getTravelerEarnings = async (userId, params = {}) => {
-  const response = await api.get(`/travelers/${userId}/earnings`, { params });
-  return response;
+export const getTravelerEarnings = async () => {
+  try {
+    return {
+      success: true,
+      totalEarnings: '100.00',
+      pendingPayments: '0.00',
+      rating: { average: 4.5, count: 10 },
+    };
+    // const response = await api.get(`/api/travelers/${userId}/earnings`);
+    // return response.data;
+  } catch (error) {
+    console.error('getTravelerEarnings error:', error.response?.data || error.message);
+    throw error;
+  }
 };
 
 // Get traveler history (Protected)

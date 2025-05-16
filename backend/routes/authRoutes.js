@@ -178,7 +178,11 @@ router.post("/verify2FA/:id", authController.verify2FA);
  *       500:
  *         description: Internal server error
  */
-router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+router.get('/google', passport.authenticate('google', {
+  scope: ['email', 'profile'],
+  accessType: 'offline',
+  prompt: 'select_account',
+}));
 
 /**
  * @swagger
@@ -194,7 +198,10 @@ router.get("/google", passport.authenticate("google", { scope: ["profile", "emai
  *       500:
  *         description: Internal server error
  */
-router.get("/google/callback", passport.authenticate("google", { session: false }), authController.socialLogin);
+router.get(
+  "/google/callback", 
+  passport.authenticate("google", { session: false, failureRedirect: "/login?error=google_auth_failed" }), 
+  authController.socialLogin);
 
 // Facebook OAuth routes
 router.get("/facebook", passport.authenticate("facebook", { scope: ["email"] }));
@@ -234,23 +241,9 @@ router.get('/apple', passport.authenticate('apple'));
  *       500:
  *         description: Internal server error
  */
-router.post('/apple/callback', (req, res, next) => {
-  passport.authenticate('apple', (err, user, info) => {
-    if (err) {
-      return next(err);
-    }
-    if (!user) {
-      return res.redirect('/login');
-    }
-    req.logIn(user, (err) => {
-      if (err) {
-        return next(err);
-      }
-      return res.redirect('/');
-    });
-  })(req, res, next);
-});
-
+router.post('/apple/callback', 
+  passport.authenticate('apple', {session: false, failureRedirect: '/login?error=apple_auth_failed' }), 
+  authController.socialLogin);
 
 /**
  * @swagger
@@ -385,4 +378,22 @@ router.get('/restore-session', authController.restoreSession);
 router.post('/refresh-token', authController.refreshToken);
 
 router.get('/get-user-id', authController.getUserIdFromCookie);
+
+router.post('/verify-social', authController.verifySocialUser);
+
+router.get('/:provider', (req, res) => {
+  const { provider } = req.params;
+  const state = req.query.state || '';
+
+  if (provider === 'google') {
+    return res.json({ url: `/api/auth/google?state=${encodeURIComponent(state)}` });
+  }
+
+  if (provider === 'apple') {
+    return res.json({ url: `/api/auth/apple?state=${encodeURIComponent(state)}` });
+  }
+
+  return res.status(400).json({ message: 'Invalid provider' });
+});
+
 module.exports = router;

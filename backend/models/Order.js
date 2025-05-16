@@ -45,9 +45,10 @@ const orderSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Users",
     },
-    urgencyLevel: {
-        type: mongoose.Schema.Types.String,
-        ref: "Product"
+    urgencyLevel: { 
+        type: String, 
+        enum: ["low", "medium", "high"], 
+        default: "low" 
     },
     clientRating: {
         type: Number,

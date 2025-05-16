@@ -358,19 +358,55 @@ exports.resendVerification = async (req, res) => {
  * @param {Object} req - The request object
  * @param {Object} res - The response object
  */
-exports.socialLogin = (req, res) => {
-    const user = req.user;
+exports.socialLogin = async (req, res) => {
+    try {
+        const user = req.user;
+        if (!user) {
+            return response(res, 400, "Authentication failed");
+        }
 
-    // Generate JWT token
-    // We use the user's ID and role in the payload,
-    // and sign it with the JWT secret
-    // The token will expire after 1 hour
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-        expiresIn: "1h",
-    });
+        if (!user.isVerified) {
+            return response(res, 400, "User is not verified");
+        }
 
-    // Return the JWT token in the response
-    return response(res, 200, { message: "Login successful", token }); // res.status(200).json({ message: "Login successful", token });
+        const accessToken = generateAccessToken(user._id);
+        const refreshToken = generateRefreshToken(user._id);
+
+        // Store tokens in Redis
+        await redisClient.set(`authToken:${user._id}`, accessToken, { EX: 15 * 60 });
+        await redisClient.set(`refreshToken:${user._id}`, refreshToken, { EX: 7 * 24 * 60 * 60 });
+
+        // Set cookies
+        res.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 15 * 60 * 1000
+        });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        return response(res, 200, {
+            message: "Social login successful",
+            token: accessToken,
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                isVerified: user.isVerified,
+                avatar: user.avatar
+            }
+        })
+        
+    } catch (error) {
+        console.error("Social login error:", error);
+        return response(res, 500, "Social login error", error);
+    }
 };
 
 //Log out user
@@ -654,3 +690,52 @@ exports.getUserIdFromCookie = (req, res) => {
     res.status(401).json({ message: 'Invalid access token' });
   }
 };
+
+exports.verifySocialUser = async (req, res) => {
+  const { email, code, provider } = req.body;
+
+  try {
+    // Find user by email and verification code
+    const user = await Users.findOne({
+      email,
+      verificationCode: code,
+      verificationCodeExpires: { $gt: Date.now() },
+      // Only check authProvider if it's provided and not undefined
+      ...(provider && provider !== 'undefined' ? { authProvider: provider } : {})
+    });
+
+    if (!user) {
+      return response(res, 400, {
+        success: false,
+        message: 'Invalid or expired verification code'
+      });
+    }
+
+    // Mark user as verified
+    user.isVerified = true;
+    user.verificationCode = undefined;
+    user.verificationCodeExpires = undefined;
+    await user.save();
+
+    return response(res, 200, {
+      success: true,
+      message: 'Social account verified successfully',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isVerified: user.isVerified,
+        avatar: user.avatar,
+        phone_number: user.phone_number
+      }
+    });
+  } catch (error) {
+    console.error('Social verification error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error verifying social account',
+      error: error.message
+    });
+  }
+};
+

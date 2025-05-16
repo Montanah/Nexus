@@ -68,6 +68,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/travelers", travelerRoutes);
 
 app.use("/api/docs", swaggerUI.serve, swaggerUI.setup(swaggerDocument));
 

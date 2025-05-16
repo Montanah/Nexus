@@ -9,11 +9,14 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [user, setUser] = useState(null);
+  const [error, setError] = useState(null);
 
+  const clearError = () => setError(null);
   // Check auth status by calling /api/auth/me
   const checkAuth = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await api.get('/api/auth/get-user-id', { withCredentials: true });
       const fetchedUserId = response.data.data;
       console.log('checkAuth userId:', fetchedUserId);
@@ -27,10 +30,13 @@ export const AuthProvider = ({ children }) => {
       console.error('checkAuth failed:', error.response?.data || error.message);
       setUserId(null);
       setUser(null);
-      // if (error.response?.status === 401) {
-      //   console.log('Retrying checkAuth after 500ms delay...');
-      //   setTimeout(checkAuth, 500);
-      // }
+      if (error.response?.status === 404) {
+        setError('Authentication service unavailable. Please try again later.');
+      } else if (error.response?.status === 401) {
+        setError('Session expired or invalid. Please log in.');
+      } else {
+        setError(error.response?.data?.message || 'Failed to check authentication. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -43,6 +49,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password, verificationCode = null, userId = null) => {
     try {
       setLoading(true);
+      setError(null);
       if (!verificationCode) {
         // First step - initiate login
         const response = await loginUser({ email, password });
@@ -73,7 +80,14 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
         console.error('Login error:', error.response?.data || error.message);
-        throw error;
+        if (error.response?.status === 404) {
+        setError('Login service unavailable. Please try again later.');
+      } else if (error.response?.status === 401) {
+        setError('Invalid email, password, or OTP. Please try again.');
+      } else {
+        setError(error.response?.data?.message || 'Login failed. Please try again.');
+      }
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -81,6 +95,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      setLoading(true);
+      setError(null);
       await logoutUser();
       setUser(null);
       setUserId(null);
@@ -89,8 +105,11 @@ export const AuthProvider = ({ children }) => {
         window.location.href = '/login'; 
       }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout error:', error.response?.data || error.message);
+      setError(error.response?.data?.message || 'Logout failed. Please try again.');
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,6 +117,8 @@ export const AuthProvider = ({ children }) => {
     user,
     userId,
     loading,
+    error,
+    clearError,
     login,
     logout,
     checkAuth 

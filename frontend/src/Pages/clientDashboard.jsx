@@ -49,7 +49,7 @@ const ClientDashboard = () => {
     : [];
 
   const handleOrderClick = (order) => {
-    setSelectedOrder(selectedOrder?.id === order.id ? null : order);
+    setSelectedOrder(selectedOrder?.id === order._id ? null : order);
   };
 
   const handleConfirmDelivery = async (orderId, deliveryId) => {
