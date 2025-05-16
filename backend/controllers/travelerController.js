@@ -185,7 +185,7 @@ exports.getUnassignedOrders = async (req, res) => {
     if (urgency) query['items.product.urgencyLevel'] = urgency;
 
     const orders = await Order.find(query)
-      .populate('items.product', 'productName productDescription totalPrice productPhotos destination deliverydate urgencyLevel rewardAmount productMarkup')
+      .populate('items.product', 'productName productDescription totalPrice productPhotos destination deliverydate urgencyLevel rewardAmount productMarkup categoryName')
       .populate('travelerId', 'name email')
       .sort({ createdAt: -1 }); 
 

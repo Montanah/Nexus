@@ -237,9 +237,7 @@ export const fetchOrders = async () => {
 
 export const getAvailableProducts = async (filters = {}) => {
   try {
-    console.log('Fetching orders with filters:', filters);
     const response = await api.get('/api/travelers/orders', { params: filters });
-    console.log('getAvailableProducts response:', response.data.data.orders);
     return response.data.data.orders;
   } catch (error) {
     console.error('getAvailableProducts error:', {
@@ -343,14 +341,16 @@ export const getTravelerOrders = async (filters) => {
 // Get traveler earnings (Protected)
 export const getTravelerEarnings = async () => {
   try {
-    return {
-      success: true,
-      totalEarnings: '100.00',
-      pendingPayments: '0.00',
-      rating: { average: 4.5, count: 10 },
-    };
-    // const response = await api.get(`/api/travelers/${userId}/earnings`);
-    // return response.data;
+    // return {
+    //   success: true,
+    //   totalEarnings: '100.00',
+    //   pendingPayments: '0.00',
+    //   rating: { average: 4.5, count: 10 },
+    // };
+    console.log('getTravelerEarnings called');
+    const response = await api.get(`/api/travelers/earnings`);
+    console.log('getTravelerEarnings response:', response.data);
+    return response.data;
   } catch (error) {
     console.error('getTravelerEarnings error:', error.response?.data || error.message);
     throw error;
