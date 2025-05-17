@@ -1,18 +1,19 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
 import Header from '../Components/Header';
 import SocialLogin from '../Components/SocialLogin';
 import Footer from '../Components/Footer';
 import InputField from '../Components/InputField';
-import { signup, verifyUser } from '../Services/api';
+import { signup, verifyUser, initiateSocialLogin, handleSocialCallback, verifySocialUser } from '../Services/api';
 
 const SignUp = () => {
   const { socialLogin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Form state
-  const [step, setStep] = useState('register'); // 'register' or 'verify'
+  const [step, setStep] = useState('register'); // 'register', 'verify', 'social-verify'
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -28,6 +29,8 @@ const SignUp = () => {
     verifyPassword: '',
   });
   const [verificationCode, setVerificationCode] = useState('');
+  const [socialProvider, setSocialProvider] = useState(''); // Track provider for social verification
+  const [socialEmail, setSocialEmail] = useState(''); // Email for social verification
   const [showPassword, setShowPassword] = useState(false);
   const [showVerifyPassword, setShowVerifyPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,6 +40,45 @@ const SignUp = () => {
     apple: false,
   });
   const [socialError, setSocialError] = useState('');
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const handleCallback = async () => {
+      const query = new URLSearchParams(location.search);
+      const code = query.get('code');
+      const provider = query.get('state')?.includes('google') ? 'google' : 'apple'; // Extract provider from state
+
+      if (code && provider) {
+        setLoading(true);
+        setError('');
+        try {
+          const response = await handleSocialCallback(provider, code);
+          if (response.success) {
+            if (response.data.requiresVerification) {
+              setSocialEmail(response.data.email);
+              setSocialProvider(provider);
+              setStep('social-verify');
+            } else {
+              // Directly log in
+              await socialLogin(response.data);
+              navigate('/dashboard');
+            }
+          } else {
+            throw new Error(response.message || 'Social signup failed');
+          }
+        } catch (error) {
+          console.error('Social callback error:', error);
+          setError(error.message || 'Failed to process social signup');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    if (location.search.includes('code')) {
+      handleCallback();
+    }
+  }, [location, navigate, socialLogin]);
 
   // Form validation
   const validateForm = () => {
@@ -111,22 +153,16 @@ const SignUp = () => {
       }
     } catch (error) {
       console.error('Signup error:', error);
-      if (error.response) {
-        setError(
-          error.response?.data?.message ||
-          'Something went wrong. Please try again.'
-        );
-      } else if (error.request) {
-        setError('Network error. Please check your connection.');
-      } else {
-        setError('Signup failed. Please try again.');
-      }
+      setError(
+        error.response?.data?.message ||
+        'Something went wrong. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Verification submit
+  // Verification submit (email/password signup)
   const handleVerifySubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -145,7 +181,6 @@ const SignUp = () => {
       });
 
       if (response.status === 200) {
-        // Reset form and go to login
         setFormData({
           name: '',
           email: '',
@@ -158,48 +193,66 @@ const SignUp = () => {
       }
     } catch (error) {
       console.error('Verification error:', error);
-      if (error.response) {
-        setError(
-          error.response?.data?.message ||
-          'Verification failed. Please try again.'
-        );
-      } else if (error.request) {
-        setError('Network error. Please check your connection.');
-      } else {
-        setError('Verification failed. Please try again.');
-      }
+      setError(
+        error.response?.data?.message ||
+        'Verification failed. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Social login handlers
-  const handleSocialSignup = (platform) => {
-    setSocialLoading((prev) => ({ ...prev, [platform]: true })); // Set loading for specific platform
+  // Social verification submit
+  const handleSocialVerifySubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    if (!verificationCode) {
+      setError('Please enter your verification code');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await verifySocialUser({
+        email: socialEmail,
+        code: verificationCode,
+        provider: socialProvider,
+      });
+
+      if (response.success) {
+        await socialLogin(response.data);
+        setVerificationCode('');
+        setSocialEmail('');
+        setSocialProvider('');
+        navigate('/dashboard');
+      } else {
+        throw new Error(response.message || 'Social verification failed');
+      }
+    } catch (error) {
+      console.error('Social verification error:', error);
+      setError(
+        error.response?.data?.message ||
+        'Verification failed. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Social signup handler
+  const handleSocialSignup = async (platform) => {
+    setSocialLoading((prev) => ({ ...prev, [platform]: true }));
     setSocialError('');
 
-    const redirectUri = 'http://localhost:3001/auth/google/callback';
-
-    if (platform === 'google') {
-      const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      if (!googleClientId) {
-        setSocialError('Google Client ID is missing.');
-        setSocialLoading((prev) => ({ ...prev, [platform]: false }));
-        return;
-      }
-      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile`;
-      console.log('Google Auth URL:', googleAuthUrl);
-      window.location.href = googleAuthUrl;
-    } else if (platform === 'apple') {
-      const appleClientId = import.meta.env.VITE_APPLE_CLIENT_ID;
-      if (!appleClientId) {
-        setSocialError('Apple Client ID is missing.');
-        setSocialLoading((prev) => ({ ...prev, [platform]: false }));
-        return;
-      }
-      const appleAuthUrl = `https://appleid.apple.com/auth/authorize?client_id=${appleClientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile`;
-      console.log('Apple Auth URL:', appleAuthUrl);
-      window.location.href = appleAuthUrl;
+    try {
+      await initiateSocialLogin(platform, 'client');
+      // Redirect is handled by initiateSocialLogin via window.location.href
+    } catch (error) {
+      console.error(`Error initiating ${platform} signup:`, error);
+      setSocialError(`Failed to initiate ${platform} signup`);
+      setSocialLoading((prev) => ({ ...prev, [platform]: false }));
     }
   };
 
@@ -285,11 +338,11 @@ const SignUp = () => {
 
               <SocialLogin
                 onSocialSignup={handleSocialSignup}
-                loading={socialLoading} // Pass object instead of boolean
+                loading={socialLoading}
                 error={socialError}
               />
             </>
-          ) : (
+          ) : step === 'verify' ? (
             <form onSubmit={handleVerifySubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
@@ -313,6 +366,32 @@ const SignUp = () => {
                 disabled={loading}
               >
                 {loading ? 'Verifying...' : 'Verify Account'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleSocialVerifySubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Enter verification code sent to {socialEmail}
+                </label>
+                <input
+                  type="text"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  placeholder="Enter 6-digit code"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  required
+                />
+              </div>
+
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+
+              <button
+                type="submit"
+                className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
+                disabled={loading}
+              >
+                {loading ? 'Verifying...' : 'Verify Social Account'}
               </button>
             </form>
           )}
