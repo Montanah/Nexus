@@ -139,17 +139,48 @@ exports.getTravelerEarnings = async (req, res) => {
   };
 
 exports.getTravelerHistory = async (req, res) => {
-   const { limit = 10, offset = 0 } = req.query;
   try {
-    const traveler = await Traveler.findOne({ userId: req.params.travelerId });
-    if (!traveler) {
-      return res.status(404).json({ message: 'Traveler not found' });
+    const { travelerId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(travelerId)) {
+      return response(res, 400, { message: 'Invalid travelerId' });
     }
-    const history = traveler.history.slice(Number(offset), Number(offset) + Number(limit));
-    res.json({ success: true, history });
+
+    // Verify requester
+    if (req.user.userId !== travelerId) {
+      return response(res, 403, { message: 'Unauthorized: You can only view your own history' });
+    }
+
+    const traveler = await Traveler.findOne({ userId: travelerId }).populate({
+      path: 'history.orderId',
+      populate: { path: 'items.product', select: 'productName totalPrice' },
+    });
+
+    if (!traveler) {
+      return response(res, 404, { message: 'Traveler not found' });
+    }
+
+    const history = traveler.history.map(entry => ({
+      orderId: entry.orderId._id,
+      orderNumber: entry.orderId.orderNumber,
+      products: entry.orderId.items.map(item => ({
+        productId: item.product._id,
+        productName: item.product.productName,
+        price: item.product.totalPrice,
+        quantity: item.quantity,
+      })),
+      rewardAmount: entry.rewardAmount,
+      status: entry.status,
+      completedAt: entry.completedAt,
+    }));
+
+    return response(res, 200, {
+      message: 'Traveler history retrieved successfully',
+      history,
+    });
   } catch (err) {
-    console.error('Get history error:', err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Get traveler history error:', err);
+    return response(res, 500, { message: 'Server error' });
   }
 };
 
@@ -200,3 +231,106 @@ exports.getUnassignedOrders = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+exports.assignFulfilment = async (req, res) => {
+  try {
+    const {productId, userId} = req.body;
+
+    if (!productId || !userId) {
+      return response(res, 400, { message: 'Missing required fields' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(productId) || !mongoose.Types.ObjectId.isValid(userId)) {
+      return response(res, 400, { message: 'Invalid product or user ID' });
+    }
+
+    if (req.user.userId !== userId) {
+      return response(res, 403, { message: 'Unauthorized: You can only assign fulfilment to yourself' });
+    }
+
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return response(res, 404, { message: 'Product not found' });
+    }
+
+    if (product.claimedBy) {
+      return response(res, 400, { message: 'Product already claimed by another user' });
+    }
+
+    const traveler = await Traveler.findOne({ userId });
+
+    if (!traveler) {
+      return response(res, 404, { message: 'Traveler not found' });
+    }
+    
+    const order = await Order.findOne({
+      'items.product': productId,
+      travelerId: null
+     });
+    if (!order) {
+      return response(res, 404, { message:'No unassigned order for this product '});
+    }
+
+    //Assign product and order
+    product.claimedBy = traveler._id;
+    order.travelerId = userId;
+    order.deliveryStatus = 'Assigned';
+
+    await product.save();
+    await order.save();
+
+    //Add to traveler history
+    traveler.history.push({
+      orderId: order._id,
+      rewardAmount: order.items[0].product.rewardAmount,
+      status: 'Pending'
+    });
+
+    await traveler.save();
+
+    return response(res, 200, { 
+      message: 'Order assigned successfully', 
+      product: productId,
+      order: order._id,
+    });
+  } catch (err) {
+    console.error('Assign fulfilment error:', err);
+    return response(res, 500, { message: 'Server error' });
+  }
+}
+
+exports.uploadDeliveryProof = async (req, res) => {
+  try {
+    const { orderId, deliveryProof } = req.body;
+
+    if (!orderId || !deliveryProof) {
+      return response(res, 400, { message: 'Missing orderId or deliveryProof' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return response(res, 400, { message: 'Invalid orderId' });
+    }
+
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return response(res, 404, { message: 'Order not found' });
+    }
+
+    if (req.user.userId !== order.travelerId?.toString()) {
+      return response(res, 403, { message: 'Unauthorized: You can only upload delivery proof for your own orders' });
+    }
+
+    //Store
+    order.deliveryProof = deliveryProof;
+    await order.save();
+
+    return response(res, 200, { 
+      message: 'Delivery proof uploaded successfully',
+      order: orderId});
+  } catch (err) {
+    console.error('Upload delivery proof error:', err);
+    return response(res, 500, { message: 'Server error' });
+  }
+}
