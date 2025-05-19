@@ -390,27 +390,58 @@ export const uploadDeliveryProof = async (formData) => {
 
 // RATING ENDPOINTS
 // Rate client (Protected)
-export const rateClient = async (data) => {
-  const response = await api.post('/ratings/traveler-to-client', data);
-  return response;
+export const rateClient = async (ratingData) => {
+  try {
+    const response = await api.post('/api/ratings/traveler-to-client', ratingData);
+    return response.data.data;
+  } catch (error) {
+    console.error('Submit traveler to client rating error:', error.response?.data || error.message);
+    throw error;
+  }
 };
 
 // Rate traveler (Protected)
-export const rateTraveler = async (data) => {
-  const response = await api.post('/ratings/client-to-traveler', data);
-  return response;
+export const rateTraveler = async (ratingData) => {
+  try {
+    const response = await api.post('/api/ratings/client-to-traveler', ratingData);
+    return response.data.data;
+  } catch (error) {
+    console.error('Submit client to traveler rating error:', error.response?.data || error.message);
+    throw error;
+  }
 };
 
 // Get traveler ratings (Protected)
 export const getTravelerRatings = async (userId) => {
-  const response = await api.get(`/ratings/traveler/${userId}`);
-  return response;
+  try {
+    const response = await api.get(`/api/ratings/traveler/${userId}`);
+    return response.data.data.rating;
+  } catch (error) {
+    console.error('Get traveler ratings error:', error.response?.data || error.message);
+    throw error;
+  }
 };
 
-// Get client ratings (Protected)
+// Get clients ratings  (Protected)
 export const getClientRatings = async (userId) => {
-  const response = await api.get(`/ratings/client/${userId}`);
-  return response;
+  try {
+    const response = await api.get(`/api/ratings/client/${userId}`);
+    return response.data.data.rating;
+  } catch (error) {
+    console.error('Get client ratings error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Get order ratings (Protected)
+export const getOrderRatings = async (orderNumber) => {
+  try {
+    const response = await api.get(`/api/ratings/orders/${orderNumber}`);
+    return response.data.data;
+  } catch (error) {
+    console.error('Get order ratings error:', error.response?.data || error.message);
+    throw error;
+  }
 };
 
 // CLIENT DASHBOARD ENDPOINTS

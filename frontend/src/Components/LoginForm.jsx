@@ -4,14 +4,14 @@ import InputField from './InputField';
 import propTypes from 'prop-types';
 
 const LoginForm = ({ navigate, setStep, step }) => {
-  const { login } = useAuth();
+  const { login, error: authError, loading: authLoading, clearError} = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     role: '',
     token: '',
   });
-  const [error, setError] = useState('');
+  const [localError, setLocalError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -27,17 +27,18 @@ const LoginForm = ({ navigate, setStep, step }) => {
   const handleCredentialSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setLocalError('');
+    clearError();
 
     if (!formData.email || !formData.password || !formData.role) {
-      setError('Email, password, and role are required');
+      setLocalError('Email, password, and role are required');
       setLoading(false);
       return;
     }
 
     try {
       const response = await login(formData.email, formData.password);
-      console.log('Login response:', response);
+      // console.log('Login response:', response);
       if (response.success && response.step === 'otp') {
         setStep('otp'); // Update the step in parent component
       }
@@ -53,10 +54,11 @@ const LoginForm = ({ navigate, setStep, step }) => {
   const handle2FASubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setLocalError('');
+    clearError();
 
     if (!formData.token) {
-      setError('Please enter your 2FA code');
+      setLocalError('Please enter your 2FA code');
       setLoading(false);
       return;
     }
@@ -142,7 +144,9 @@ const LoginForm = ({ navigate, setStep, step }) => {
           onChange={handleChange}
         />
       )}
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {(localError || authError) && (
+        <p className="text-red-500 text-sm">{localError || authError}</p>
+      )}
       <button
         type="submit"
         className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

@@ -50,6 +50,10 @@ const UsersSchema = new mongoose.Schema({
         type: String,
         default: null,
     }, 
+    rating: {
+        average: { type: Number, default: 0 },
+        count: { type: Number, default: 0 },
+    },
     createdAt: {
         type: Date,
         default: Date.now,
@@ -58,7 +62,7 @@ const UsersSchema = new mongoose.Schema({
         type: Date, 
         default: Date.now,
     },
-});
+}, { timestamps: true });
 
 // Hash password
 UsersSchema.pre("save", async function (next) {

@@ -9,6 +9,7 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const orderRoutes = require("./routes/orderRoute");
+const ratingsRoutes = require("./routes/ratingRoutes");
 
 const bodyParser = require("body-parser");
 const passport = require("passport");
@@ -69,6 +70,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/travelers", travelerRoutes);
+app.use("/api/ratings", ratingsRoutes);
 
 app.use("/api/docs", swaggerUI.serve, swaggerUI.setup(swaggerDocument));
 
