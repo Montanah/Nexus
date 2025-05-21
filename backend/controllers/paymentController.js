@@ -2,6 +2,14 @@ const Payment = require("../models/Payment");
 const Transaction = require("../models/Transaction");
 const Dispute = require("../models/Dispute");
 
+const response = (res, statusCode, data) => {
+  res.status(statusCode).json({
+    status: statusCode,
+    description: statusCode === 200 ? 'Success' : 'Error',
+    success: statusCode === 200,
+    data,
+  });
+};
 // process payment
 exports.processPayment = async (req, res) => {
     try {
@@ -14,9 +22,9 @@ exports.processPayment = async (req, res) => {
         });
 
         await payment.save();
-        res.status(201).json({ message: "Payment held in escrow", payment });
+        return response(res, 201, { message: "Payment processed successfully", payment });
     } catch (error) {
-        res.status(500).json({ message: "Payment processing error", error });
+        return response(res, 500, { message: "Error processing payment", error });
     }
 };
 
@@ -28,7 +36,7 @@ exports.releaseFunds = async (req, res) => {
 
         const payment = await Payment.findById(paymentId);
         if (!payment || payment.status !== "escrow") {
-            return res.status(400).json({ message: "Invalid escrow transaction" });
+            return response(res, 400, { message: "Invalid escrow transaction" });
         }
 
         // Calculate reward & platform fee
@@ -47,10 +55,9 @@ exports.releaseFunds = async (req, res) => {
             travelerReward,
             companyFee
         });
-
-        res.status(200).json({ message: "Funds released to traveler", travelerReward, companyFee });
+        return response(res, 200, { message: "Funds released to traveler", travelerReward, companyFee });
     } catch (error) {
-        res.status(500).json({ message: "Error releasing funds", error });
+        return response(res, 500, { message: "Error releasing funds", error });
     }
 };
 
@@ -63,7 +70,7 @@ exports.raiseDispute = async (req, res) => {
 
         const payment = await Payment.findById(paymentId);
         if (!payment || payment.status !== "escrow") {
-            return res.status(400).json({ message: "Invalid escrow transaction" });
+            return response(res, 400, { message: "Invalid escrow transaction" }); 
         }
 
         const dispute = new Dispute({ payment: paymentId, client: clientId, reason });
@@ -72,10 +79,9 @@ exports.raiseDispute = async (req, res) => {
         // Mark payment as disputed
         payment.status = "disputed";
         await payment.save();
-
-        res.status(201).json({ message: "Dispute raised successfully", dispute });
+        return response(res, 201, { message: "Dispute raised successfully", dispute });
     } catch (error) {
-        res.status(500).json({ message: "Error raising dispute", error });
+        return response(res, 500, { message: "Error raising dispute", error });
     }
 };
 
@@ -86,7 +92,7 @@ exports.resolveDispute = async (req, res) => {
 
         const dispute = await Dispute.findById(disputeId).populate("payment");
         if (!dispute || dispute.status !== "open") {
-            return res.status(400).json({ message: "Invalid dispute" });
+            return response(res, 400, { message: "Invalid dispute" });
         }
 
         const payment = dispute.payment;
@@ -97,14 +103,14 @@ exports.resolveDispute = async (req, res) => {
             payment.status = "released";
             dispute.status = "resolved";
         } else {
-            return res.status(400).json({ message: "Invalid action" });
+            return response(res, 400, { message: "Invalid action" });
         }
 
         await payment.save();
         await dispute.save();
 
-        res.status(200).json({ message: `Dispute resolved: ${action}`, dispute });
+        return response(res, 200, { message: `Dispute resolved: ${action}`, dispute });
     } catch (error) {
-        res.status(500).json({ message: "Error resolving dispute", error });
+        return response(res, 500, { message: "Error resolving dispute", error });
     }
 };

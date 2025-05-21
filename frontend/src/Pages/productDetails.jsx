@@ -115,7 +115,7 @@ const ProductDetails = ({ productId, onClose }) => {
         >
           ✕
         </button>
-        <h1 className="text-2xl font-bold text-blue-600 mb-4 text-center">Product #{productId}</h1>
+        <h1 className="text-2xl font-bold text-blue-600 mb-4 text-center">Product Details</h1>
         {product.productPhotos && product.productPhotos.length > 0 && (
           <img
             src={product.productPhotos[0]}
@@ -135,11 +135,11 @@ const ProductDetails = ({ productId, onClose }) => {
           {product.shippingRestrictions && (
             <p className="text-gray-600"><span className="font-medium">Shipping Restrictions:</span> {product.shippingRestrictions}</p>
           )}
-          <p className="text-gray-600"><span className="font-medium">Destination:</span> {`${product.delivery.country}, ${product.delivery.city}`}</p>
+          <p className="text-gray-600"><span className="font-medium">Destination:</span> {`${product.destination.country}, ${product.destination.city}`}</p>
           <p className="text-gray-600"><span className="font-medium">Reward:</span> ${product.rewardAmount}</p>
           <p className="text-gray-600"><span className="font-medium">Urgency:</span> {product.urgencyLevel}</p>
           <p className="text-gray-600"><span className="font-medium">Price:</span> ${product.productPrice}</p>
-          <p className="text-gray-600"><span className="font-medium">Delivery Status:</span> {product.deliveryStatus}</p>
+          <p className="text-gray-600"><span className="font-medium">Delivery Status:</span> {product.isDelivered ? 'Delivered' : 'Not Delivered'}</p>
         </div>
 
         {!isAccepted && product.assignedTraveler === null && (

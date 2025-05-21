@@ -25,11 +25,9 @@ const TravelerDashboard = () => {
   useEffect(() => {
       const fetchData = async () => {
         if (authLoading) {
-        console.log('Auth loading, skipping fetch');
         return;
       }
       if (!userId) {
-        console.log('No userId, navigating to login');
         navigate('/login');
         return;
       }
@@ -41,10 +39,7 @@ const TravelerDashboard = () => {
           getCategories(),
           getTravelerEarnings(userId),
         ]);
-        console.log('Products data:', productsData);
-        console.log('Categories data:', categoriesData);
-        console.log('Earnings data:', earningsData);
-
+      
        const mappedProducts = productsData.flatMap(order => {
           if (!order.items || !Array.isArray(order.items)) return [];
           return order.items.map(item => ({
@@ -64,14 +59,10 @@ const TravelerDashboard = () => {
           }));
         });
 
-      console.log('Mapped products:', mappedProducts);
       setProducts(mappedProducts);
-      console.log('Set products:', mappedProducts);
-      // setCategories(['All', ...(Array.isArray(categoriesData) ? categoriesData : [])]);
       const categoryList = Array.isArray(categoriesData)
           ? ['All', ...categoriesData.map(cat => cat.categoryName)]
           : ['All'];
-      console.log('Category list:', categoryList);
       setCategories(categoryList);
       setEarnings(earningsData);
     } catch (err) {
