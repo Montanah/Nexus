@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
 import { FaShoppingCart, FaPlus, FaMinus, FaBox } from 'react-icons/fa';
-import Sidebar from '../Components/Sidebar';
+import Sidebar from '../Components/SideBar';
 import UserProfile from '../Components/UserProfile';
 import InputField from '../Components/DashboardInputField';
 import PhotoUpload from '../Components/PhotoUpload';
@@ -286,7 +286,7 @@ const NewOrder = () => {
             <Link to="/cart" className="flex items-center justify-center bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto">
               <FaShoppingCart className="mr-2" /> Cart
             </Link>
-            <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded-md text-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto">
+            <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded-md text-sm hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto">
               Logout
             </button>
           </div>

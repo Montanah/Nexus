@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../Components/Sidebar';
+import Sidebar from '../Components/SideBar';
 import UserProfile from '../Components/UserProfile';
 import { FaSearch, FaPlus, FaBox } from 'react-icons/fa';
 import { useAuth } from '../Context/AuthContext';
@@ -8,12 +8,13 @@ import { fetchOrders, updateDeliveryStatus } from '../Services/api';
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
-  const {userId, loading: authLoading } = useAuth(); // Rename to avoid confusion
+  const {userId, logout, loading: authLoading } = useAuth(); // Rename to avoid confusion
   const [orders, setOrders] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderLoading, setOrderLoading] = useState(true); // Renamed for clarity
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // Fetch orders on mount
   useEffect(() => {
@@ -74,6 +75,19 @@ const ClientDashboard = () => {
     navigate(`/rate-product/${orderId}`, { state: { isTraveler: false } });
   };
 
+  const handleLogout = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      await logout();
+    } catch (err) {
+      setError('Logout failed');
+      console.error('Logout error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Early returns after hooks
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -96,12 +110,17 @@ const ClientDashboard = () => {
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
-            <button
-              onClick={() => navigate('/new-order')}
-              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-lg"
-            >
-              <FaPlus className="mr-2" /> New Order
-            </button>
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                <button
+                  onClick={() => navigate('/new-order')}
+                  className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-700 shadow-lg"
+                >
+                  <FaPlus className="mr-2" /> New Order
+                </button>
+                <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded-md text-sm hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto">
+                  Logout
+                </button>
+              </div>
           </div>
 
           {/* Order List */}
