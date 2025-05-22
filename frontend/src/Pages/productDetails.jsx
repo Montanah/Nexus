@@ -168,12 +168,48 @@ const TravelerDashboard = () => {
       <div className="lg:w-64 flex-shrink-0">
         <Sidebar />
       </div>
+    );
+  }
 
-      {/* Main Content */}
-      <div className="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 min-w-0">
-        {/* Header with Title and Logout Button */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-blue-600">Products for Fulfillment</h1>
+  const canUploadAndRate = product.deliveryStatus === 'delivered';
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center pt-4 sm:pt-20 overflow-y-auto">
+      <div className="w-full sm:w-96 bg-white rounded-xl shadow-md p-6 relative max-h-[80vh] overflow-y-auto">
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
+        >
+          ✕
+        </button>
+        <h1 className="text-2xl font-bold text-blue-600 mb-4 text-center">Product Details</h1>
+        {product.productPhotos && product.productPhotos.length > 0 && (
+          <img
+            src={product.productPhotos[0]}
+            alt={product.productName}
+            className="w-full h-48 object-cover rounded-md mb-4"
+          />
+        )}
+        <div className="space-y-2">
+          <p className="text-lg font-medium text-gray-700">{product.productName}</p>
+          {product.productDescription && (
+            <p className="text-gray-600"><span className="font-medium">Description:</span> {product.productDescription}</p>
+          )}
+          <p className="text-gray-600"><span className="font-medium">Quantity:</span> {product.quantity}</p>
+          {product.dimensions && (
+            <p className="text-gray-600"><span className="font-medium">Dimensions:</span> {product.dimensions}</p>
+          )}
+          {product.shippingRestrictions && (
+            <p className="text-gray-600"><span className="font-medium">Shipping Restrictions:</span> {product.shippingRestrictions}</p>
+          )}
+          <p className="text-gray-600"><span className="font-medium">Destination:</span> {`${product.destination.country}, ${product.destination.city}`}</p>
+          <p className="text-gray-600"><span className="font-medium">Reward:</span> ${product.rewardAmount}</p>
+          <p className="text-gray-600"><span className="font-medium">Urgency:</span> {product.urgencyLevel}</p>
+          <p className="text-gray-600"><span className="font-medium">Price:</span> ${product.productPrice}</p>
+          <p className="text-gray-600"><span className="font-medium">Delivery Status:</span> {product.isDelivered ? 'Delivered' : 'Not Delivered'}</p>
+        </div>
+
+        {!isAccepted && product.assignedTraveler === null && (
           <button
             onClick={handleLogout}
             className="bg-red-500 text-white px-4 py-2 rounded-md text-sm hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-blue-400"

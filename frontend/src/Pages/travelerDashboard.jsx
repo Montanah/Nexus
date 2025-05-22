@@ -36,8 +36,8 @@ const TravelerDashboard = () => {
 
   // Fetch data using api service
   useEffect(() => {
-    const fetchData = async () => {
-      if (authLoading) {
+      const fetchData = async () => {
+        if (authLoading) {
         return;
       }
       if (!userId) {
@@ -68,8 +68,8 @@ const TravelerDashboard = () => {
           getAvailableProducts(),
           getTravelerEarnings(userId),
         ]);
-
-        const mappedProducts = productsData.flatMap(order => {
+      
+       const mappedProducts = productsData.flatMap(order => {
           if (!order.items || !Array.isArray(order.items)) return [];
           return order.items.map(item => ({
             productId: item.product?._id || `PRODUCT_${order.orderNumber}`,
@@ -88,22 +88,26 @@ const TravelerDashboard = () => {
           }));
         });
 
-        setProducts(mappedProducts);
-        setEarnings(earningsData);
-      } catch (err) {
-        console.error('Fetch data error:', err);
-        if (err.response?.status === 401) {
-          console.log('Unauthorized, navigating to login');
-          navigate('/login');
-        } else if (err.response?.status === 404) {
-          setError('Product service unavailable. Please try again later.');
-        } else {
-          setError(err.response?.data?.message || 'Failed to load data. Please try again.');
-        }
-      } finally {
-        setLoading(false);
+      setProducts(mappedProducts);
+      const categoryList = Array.isArray(categoriesData)
+          ? ['All', ...categoriesData.map(cat => cat.categoryName)]
+          : ['All'];
+      setCategories(categoryList);
+      setEarnings(earningsData);
+    } catch (err) {
+      console.error('Fetch data error:', err);
+      if (err.response?.status === 401) {
+        console.log('Unauthorized, navigating to login');
+        navigate('/login');
+      } else if (err.response?.status === 404) {
+        setError('Product service unavailable. Please try again later.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to load data. Please try again.');
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
     fetchData();
     console.log('Fetching data...', userId);

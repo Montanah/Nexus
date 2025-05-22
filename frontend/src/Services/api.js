@@ -174,7 +174,6 @@ export const verifySocialUser = async ({ email, code, provider }) => {
 // Category API call (Public or Protected depending on backend)
 export const getCategories = async () => {
   const response = await api.get('/api/products/category');
-  console.log('getCategories response:', response.data.data.categories);
   return response.data.data.categories;
 };
 
@@ -257,9 +256,10 @@ export const getAvailableProducts = async (filters = {}) => {
 // Retrieve a specific product (Public or Protected)
 export const getProductDetails = async (productId) => {
   try {
-    const response = await api.post('/products/search/', { id: productId });
-    if (response.data.products && response.data.products.length > 0) {
-      return response.data.products[0]; // Return the first (and only) product
+    const response = await api.post('/api/products/search/', { id: productId });
+     if (response.data?.data?.products?.length > 0) {
+      const product = response.data.data.products[0];
+      return product; // Return the first (and only) product
     }
     throw new Error('Product not found');
   } catch (error) {
@@ -346,15 +346,7 @@ export const getTravelerOrders = async (filters) => {
 // Get traveler earnings (Protected)
 export const getTravelerEarnings = async () => {
   try {
-    // return {
-    //   success: true,
-    //   totalEarnings: '100.00',
-    //   pendingPayments: '0.00',
-    //   rating: { average: 4.5, count: 10 },
-    // };
-    console.log('getTravelerEarnings called');
     const response = await api.get(`/api/travelers/earnings`);
-    console.log('getTravelerEarnings response:', response.data);
     return response.data;
   } catch (error) {
     console.error('getTravelerEarnings error:', error.response?.data || error.message);
