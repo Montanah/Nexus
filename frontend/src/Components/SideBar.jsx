@@ -16,53 +16,55 @@ const Sidebar = () => {
       </button>
 
       <div
-        className={`w-full lg:w-64 bg-gradient-to-br from-indigo-100 to-indigo-300 p-4 sm:p-6 flex flex-col fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-1/8' : '-translate-x-full'
-        } lg:static lg:translate-x-0 lg:min-h-screen`}
+        className={`w-full lg:w-64 bg-gradient-to-br from-indigo-100 to-indigo-300 p-4 sm:p-6 flex flex-col justify-between fixed lg:static inset-y-0 left-0 z-40 transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0 lg:min-h-screen lg:sticky top-0`}
       >
-        <div className="flex items-center justify-center lg:justify-start mb-6 sm:mb-8">
-          <Link to="/" onClick={() => setIsOpen(false)}>
-            <img
-              src={NexusLogo}
-              alt="Nexus Logo"
-              className="w-20 h-20 sm:w-24 sm:h-24 cursor-pointer"
-            />
-          </Link>
+        <div>
+          <div className="flex items-center justify-center lg:justify-start mb-6 sm:mb-8">
+            <Link to="/" onClick={() => setIsOpen(false)}>
+              <img
+                src={NexusLogo}
+                alt="Nexus Logo"
+                className="w-20 h-20 sm:w-24 sm:h-24 cursor-pointer"
+              />
+            </Link>
+          </div>
+          <nav className="flex-1 flex flex-col items-center lg:items-start space-y-6 sm:space-y-10">
+            <Link
+              to="/client-dashboard"
+              className="flex items-center text-sm sm:text-base font-semibold text-gray-700 hover:text-blue-600"
+              onClick={() => setIsOpen(false)}
+            >
+              <FaClipboardList className="mr-3 text-lg" />
+              Order Management
+            </Link>
+            <Link
+              to="/notifications"
+              className="flex items-center text-sm sm:text-base font-semibold text-gray-700 hover:text-blue-600"
+              onClick={() => setIsOpen(false)}
+            >
+              <FaBell className="mr-3 text-lg" />
+              Notifications
+            </Link>
+            <Link
+              to="/settings"
+              className="flex items-center text-sm sm:text-base font-semibold text-gray-700 hover:text-blue-600"
+              onClick={() => setIsOpen(false)}
+            >
+              <FaCog className="mr-3 text-lg" />
+              Settings
+            </Link>
+            <Link
+              to="/help"
+              className="flex items-center text-sm sm:text-base font-semibold text-gray-700 hover:text-blue-600"
+              onClick={() => setIsOpen(false)}
+            >
+              <FaQuestionCircle className="mr-3 text-lg" />
+              Help/Support
+            </Link>
+          </nav>
         </div>
-        <nav className="flex-1 flex flex-col items-center lg:items-start space-y-6 sm:space-y-10">
-          <Link
-            to="/client-dashboard"
-            className="flex items-center text-sm sm:text-base font-semibold text-gray-700 hover:text-blue-600"
-            onClick={() => setIsOpen(false)}
-          >
-            <FaClipboardList className="mr-3 text-lg" />
-            Order Management
-          </Link>
-          <Link
-            to="/notifications"
-            className="flex items-center text-sm sm:text-base font-semibold text-gray-700 hover:text-blue-600"
-            onClick={() => setIsOpen(false)}
-          >
-            <FaBell className="mr-3 text-lg" />
-            Notifications
-          </Link>
-          <Link
-            to="/settings"
-            className="flex items-center text-sm sm:text-base font-semibold text-gray-700 hover:text-blue-600"
-            onClick={() => setIsOpen(false)}
-          >
-            <FaCog className="mr-3 text-lg" />
-            Settings
-          </Link>
-          <Link
-            to="/help"
-            className="flex items-center text-sm sm:text-base font-semibold text-gray-700 hover:text-blue-600"
-            onClick={() => setIsOpen(false)}
-          >
-            <FaQuestionCircle className="mr-3 text-lg" />
-            Help/Support
-          </Link>
-        </nav>
       </div>
 
       {isOpen && (

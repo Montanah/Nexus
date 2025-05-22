@@ -5,14 +5,14 @@ import Sidebar from '../Components/SideBar';
 import UserProfile from '../Components/UserProfile';
 import ProductDetails from './productDetails';
 import CountryStateCityComponent from '../Components/State';
-import { getAvailableProducts, getCategories, getTravelerEarnings } from '../Services/api';
+import { getCategories, getAvailableProducts, getTravelerEarnings } from '../Services/api';
 
 const TravelerDashboard = () => {
   const navigate = useNavigate();
   const { userId, logout, loading: authLoading } = useAuth();
   const [products, setProducts] = useState([]);
   const [filters, setFilters] = useState({
-    category: 'All',
+    category: 'all',
     country: '',
     state: '',
     city: '',
@@ -34,12 +34,9 @@ const TravelerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch data using api service
   useEffect(() => {
-      const fetchData = async () => {
-        if (authLoading) {
-        return;
-      }
+    const fetchData = async () => {
+      if (authLoading) return;
       if (!userId) {
         navigate('/login');
         return;
@@ -48,28 +45,18 @@ const TravelerDashboard = () => {
         setLoading(true);
         setError(null);
 
-        // Fetch categories separately to isolate errors
-        let categoriesData;
-        try {
-          categoriesData = await getCategories();
-          console.log('Categories data:', categoriesData);
-          const categoryList = Array.isArray(categoriesData)
-            ? [{ _id: 'all', categoryName: 'All' }, ...categoriesData]
-            : [{ _id: 'all', categoryName: 'All' }];
-          setCategories(categoryList);
-        } catch (err) {
-          console.error('Categories fetch error:', err);
-          setError('Failed to load categories: ' + (err.message || 'Unknown error'));
-          setCategories([{ _id: 'all', categoryName: 'All' }]);
-        }
-
-        // Fetch products and earnings
-        const [productsData, earningsData] = await Promise.all([
+        const [categoriesData, productsData, earningsData] = await Promise.all([
+          getCategories(),
           getAvailableProducts(),
           getTravelerEarnings(userId),
         ]);
-      
-       const mappedProducts = productsData.flatMap(order => {
+
+        const categoryList = Array.isArray(categoriesData)
+          ? [{ _id: 'all', categoryName: 'All' }, ...categoriesData]
+          : [{ _id: 'all', categoryName: 'All' }];
+        setCategories(categoryList);
+
+        const mappedProducts = productsData.flatMap(order => {
           if (!order.items || !Array.isArray(order.items)) return [];
           return order.items.map(item => ({
             productId: item.product?._id || `PRODUCT_${order.orderNumber}`,
@@ -88,26 +75,22 @@ const TravelerDashboard = () => {
           }));
         });
 
-      setProducts(mappedProducts);
-      const categoryList = Array.isArray(categoriesData)
-          ? ['All', ...categoriesData.map(cat => cat.categoryName)]
-          : ['All'];
-      setCategories(categoryList);
-      setEarnings(earningsData);
-    } catch (err) {
-      console.error('Fetch data error:', err);
-      if (err.response?.status === 401) {
-        console.log('Unauthorized, navigating to login');
-        navigate('/login');
-      } else if (err.response?.status === 404) {
-        setError('Product service unavailable. Please try again later.');
-      } else {
-        setError(err.response?.data?.message || 'Failed to load data. Please try again.');
+        setProducts(mappedProducts);
+        setEarnings(earningsData);
+      } catch (err) {
+        console.error('Fetch data error:', err);
+        if (err.response?.status === 401) {
+          console.log('Unauthorized, navigating to login');
+          navigate('/login');
+        } else if (err.response?.status === 404) {
+          setError('Product service unavailable. Please try again later.');
+        } else {
+          setError(err.response?.data?.message || 'Failed to load data. Please try again.');
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
     fetchData();
     console.log('Fetching data...', userId);
@@ -144,6 +127,7 @@ const TravelerDashboard = () => {
   }, [products, filters]);
 
   const handleViewDetails = (productId) => {
+    console.log('View Details clicked for productId:', productId);
     setSelectedProductId(productId);
   };
 
@@ -168,26 +152,20 @@ const TravelerDashboard = () => {
     }
   };
 
-  // Split products into two rows
   const half = Math.ceil(filteredProducts.length / 2);
   const topRowProducts = filteredProducts.slice(0, half);
   const bottomRowProducts = filteredProducts.slice(half);
 
-  // Early returns after hooks
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-200 flex flex-col lg:flex-row w-full m-0">
-      {/* Sidebar */}
-      <div className="lg:w-64 flex-shrink-0">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-200 flex flex-col lg:flex-row w-full m-0 relative">
+      <div className="lg:w-64 flex-shrink-0 lg:sticky top-0">
         <Sidebar />
       </div>
-
-      {/* Main Content */}
       <div className="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 min-w-0">
-        {/* Header with Title and Logout Button */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-blue-600">Products for Fulfillment</h1>
           <button
@@ -197,24 +175,21 @@ const TravelerDashboard = () => {
             Logout
           </button>
         </div>
-
-        {/* Filters */}
-         <div className="mb-6 flex flex-col sm:flex-wrap md:flex-wrap lg:flex-row gap-4">
+        <div className="mb-6 flex flex-col sm:flex-wrap md:flex-wrap lg:flex-row gap-4">
           <div className="flex flex-col w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]">
             <label className="block text-blue-600 text-sm sm:text-base">Categories</label>
-          <select
-            value={filters.category}
-            onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-            className="mt-2 px-1 py-0 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px] h-[30px]"
-          >
-            {categories.map((category) => (
-              <option key={category._id} value={category.categoryName}>
-                {category.categoryName}
-              </option>
-            ))}
-          </select>
+            <select
+              value={filters.category}
+              onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+              className="mt-2 px-1 py-0 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px] h-[30px]"
+            >
+              {categories.map((category) => (
+                <option key={category._id} value={category._id === 'all' ? 'all' : category.categoryName}>
+                  {category.categoryName}
+                </option>
+              ))}
+            </select>
           </div>
-
           <div className="flex flex-col gap-2 w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]">
             <CountryStateCityComponent
               selectedCountry={country}
@@ -225,7 +200,6 @@ const TravelerDashboard = () => {
               setSelectedCity={setCity}
             />
           </div>
-
           <input
             type="number"
             placeholder="Min Price"
@@ -251,8 +225,6 @@ const TravelerDashboard = () => {
             <option value="High">High</option>
           </select>
         </div>
-
-        {/* Available Products - Two Rows */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <h2 className="text-xl font-semibold text-blue-600 mb-4">Available Products</h2>
           {loading ? (
@@ -263,7 +235,6 @@ const TravelerDashboard = () => {
             <p className="text-gray-600">No products available.</p>
           ) : (
             <div className="space-y-6">
-              {/* Top Row */}
               <div className="flex overflow-x-auto space-x-4 pb-4">
                 {topRowProducts.map(product => (
                   <div
@@ -291,8 +262,6 @@ const TravelerDashboard = () => {
                   </div>
                 ))}
               </div>
-
-              {/* Bottom Row */}
               <div className="flex overflow-x-auto space-x-4 pb-4">
                 {bottomRowProducts.map(product => (
                   <div
@@ -323,9 +292,7 @@ const TravelerDashboard = () => {
             </div>
           )}
         </div>
-
-        {/* Total Earnings Overview */}
-        <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="bg-white rounded-xl shadow-md p-6 sm:pb-50 md:pb-20">
           <div className="flex items-center mb-4">
             <h2 className="text-xl font-semibold text-blue-600">Total Earnings Overview</h2>
             <select
@@ -360,16 +327,12 @@ const TravelerDashboard = () => {
           )}
         </div>
       </div>
-
-      {/* UserProfile */}
-      <div className="lg:w-64 flex-shrink-0">
+      <div className="lg:w-64 flex-shrink-0 lg:sticky top-0 lg:h-full">
         <UserProfile userId={userId} />
       </div>
-
-      {/* Product Details Modal */}
       {selectedProductId && (
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
-          <ProductDetails productId={selectedProductId} onClose={handleCloseModal} travelerId={userId} />
+        <div className="fixed top-10 left-1/2 transform -translate-x-1/2 z-50">
+          <ProductDetails productId={selectedProductId} onClose={handleCloseModal} />
         </div>
       )}
     </div>
