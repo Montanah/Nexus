@@ -250,9 +250,9 @@ const TravelerDashboard = () => {
                     ) : null}
                     <p className="font-medium text-gray-700">{product.productName}</p>
                     <p className="text-sm text-gray-600">{`${product.destination.country}, ${product.destination.state}, ${product.destination.city}`}</p>
-                    <p className="text-sm text-gray-600">Reward: ${product.rewardAmount}</p>
-                    <p className="text-sm text-gray-600">Urgency: ${product.urgencyLevel}</p>
-                    <p className="text-sm text-gray-600">Price: ${product.productPrice}</p>
+                    <p className="text-sm text-gray-600">Reward: KES {product.rewardAmount}</p>
+                    <p className="text-sm text-gray-600">Urgency: {product.urgencyLevel}</p>
+                    <p className="text-sm text-gray-600">Price: KES {product.productPrice}</p>
                     <button
                       onClick={() => handleViewDetails(product.productId)}
                       className="mt-2 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -277,9 +277,9 @@ const TravelerDashboard = () => {
                     ) : null}
                     <p className="font-medium text-gray-700">{product.productName}</p>
                     <p className="text-sm text-gray-600">{`${product.destination.country}, ${product.destination.state}, ${product.destination.city}`}</p>
-                    <p className="text-sm text-gray-600">Reward: ${product.rewardAmount}</p>
-                    <p className="text-sm text-gray-600">Urgency: ${product.urgencyLevel}</p>
-                    <p className="text-sm text-gray-600">Price: ${product.productPrice}</p>
+                    <p className="text-sm text-gray-600">Reward: KES {product.rewardAmount}</p>
+                    <p className="text-sm text-gray-600">Urgency: {product.urgencyLevel}</p>
+                    <p className="text-sm text-gray-600">Price: KES {product.productPrice}</p>
                     <button
                       onClick={() => handleViewDetails(product.productId)}
                       className="mt-2 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -312,9 +312,9 @@ const TravelerDashboard = () => {
             <p className="text-red-600">Error: {error}</p>
           ) : (
             <>
-              <p className="text-gray-700 mb-4">Total Earnings: ${earnings.totalEarnings}</p>
+              <p className="text-gray-700 mb-4">Total Earnings: KES {earnings.totalEarnings}</p>
               <h3 className="text-lg font-medium text-blue-600 mb-2">Pending Escrow Amount</h3>
-              <p className="text-gray-700 mb-4">Pending Escrow Amount: ${earnings.pendingPayments}</p>
+              <p className="text-gray-700 mb-4">Pending Escrow Amount: KES {earnings.pendingPayments}</p>
               <h3 className="text-lg font-medium text-blue-600 mb-2">Traveler Ratings</h3>
               <p className="text-gray-700 mb-4">Rating: {earnings.rating.average.toFixed(1)} ({earnings.rating.count} reviews)</p>
               <button

@@ -158,9 +158,9 @@ const ProductDetails = ({ productId, onClose }) => {
           <p className="text-gray-600"><span className="font-medium">Shipping Restrictions:</span> {memoizedProduct.shippingRestrictions}</p>
         )}
         <p className="text-gray-600"><span className="font-medium">Destination:</span> {`${memoizedProduct.destination.country}, ${memoizedProduct.destination.city}`}</p>
-        <p className="text-gray-600"><span className="font-medium">Reward:</span> ${memoizedProduct.rewardAmount}</p>
+        <p className="text-gray-600"><span className="font-medium">Reward:</span> KES {memoizedProduct.rewardAmount}</p>
         <p className="text-gray-600"><span className="font-medium">Urgency:</span> {memoizedProduct.urgencyLevel}</p>
-        <p className="text-gray-600"><span className="font-medium">Price:</span> ${memoizedProduct.productPrice}</p>
+        <p className="text-gray-600"><span className="font-medium">Price:</span> KES {memoizedProduct.productPrice}</p>
         <p className="text-gray-600"><span className="font-medium">Delivery Status:</span> {memoizedProduct.isDelivered ? 'Delivered' : memoizedProduct.deliveryStatus}</p>
       </div>
 
