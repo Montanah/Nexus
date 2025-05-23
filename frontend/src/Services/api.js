@@ -356,8 +356,16 @@ export const getTravelerEarnings = async () => {
 
 // Get traveler history (Protected)
 export const getTravelerHistory = async (userId) => {
-  const response = await api.get(`/travelers/${userId}/history`);
-  return response;
+  try {
+    const response = await api.get(`/travelers/${userId}/history`);
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (err) {
+    console.error('Get traveler history error:', err);
+    throw new Error(err.response?.data?.message || 'Failed to fetch traveler history');
+  }
 };
 
 // Assign fulfillment to traveler (Protected)
@@ -367,18 +375,49 @@ export const assignFulfillment = async (productId) => {
   return response.data;
 };
 
-// Update delivery status (Protected)
+// Update delivery status (protected)
 export const updateDeliveryStatus = async (deliveryId, status) => {
-  const response = await api.put(`/update/${deliveryId}`, { status });
-  return response.data;
+  try {
+    const response = await api.put(`/update/${deliveryId}`, { status });
+    const updatedProduct = {
+      ...response.data, // Assuming response.data contains product details
+      deliveryStatus: status,
+      isDelivered: status === 'delivered',
+    };
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return {
+      success: true,
+      deliveryId,
+      newStatus: status,
+      updatedProduct,
+    };
+  } catch (err) {
+    console.error('Update delivery status error:', err);
+    throw new Error(err.response?.data?.message || 'Failed to update delivery status');
+  }
 };
 
-// Upload proof of delivery (Protected)
+// Update delivery proof (protected)
 export const uploadDeliveryProof = async (formData) => {
-  const response = await api.post('/proof', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return response.data;
+  try {
+    const response = await api.post('/proof', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const productId = formData.get('productId') || response.data.productId; // Extract from form or response
+    const photos = formData.getAll('photos');
+    if (!photos || photos.length === 0) {
+      throw new Error('No photos provided');
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return {
+      success: true,
+      productId,
+      photoCount: photos.length,
+    };
+  } catch (err) {
+    console.error('Upload delivery proof error:', err);
+    throw new Error(err.response?.data?.message || 'Failed to upload delivery proof');
+  }
 };
 
 // RATING ENDPOINTS
