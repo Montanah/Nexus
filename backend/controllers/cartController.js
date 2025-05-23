@@ -215,6 +215,7 @@ exports.checkout = async (req, res) => {
 
          // Generate unique order number
         const orderNumber = generateOrderNumber();
+        console.log(orderNumber);
 
         // Create an order
         const order = new Order({

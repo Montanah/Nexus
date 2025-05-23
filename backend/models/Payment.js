@@ -8,7 +8,7 @@ const PaymentSchema = new mongoose.Schema({
     },
     traveler: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: "Users", 
+        ref: "Traveler", 
         required: false },
     product: { 
         type: mongoose.Schema.Types.ObjectId, 

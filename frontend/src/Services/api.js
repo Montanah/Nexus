@@ -305,16 +305,100 @@ export const checkout = async () => {
 };
 
 // PAYMENT ENDPOINTS
-// Initiate M-Pesa payment (Protected)
-export const initiateMpesaMobilePayment = async (userId, cartItems, total) => {
-  const response = await api.post('/mpesa-payment', { userId, cartItems, total });
+//One Function to handle all payments
+export const createCheckoutSessionCombined = async ({ 
+    userId, 
+    orderNumber, 
+    paymentMethod, 
+    phoneNumber, 
+    amount, 
+    paymentMethodId, // for Stripe only
+  }) => {
+    let endpoint = '';
+    let payload = { userId, orderNumber, amount };
+
+    switch (paymentMethod) {
+      case 'Mpesa':
+        endpoint = '/api/payments/mpesa';
+        payload.phoneNumber = phoneNumber;
+        break;
+      case 'Airtel':
+        endpoint = '/api/payments/airtel';
+        payload.phoneNumber = phoneNumber;
+        break;
+      case 'Stripe':
+        endpoint = '/api/payments/stripe';
+        payload.paymentMethodId = paymentMethodId;
+        break;
+      default:
+        throw new Error('Unsupported payment method');
+  }
+
+  const response = await api.post(endpoint, payload);
   return response.data;
 };
 
+// Initiate M-Pesa payment (Protected)
+export const initiateMpesaMobilePayment = async (userId, orderNumber, phoneNumber, amount) => {
+  try{
+    if (!userId || !orderNumber || !phoneNumber || !amount) {
+      throw new Error('Missing required parameters');
+    }
+
+    if (typeof amount !== 'number' || amount <= 0) {
+      throw new Error('Amount must be a number and greater than 0');
+    }
+
+    const response = await api.post('/api/payments/mpesa', { userId, orderNumber, phoneNumber, amount });
+
+    if (!response.data.success) {
+      throw new Error(response.data.data?.message || 'Payment initiation failed');
+    }
+
+    return response.data;
+  } catch (error) {
+     console.error('Payment Initiation Error:', {
+      userId,
+      orderNumber,
+      error: error.response?.data || error.message
+    });
+
+    const errorMessage = error.response?.data?.error 
+      || error.response?.data?.message
+      || error.message
+      || 'Failed to initiate payment';
+
+    throw new Error(errorMessage);
+  }
+};
+
 // Initiate Airtel payment (Protected)
-export const initiateAirtelMobilePayment = async (userId, cartItems, total) => {
-  const response = await api.post('/airtel-payment', { userId, cartItems, total });
-  return response.data;
+export const initiateAirtelMobilePayment = async (userId, orderNumber, phoneNumber, amount) => {
+  try {
+    if (!userId || !orderNumber || !phoneNumber || !amount) {
+      throw new Error('Missing required parameters');
+    }
+
+    if (typeof amount !== 'number' || amount <= 0) {
+      throw new Error('Amount must be a number and greater than 0');
+    }
+  
+    const response = await api.post('/api/payments/airtel', { userId, orderNumber, phoneNumber, amount });
+    return response.data;
+  } catch (error) {
+    console.error('Payment Initiation Error:', {
+      userId,
+      orderNumber,
+      error: error.response?.data || error.message
+    });
+  
+    const errorMessage = error.response?.data?.error 
+      || error.response?.data?.message
+      || error.message
+      || 'Failed to initiate payment';
+  
+    throw new Error(errorMessage);
+  }
 };
 
 // Fetch payment details (Protected)
@@ -398,25 +482,37 @@ export const updateDeliveryStatus = async (deliveryId, status) => {
 };
 
 // Update delivery proof (protected)
-export const uploadDeliveryProof = async (formData) => {
+export const uploadDeliveryProof = async (orderId, file) => {
   try {
-    const response = await api.post('/proof', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    const productId = formData.get('productId') || response.data.productId; // Extract from form or response
-    const photos = formData.getAll('photos');
-    if (!photos || photos.length === 0) {
-      throw new Error('No photos provided');
+    if (!orderId || !file) {
+      throw new Error('Missing order ID or file');
     }
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const base64String = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]); // Remove data URL prefix
+      reader.onerror = error => reject(error);
+    });
+
+    const response = await api.post('/api/travelers/orders/${orderId}/delivery-proof', {
+      deliveryProof: base64String,
+      mimeType: file.type
+    });
+
+
     return {
       success: true,
-      productId,
-      photoCount: photos.length,
+      orderId,
+      proofUrl: response.data.proofUrl
     };
-  } catch (err) {
-    console.error('Upload delivery proof error:', err);
-    throw new Error(err.response?.data?.message || 'Failed to upload delivery proof');
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to upload proof',
+      error: error.message
+    };
   }
 };
 

@@ -80,7 +80,7 @@ const ProductDetails = ({ productId, onClose }) => {
     }
   };
 
-  const handleUploadProof = async () => {
+  const handleUploadProof = async (orderId) => {
     if (uploading) return;
     if (productPhotos.length === 0) {
       setUploadError('No photos selected.');
@@ -88,7 +88,7 @@ const ProductDetails = ({ productId, onClose }) => {
     }
     setUploading(true);
     try {
-      const response = await uploadDeliveryProof(productId, userId, productPhotos);
+      const response = await uploadDeliveryProof(orderId, productPhotos);
       console.log('Proof uploaded:', response);
       setUploadError(null);
       alert('Proof uploaded successfully!');

@@ -10,18 +10,6 @@ const { authenticateClient } = require("../middlewares/authMiddleware");
  *   description: Order management endpoints
  */
 
-/**
- * @swagger
- * /api/orders/checkout:
- *   post:
- *     summary: Create a new Order
- *     tags: [Orders]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- */
-router.post('/checkout', authenticateClient, checkoutController.createOrder);
 
 /**
  * @swagger
@@ -94,7 +82,7 @@ router.get('/', authenticateClient, checkoutController.getUserOrders);
  *       500:
  *         description: Server error
  */
-router.get('/:userId/:orderNumber', authenticateClient, checkoutController.getOrderDetails);
+router.get('/:orderNumber', authenticateClient, checkoutController.getOrderDetails);
 
 /**
  * @swagger

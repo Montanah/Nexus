@@ -4,160 +4,57 @@ const Traveler = require("../models/Traveler");
 const { response } = require("../utils/responses");
 const mongoose = require("mongoose");
 
-// Search and filter products
-exports.getProductsForTravelers = async (req, res) => {
-    try {
-        const { category, destination, minReward, maxReward, urgency } = req.query;
-        let query = {};
 
-        if (category) query.category = category;
-        if (destination) query["destination.country"] = destination;
-        if (urgency) query.urgencyLevel = urgency;
-        if (minReward || maxReward) {
-            query.markup = {};
-            if (minReward) query.markup.$gte = Number(minReward);
-            if (maxReward) query.markup.$lte = Number(maxReward);
-        }
-
-        const products = await Product.find(query).select("name category images destination markup urgencyLevel");
-        res.status(200).json(products);
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching products", error });
-    }
-};
-
-// Get product details
-exports.getProductDetails = async (req, res) => {
-    try {
-        const product = await Product.findById(req.params.id).populate("client", "name email");
-        if (!product) {
-            return res.status(404).json({ message: "Product not found" });
-        }
-        res.status(200).json(product);
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching product details", error });
-    }
-};
-
-
-// Claim a product
-exports.claimProduct = async (req, res) => {
-    try {
-        const travelerId = req.user.id;
-        const product = await Product.findById(req.body.productId);
-
-        if (!product) {
-            return res.status(404).json({ message: "Product not found" });
-        }
-        if (product.claimedBy) {
-            return res.status(400).json({ message: "Product already claimed by another traveler" });
-        }
-
-        console.log(`Traveler ${travelerId} claimed product ${product._id}`);
-
-        product.claimedBy = travelerId;
-        await product.save();
-
-        // Create a notification for the client
-        await Notification.create({
-            recipient: product.client._id,
-            message: `Your product "${product.name}" has been claimed by a traveler.`,
-            type: "claim"
-        });
-
-        res.status(200).json({ 
-          message: "Product claimed successfully", 
-          product: {
-            ...product._doc,
-            assignedTraveler: product.claimedBy
-          }
-        });
-    } catch (error) {
-        res.status(500).json({ message: "Error claiming product", error });
-    }
-};
 
 // Get all claimed products for a traveler
 exports.getClaimedProducts = async (req, res) => {
-    try {
-        const travelerId  = req.user.id;
-        const products = await Product.find({ claimedBy: travelerId })
-            .select("name category destination images isDelivered");
+  try {
+    const travelerId = req.params.travelerId;
 
-        res.status(200).json(products);
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching claimed products", error });
-    }
+    const products = await Product.find({ claimedBy: travelerId })
+
+    return response(res, 200, { message: 'Claimed products fetched successfully', products });
+  } catch (error) {
+    return response(res, 500, { message: 'Server error' });
+  }
 };
 
-// Mark a product as delivered
-exports.markAsDelivered = async (req, res) => {
-    try {
-        const product = await Product.findById(req.params.id);
-
-        if (!product) {
-            return res.status(404).json({ message: "Product not found" });
-        }
-        if (!product.claimedBy) {
-            return res.status(400).json({ message: "This product has not been claimed yet" });
-        }
-
-        product.isDelivered = true;
-        await product.save();
-
-         // Create a notification for the client
-         await Notification.create({
-            recipient: product.client._id,
-            message: `Your product "${product.name}" has been successfully delivered.`,
-            type: "delivery"
-        });
-
-        res.status(200).json({ message: "Product marked as delivered", product });
-    } catch (error) {
-        res.status(500).json({ message: "Error updating product status", error });
-    }
-};
 
 exports.getTravelerEarnings = async (req, res) => {
-    try {
-      const userId = req.user.id;
-      let traveler = await Traveler.findOne({ userId });
-      if (!traveler) {
-        // return res.status(404).json({ message: 'Traveler not found' });
-        traveler = await Traveler.create({
-          userId,
-          earnings: {
-            totalEarnings: '0.00',
-            pendingPayments: '0.00',
-            rating: { average: 0, count: 0 },
-          },
-          history: [],
-        });
-        console.log('Created new traveler:', traveler);
-      }
-      res.json({
-        success: true,
-        totalEarnings: traveler.earnings.totalEarnings,
-        pendingPayments: traveler.earnings.pendingPayments,
-        rating: traveler.earnings.rating,
+  try {
+    const userId = req.user.id;
+    let traveler = await Traveler.findOne({ userId });
+    if (!traveler) {
+      // return res.status(404).json({ message: 'Traveler not found' });
+      traveler = await Traveler.create({
+        userId,
+        earnings: {
+          totalEarnings: '0.00',
+          pendingPayments: '0.00',
+          rating: { average: 0, count: 0 },
+        },
+        history: [],
       });
-    } catch (err) {
-      console.error('Get earnings error:', err);
-      res.status(500).json({ message: 'Server error' });
+      console.log('Created new traveler:', traveler);
     }
-  };
+    res.json({
+      success: true,
+      totalEarnings: traveler.earnings.totalEarnings,
+      pendingPayments: traveler.earnings.pendingPayments,
+      rating: traveler.earnings.rating,
+    });
+  } catch (err) {
+    console.error('Get earnings error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
 exports.getTravelerHistory = async (req, res) => {
   try {
-    const { travelerId } = req.params;
+    const travelerId = req.user.id;
 
     if (!mongoose.Types.ObjectId.isValid(travelerId)) {
       return response(res, 400, { message: 'Invalid travelerId' });
-    }
-
-    // Verify requester
-    if (req.user.userId !== travelerId) {
-      return response(res, 403, { message: 'Unauthorized: You can only view your own history' });
     }
 
     const traveler = await Traveler.findOne({ userId: travelerId }).populate({
@@ -194,20 +91,37 @@ exports.getTravelerHistory = async (req, res) => {
 };
 
 exports.updateOrderStatus = async (req, res) => {
-    const { travelerId, status } = req.body;
+  const { orderNumber } = req.params;
+  const userId = req.user.id;
+  const { status } = req.body;
+
   try {
-    const order = await Order.findOne({ orderNumber: req.params.orderNumber, travelerId });
+    const traveler = await Traveler.findOne({ userId: userId });
+    if (!traveler) {
+      return res.status(404).json({ message: 'Traveler profile not found' });
+    }
+    const order = await Order.findOne({ orderNumber: orderNumber });
+
     if (!order) {
       return res.status(404).json({ message: 'Order not found or not assigned to traveler' });
     }
-    order.status = status;
+    if (!["Pending", "Assigned", "Shipped", "Delivered", "Cancelled"].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value' });
+    }
+
+    order.deliveryStatus = status;
     await order.save();
-    res.json({ success: true, order });
+    return response(res, 200, {
+      message: 'Order status updated successfully',
+      status: order.deliveryStatus,
+      travelerId: traveler._id
+    });
   } catch (err) {
     console.error('Update status error:', err);
-    res.status(500).json({ message: 'Server error' });
+    return response(res, 500, { message: 'Server error' });
   }
 };
+
 
 exports.getUnassignedOrders = async (req, res) => {
   try {
@@ -227,13 +141,13 @@ exports.getUnassignedOrders = async (req, res) => {
     const orders = await Order.find(query)
       .populate('items.product', 'productName productDescription totalPrice productPhotos destination deliverydate urgencyLevel rewardAmount productMarkup categoryName')
       .populate('travelerId', 'name email')
-      .sort({ createdAt: -1 }); 
+      .sort({ createdAt: -1 });
 
     if (!orders || orders.length === 0) {
       return response(res, 404, 'No orders found for this user');
     }
 
-    return response(res, 200, {"message": 'Orders retrieved successfully', orders: orders });
+    return response(res, 200, { "message": 'Orders retrieved successfully', orders: orders });
 
   } catch (err) {
     console.error('Get orders error:', err);
@@ -244,7 +158,7 @@ exports.getUnassignedOrders = async (req, res) => {
 exports.assignFulfilment = async (req, res) => {
   try {
     const userId = req.user.id;
-    const {productId} = req.body;
+    const { productId } = req.body;
 
     if (!productId) {
       return response(res, 400, { message: 'Missing required fields' });
@@ -259,20 +173,20 @@ exports.assignFulfilment = async (req, res) => {
     if (product.claimedBy) {
       return response(res, 400, { message: 'Product already claimed by another user' });
     }
-  
+
     const traveler = await Traveler.findOne({ userId: userId });;
     console.log(traveler);
 
     if (!traveler) {
       return response(res, 404, { message: 'Traveler not found' });
     }
-    
+
     const order = await Order.findOne({
       'items.product': productId,
       travelerId: null
-     });
+    });
     if (!order) {
-      return response(res, 404, { message:'No unassigned order for this product '});
+      return response(res, 404, { message: 'No unassigned order for this product ' });
     }
 
     //Assign product and order
@@ -292,8 +206,8 @@ exports.assignFulfilment = async (req, res) => {
 
     await traveler.save();
 
-    return response(res, 200, { 
-      message: 'Order assigned successfully', 
+    return response(res, 200, {
+      message: 'Order assigned successfully',
       product: productId,
       order: order._id,
     });
@@ -305,10 +219,16 @@ exports.assignFulfilment = async (req, res) => {
 
 exports.uploadDeliveryProof = async (req, res) => {
   try {
-    const { orderId, deliveryProof } = req.body;
+    const orderId = req.params;
+    const { deliveryProof, mimeType } = req.body;
 
-    if (!orderId || !deliveryProof) {
-      return response(res, 400, { message: 'Missing orderId or deliveryProof' });
+     if (!/^[A-Za-z0-9+/]+={0,2}$/.test(deliveryProof)) {
+      return response(res, 400, 'Invalid base64 format');
+    }
+
+    const validMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!validMimeTypes.includes(mimeType)) {
+      return response(res, 400, 'Invalid file type. Only JPEG, PNG, PDF allowed');
     }
 
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
@@ -321,19 +241,46 @@ exports.uploadDeliveryProof = async (req, res) => {
       return response(res, 404, { message: 'Order not found' });
     }
 
-    if (req.user.userId !== order.travelerId?.toString()) {
+    if (!req.user.id) {
       return response(res, 403, { message: 'Unauthorized: You can only upload delivery proof for your own orders' });
     }
 
     //Store
-    order.deliveryProof = deliveryProof;
+    order.deliveryProof = `data:${mimeType};base64,${deliveryProof}`;
+    order.deliveryStatus = 'Delivered';
     await order.save();
 
-    return response(res, 200, { 
+    return response(res, 200, {
       message: 'Delivery proof uploaded successfully',
-      order: orderId});
+      order: orderId,
+      proofUrl: order.deliveryProof
+    });
   } catch (err) {
     console.error('Upload delivery proof error:', err);
     return response(res, 500, { message: 'Server error' });
+  }
+}
+
+exports.getTravelersOrders = async (req, res) => {
+  const travelerId = req.params.travelerId;
+
+  try {
+    const traveler = await Traveler.findById(travelerId);
+
+    if (!traveler) {
+      return response(res, 404, { message: 'Traveler not found' });
+    }
+
+    const orders = await Order.find({ travelerId: travelerId });
+
+    if (!orders || orders.length === 0) {
+      return response(res, 404, 'No orders found for this user');
+    }
+
+    return response(res, 200, { "message": 'Orders retrieved successfully', orders: orders });
+
+  } catch (err) {
+    console.error('Get orders error:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 }

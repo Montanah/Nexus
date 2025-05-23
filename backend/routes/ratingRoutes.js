@@ -97,7 +97,7 @@ router.get('/orders/:orderNumber', authenticateClient, ratingsController.getOrde
  *       200:
  *         description: Traveler ratings fetched successfully
  */
-router.get('/traveler/:userId', authenticateClient, ratingsController.getTravelerRatings);
+router.get('/traveler/:travelerId', authenticateClient, ratingsController.getTravelerRatings);
 
 /**
  * @swagger

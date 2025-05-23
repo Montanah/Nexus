@@ -13,72 +13,53 @@ const response = (res, statusCode, data) => {
 };
 
 exports.clientToTravelerRating = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
-    const { orderNumber, userId, travelerId, rating, comment } = req.body;
+    const userId = req.user.id;
+    const { orderNumber, travelerId, rating, comment } = req.body;
 
     // Validate inputs
     if (!orderNumber || !userId || !travelerId || !rating) {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 400, { message: 'Missing required fields' });
     }
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 400, { message: 'Rating must be an integer between 1 and 5' });
     }
     if (comment && (typeof comment !== 'string' || comment.length > 500)) {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 400, { message: 'Comment must be a string with max 500 characters' });
     }
     if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(travelerId)) {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 400, { message: 'Invalid userId or travelerId' });
     }
 
     // Verify requester is the client
-    if (req.user.userId !== userId) {
-      await session.abortTransaction();
-      session.endSession();
+    if (req.user.id !== userId) {
       return response(res, 403, { message: 'Unauthorized: You can only rate as the client' });
     }
 
     // Find the order
-    const order = await Order.findOne({ orderNumber, userId, travelerId }).session(session);
+    const order = await Order.findOne({ orderNumber, userId, travelerId });
     if (!order) {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 404, { message: 'Order not found' });
     }
 
     // Check order status
     if (order.deliveryStatus !== 'Delivered') {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 400, { message: 'Order must be delivered to submit a rating' });
     }
 
     // Check if already rated
     if (order.travelerRating != null) {
-      await session.abortTransaction();
-      session.endSession();
-      return response(res, 400, { message: 'Traveler already rated for this order' });
+      return response(res, 400, { message: 'Client already rated for this order' });
     }
 
     // Update order with traveler rating and comment
     order.travelerRating = rating;
     order.travelerComment = comment || null;
-    await order.save({ session });
+    await order.save();
 
     // Update traveler's rating
-    const traveler = await Traveler.findOne({ userId: travelerId }).session(session);
+    const traveler = await Traveler.findOne({  travelerId });
     if (!traveler) {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 404, { message: 'Traveler not found' });
     }
 
@@ -89,90 +70,71 @@ exports.clientToTravelerRating = async (req, res) => {
 
     traveler.earnings.rating.average = newAverage;
     traveler.earnings.rating.count = newCount;
-    await traveler.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    await traveler.save();
 
     return response(res, 200, {
       message: 'Traveler rated successfully',
       travelerRating: { average: newAverage, count: newCount },
     });
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
     console.error('Client to traveler rating error:', err);
     return response(res, 500, { message: 'Server error' });
   }
 };
 
 exports.travelerToClientRating = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
-    const { orderNumber, travelerId, userId, rating, comment } = req.body;
-
+    const travelerInfo = req.user.id;
+    const { orderNumber, userId, rating, comment } = req.body;
+    const traveler = await Traveler.findOne({ userId: travelerInfo });
+      if (!traveler) {
+          return res.status(404).json({ message: 'Traveler profile not found' });
+      }
+    const travelerId = traveler._id;
+    console.log(travelerId, userId, orderNumber, rating, comment);
     // Validate inputs
     if (!orderNumber || !travelerId || !userId || !rating) {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 400, { message: 'Missing required fields' });
     }
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 400, { message: 'Rating must be an integer between 1 and 5' });
     }
     if (comment && (typeof comment !== 'string' || comment.length > 500)) {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 400, { message: 'Comment must be a string with max 500 characters' });
     }
     if (!mongoose.Types.ObjectId.isValid(travelerId) || !mongoose.Types.ObjectId.isValid(userId)) {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 400, { message: 'Invalid travelerId or userId' });
     }
 
     // Verify requester is the traveler
-    if (req.user.userId !== travelerId) {
-      await session.abortTransaction();
-      session.endSession();
+    if (req.user.id !== travelerInfo) {
       return response(res, 403, { message: 'Unauthorized: You can only rate as the traveler' });
     }
 
     // Find the order
-    const order = await Order.findOne({ orderNumber, userId, travelerId }).session(session);
+    const order = await Order.findOne({ orderNumber, userId, travelerId });
     if (!order) {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 404, { message: 'Order not found' });
     }
 
     // Check order status
     if (order.deliveryStatus !== 'Delivered') {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 400, { message: 'Order must be delivered to submit a rating' });
     }
 
     // Check if already rated
     if (order.clientRating != null) {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 400, { message: 'Client already rated for this order' });
     }
 
     // Update order with client rating and comment
     order.clientRating = rating;
     order.clientComment = comment || null;
-    await order.save({ session });
+    await order.save();
 
     // Update client's rating
-    const user = await User.findById(userId).session(session);
+    const user = await User.findById(userId);
     if (!user) {
-      await session.abortTransaction();
-      session.endSession();
       return response(res, 404, { message: 'Client not found' });
     }
 
@@ -183,18 +145,13 @@ exports.travelerToClientRating = async (req, res) => {
 
     user.rating.average = newAverage;
     user.rating.count = newCount;
-    await user.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    await user.save();
 
     return response(res, 200, {
       message: 'Client rated successfully',
       clientRating: { average: newAverage, count: newCount },
     });
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
     console.error('Traveler to client rating error:', err);
     return response(res, 500, { message: 'Server error' });
   }
@@ -211,8 +168,9 @@ exports.getOrderRatings = async (req, res) => {
 
     // Find the order
     const order = await Order.findOne({ orderNumber })
-      .populate('userId', 'email')
-      .populate('travelerId', 'email');
+      .populate('userId')
+      .populate('travelerId');
+    console.log(order);
 
     if (!order) {
       return response(res, 404, { message: 'Order not found' });
@@ -234,15 +192,15 @@ exports.getOrderRatings = async (req, res) => {
 
 exports.getTravelerRatings = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { travelerId } = req.params;
 
     // Validate userId
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
+    if (!mongoose.Types.ObjectId.isValid(travelerId)) {
       return response(res, 400, { message: 'Invalid userId' });
     }
-
+    
     // Find the traveler
-    const traveler = await Traveler.findOne({ userId });
+    const traveler = await Traveler.findOne({ _id: travelerId });
     if (!traveler) {
       return response(res, 404, { message: 'Traveler not found' });
     }

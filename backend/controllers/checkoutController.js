@@ -6,16 +6,16 @@ const { response } = require("../utils/responses");
 
 exports.createOrder = async (req, res) => {
     try {
-        const { userId } = req.user;
-        const { cart } = req.body;
+        const userId = req.user.id;
+        // const { cart } = req.body;
 
-        if (!userId || !cart || !Array.isArray(cart.items)) {
-            return response(res, 400, { 
-                success: false, 
-                message: 'Invalid request data Invalid cart data' 
-            });
-        }
-
+        // if (!userId || !cart || !Array.isArray(cart.items)) {
+        //     return response(res, 400, { 
+        //         success: false, 
+        //         message: 'Invalid request data Invalid cart data' 
+        //     });
+        // }
+        console.log(userId);
         const userCart = await Cart.findOne({ user: userId }).populate('items.product');
         if (!userCart) {
             return response(res, 404, { 
@@ -93,7 +93,8 @@ exports.getUserOrders = async (req, res) => {
 
 exports.getOrderDetails = async (req, res) => {
     try {
-        const { userId, orderNumber } = req.params;
+        const userId = req.user.id;
+        const { orderNumber } = req.params;
 
         if (req.user.id !== userId) {
             return response(res, 403, { message: 'Unauthorized' });

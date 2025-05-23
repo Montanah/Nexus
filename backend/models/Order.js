@@ -3,17 +3,14 @@ const mongoose = require("mongoose");
 const orderSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: "Users",
         required: true
     },
     orderNumber: {
         type: String,
         required: true,
         unique: true,
-        validate: {
-            validator: v => /^ORD-\d{13}-\d+$/.test(v),
-            message: "Invalid order number format"
-        }
+        match: [/^ORD-\d+-\d{4}$/, 'Invalid order number format']
     },
     items: [
         {
