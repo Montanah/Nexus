@@ -2,6 +2,7 @@ const Product = require("../models/Product");
 const Order = require("../models/Order");
 const Traveler = require("../models/Traveler");
 const { response } = require("../utils/responses");
+const mongoose = require("mongoose");
 
 // Search and filter products
 exports.getProductsForTravelers = async (req, res) => {
@@ -42,8 +43,8 @@ exports.getProductDetails = async (req, res) => {
 // Claim a product
 exports.claimProduct = async (req, res) => {
     try {
-        const { travelerId } = req.body;
-        const product = await Product.findById(req.params.id);
+        const travelerId = req.user.id;
+        const product = await Product.findById(req.body.productId);
 
         if (!product) {
             return res.status(404).json({ message: "Product not found" });
@@ -51,6 +52,8 @@ exports.claimProduct = async (req, res) => {
         if (product.claimedBy) {
             return res.status(400).json({ message: "Product already claimed by another traveler" });
         }
+
+        console.log(`Traveler ${travelerId} claimed product ${product._id}`);
 
         product.claimedBy = travelerId;
         await product.save();
@@ -62,7 +65,13 @@ exports.claimProduct = async (req, res) => {
             type: "claim"
         });
 
-        res.status(200).json({ message: "Product claimed successfully", product });
+        res.status(200).json({ 
+          message: "Product claimed successfully", 
+          product: {
+            ...product._doc,
+            assignedTraveler: product.claimedBy
+          }
+        });
     } catch (error) {
         res.status(500).json({ message: "Error claiming product", error });
     }
@@ -71,7 +80,7 @@ exports.claimProduct = async (req, res) => {
 // Get all claimed products for a traveler
 exports.getClaimedProducts = async (req, res) => {
     try {
-        const { travelerId } = req.params;
+        const travelerId  = req.user.id;
         const products = await Product.find({ claimedBy: travelerId })
             .select("name category destination images isDelivered");
 
@@ -234,18 +243,11 @@ exports.getUnassignedOrders = async (req, res) => {
 
 exports.assignFulfilment = async (req, res) => {
   try {
-    const {productId, userId} = req.body;
+    const userId = req.user.id;
+    const {productId} = req.body;
 
-    if (!productId || !userId) {
+    if (!productId) {
       return response(res, 400, { message: 'Missing required fields' });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(productId) || !mongoose.Types.ObjectId.isValid(userId)) {
-      return response(res, 400, { message: 'Invalid product or user ID' });
-    }
-
-    if (req.user.userId !== userId) {
-      return response(res, 403, { message: 'Unauthorized: You can only assign fulfilment to yourself' });
     }
 
     const product = await Product.findById(productId);
@@ -257,8 +259,9 @@ exports.assignFulfilment = async (req, res) => {
     if (product.claimedBy) {
       return response(res, 400, { message: 'Product already claimed by another user' });
     }
-
-    const traveler = await Traveler.findOne({ userId });
+  
+    const traveler = await Traveler.findOne({ userId: userId });;
+    console.log(traveler);
 
     if (!traveler) {
       return response(res, 404, { message: 'Traveler not found' });
@@ -274,7 +277,7 @@ exports.assignFulfilment = async (req, res) => {
 
     //Assign product and order
     product.claimedBy = traveler._id;
-    order.travelerId = userId;
+    order.travelerId = traveler._id;
     order.deliveryStatus = 'Assigned';
 
     await product.save();
@@ -283,7 +286,7 @@ exports.assignFulfilment = async (req, res) => {
     //Add to traveler history
     traveler.history.push({
       orderId: order._id,
-      rewardAmount: order.items[0].product.rewardAmount,
+      rewardAmount: product.rewardAmount,
       status: 'Pending'
     });
 

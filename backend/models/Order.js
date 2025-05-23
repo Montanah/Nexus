@@ -45,7 +45,7 @@ const orderSchema = new mongoose.Schema({
     },
     travelerId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Users",
+        ref: "Traveler",
     },
     urgencyLevel: {
         type: String,

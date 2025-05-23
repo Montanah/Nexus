@@ -16,7 +16,7 @@ const travelerSchema = new mongoose.Schema({
     },
     history: [{  
         orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
-        rewardAmount: Number,
+        rewardAmount: { type: Number },
         status: {
             type: String,
             enum: ["Completed", "Pending"],  

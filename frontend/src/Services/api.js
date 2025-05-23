@@ -361,8 +361,9 @@ export const getTravelerHistory = async (userId) => {
 };
 
 // Assign fulfillment to traveler (Protected)
-export const assignFulfillment = async (productId, userId) => {
-  const response = await api.post('/products/assign', { productId, userId });
+export const assignFulfillment = async (productId) => {
+  const response = await api.post('/api/travelers/products/claim', { productId });
+  console.log('assignFulfillment response:', response.data);
   return response.data;
 };
 

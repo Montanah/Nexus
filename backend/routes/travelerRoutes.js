@@ -10,7 +10,7 @@ router.get("/products", travelerController.getProductsForTravelers);
 router.get("/products/:id", travelerController.getProductDetails);
 
 // Claim a product
-router.post("/products/:id/claim", travelerController.claimProduct);
+router.post("/products/claim", authenticateClient, travelerController.assignFulfilment);
 
 // Get all claimed products for a traveler
 router.get("/products/claimed/:travelerId", travelerController.getClaimedProducts);

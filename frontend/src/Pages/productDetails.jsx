@@ -34,7 +34,8 @@ const ProductDetails = ({ productId, onClose }) => {
 
   const handleAcceptFulfillment = async () => {
     try {
-      const updatedProduct = await assignFulfillment(productId, userId);
+      const updatedProduct = await assignFulfillment(productId);
+      console.log('Updated product:', updatedProduct);
       setIsAccepted(true);
       setProduct(updatedProduct);
       console.log(`Traveler ${userId} accepted fulfillment for ${productId}`);
@@ -142,7 +143,7 @@ const ProductDetails = ({ productId, onClose }) => {
           <p className="text-gray-600"><span className="font-medium">Delivery Status:</span> {product.isDelivered ? 'Delivered' : 'Not Delivered'}</p>
         </div>
 
-        {!isAccepted && product.assignedTraveler === null && (
+        {!isAccepted && product.claimedBy === null && (
           <button
             onClick={handleAcceptFulfillment}
             className="mt-4 w-full bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
