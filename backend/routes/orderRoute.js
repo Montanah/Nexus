@@ -142,7 +142,7 @@ router.put('/:orderNumber/payment', authenticateClient, checkoutController.updat
  *       400:
  *         description: Bad request
  */
-router.put('/:orderNumber/delivery', authenticateClient, checkoutController.updateDeliveryStatus);
+router.put('/:orderId/delivery', authenticateClient, checkoutController.updateDeliveryStatus);
 
 /**
  * @swagger

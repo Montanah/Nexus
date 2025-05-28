@@ -53,15 +53,25 @@ const ClientDashboard = () => {
     setSelectedOrder(selectedOrder?.id === order._id ? null : order);
   };
 
-  const handleConfirmDelivery = async (orderId, deliveryId) => {
+  const handleConfirmDelivery = async (orderId) => {
     try {
-      const order = orders.find(o => o.id === orderId);
+      if (!orderId) {
+        throw new Error('Invalid order ID');
+      }
+
+      console.log('Confirming delivery for order ID:', orderId._id);
+      const order = orders.find(o => o._id === orderId);
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
       const currentStatus = order.deliveryStatus;
       let newStatus = 'client_confirmed';
       if (currentStatus === 'traveler_confirmed') {
         newStatus = 'delivered';
       }
-      const updatedOrder = await updateDeliveryStatus(deliveryId, newStatus);
+      const updatedOrder = await updateDeliveryStatus(orderId, newStatus);
+
       setOrders(prev =>
         prev.map(o => (o.id === orderId ? { ...o, deliveryStatus: updatedOrder.deliveryStatus, delivered: newStatus === 'delivered' } : o))
       );
@@ -87,6 +97,9 @@ const ClientDashboard = () => {
       setLoading(false);
     }
   };
+  function formatDate(isoDate) {
+    return isoDate.split('T')[0];
+  }
 
   // Early returns after hooks
   if (authLoading) {
@@ -181,9 +194,9 @@ const ClientDashboard = () => {
                 <h3 className="text-lg font-semibold text-indigo-900 mb-4">Order Progress</h3>
                 <div className="relative">
                   {[
-                    { label: 'Order Created', value: selectedOrder.createdDate || 'Pending' },
+                    { label: 'Order Created', value: formatDate(selectedOrder.createdAt) || 'Pending' },
                     { label: 'Payment Status', value: selectedOrder.paymentStatus || 'Pending' },
-                    { label: 'Date to be Delivered', value: selectedOrder.deliveryDate || 'TBD' },
+                    { label: 'Date to be Delivered', value: formatDate(selectedOrder.items[0]?.product.deliverydate) || 'TBD' },
                     { label: 'Delivered', value: selectedOrder.delivered ? 'Yes' : 'No' },
                     { label: 'Delivery Status', value: selectedOrder.deliveryStatus || 'Pending' },
                   ].map((step, index) => (
@@ -211,7 +224,7 @@ const ClientDashboard = () => {
                 </div>
                 {selectedOrder.deliveryStatus !== 'delivered' && (
                   <button
-                    onClick={() => handleConfirmDelivery(selectedOrder.id, selectedOrder.deliveryId)}
+                    onClick={() => handleConfirmDelivery(selectedOrder._id)}
                     className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                     disabled={selectedOrder.deliveryStatus === 'client_confirmed'}
                   >

@@ -543,21 +543,10 @@ export const assignFulfillment = async (productId) => {
 };
 
 // Update delivery status (protected)
-export const updateDeliveryStatus = async (deliveryId, status) => {
+export const updateDeliveryStatus = async (orderId, status) => {
   try {
-    const response = await api.put(`/update/${deliveryId}`, { status });
-    const updatedProduct = {
-      ...response.data, // Assuming response.data contains product details
-      deliveryStatus: status,
-      isDelivered: status === 'delivered',
-    };
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return {
-      success: true,
-      deliveryId,
-      newStatus: status,
-      updatedProduct,
-    };
+    const response = await api.put(`/orders/${orderId}/delivery`, { deliveryStatus: status });
+    return response.data.order; 
   } catch (err) {
     console.error('Update delivery status error:', err);
     throw new Error(err.response?.data?.message || 'Failed to update delivery status');

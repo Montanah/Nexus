@@ -75,7 +75,7 @@ exports.getUserOrders = async (req, res) => {
         const userId = req.user.id;
 
         const orders = await Order.find({ userId })
-            .populate('items.product', 'productName productDescription totalPrice productPhotos')
+            .populate('items.product', 'productName productDescription totalPrice productPhotos deliverydate')
             .populate('travelerId', 'name email')
             .sort({ createdAt: -1 }); 
 
@@ -146,29 +146,32 @@ exports.updatePaymentStatus = async (req, res) => {
     }
   };
 
-  exports.updateDeliveryStatus = async (req, res) => {
+exports.updateDeliveryStatus = async (req, res) => {
     try {
-      const { orderNumber } = req.params;
+      const { orderId } = req.params;
       const { deliveryStatus } = req.body;
   
-      if (!['Assigned', 'Shipped', 'Delivered'].includes(deliveryStatus)) {
+      if (!['assigned', 'shipped', 'client_confirmed', 'traveler_confirmed', 'delivered'].includes(deliveryStatus)) {
         return response(res, 400, { message: 'Invalid delivery status' });
       }
   
-      const order = await Order.findOne({ orderNumber });
+      const order = await Order.findById(orderId);
       if (!order) {
         return response(res, 404, { message: 'Order not found' });
       }
   
-      // Check if user is client or assigned traveler
-      if (req.user.id !== order.userId.toString() && (!order.travelerId || req.user.id !== order.travelerId.toString())) {
+      if (req.user.id !== order.userId.toString()) {
         return response(res, 403, { message: 'Unauthorized' });
       }
   
       order.deliveryStatus = deliveryStatus;
       const updatedOrder = await order.save();
   
-      return response(res, 200, { message: 'Delivery status updated', order: updatedOrder });
+      return response(res, 200, { 
+        message: 'Delivery status updated', 
+        order: updatedOrder,
+        deliveryStatus: updatedOrder.deliveryStatus
+      });
     } catch (error) {
       console.error('Error updating delivery status:', error);
       return response(res, 500, { message: 'Error updating delivery status', error: error.message });
