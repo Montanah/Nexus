@@ -14,6 +14,18 @@ const response = (res, statusCode, data) => {
   });
 };
 
+function formatMpesaPhoneNumber(phone) {
+  let cleaned = phone.replace(/\D/g, '');
+  
+  if (cleaned.startsWith('0')) {
+    return '254' + cleaned.substring(1);
+  }
+  if (cleaned.startsWith('254') === false) {
+    return '254' + cleaned;
+  }
+  return cleaned;
+}
+
 exports.createCheckoutSessionCombined = async (req, res) => {
   try {
     const { userId, paymentMethod, phoneNumber, amount, paymentMethodId, email, cartItems, voucherCode } = req.body;
@@ -72,7 +84,11 @@ exports.createCheckoutSessionCombined = async (req, res) => {
         if (!phoneNumber) {
           return response(res, 400, { message: 'Phone number required for M-Pesa payment' });
         }
+        const formattedPhone = formatMpesaPhoneNumber(phoneNumber);
+       
         const mpesaToken = await getMpesaToken();
+        console.log("mpesaToken", mpesaToken)
+
         const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
         const password = Buffer.from(`${process.env.MPESA_SHORTCODE}${process.env.MPESA_PASSKEY}${timestamp}`).toString('base64');
         paymentResponse = await axios.post(
@@ -82,20 +98,23 @@ exports.createCheckoutSessionCombined = async (req, res) => {
             Password: password,
             Timestamp: timestamp,
             TransactionType: 'CustomerPayBillOnline',
-            Amount: amount,
-            PartyA: phoneNumber,
+            Amount: Math.ceil(amount),
+            PartyA: formattedPhone,
             PartyB: process.env.MPESA_SHORTCODE,
-            PhoneNumber: phoneNumber,
+            PhoneNumber: formattedPhone,
             CallBackURL: process.env.MPESA_CALLBACK_URL,
             AccountReference: orderNumber,
             TransactionDesc: `Payment for order ${orderNumber}`,
           },
           {
             headers: {
+              'Content-Type': 'application/json',
               Authorization: `Bearer ${mpesaToken}`,
             },
           }
         );
+        console.log("Mpesa was selected");
+        console.log("Mpesa paymentResponse", paymentResponse.data)
         checkoutId = paymentResponse.data.CheckoutRequestID;
         await PaymentLog.create({
           userId,
@@ -353,4 +372,15 @@ exports.handleMpesaCallback = async (req, res) => {
     console.error('M-Pesa callback error:', error);
     return res.status(500).json({ message: 'Error processing callback', error: error.message });
   }
+};
+
+
+const getMpesaToken = async () => {
+  const auth = Buffer.from(`${process.env.MPESA_CONSUMER_KEY}:${process.env.MPESA_CONSUMER_SECRET}`).toString('base64');
+  const response = await axios.get('https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials', {
+    headers: {
+      Authorization: `Basic ${auth}`
+    }
+  });
+  return response.data.access_token;
 };

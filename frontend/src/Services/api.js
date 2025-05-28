@@ -474,6 +474,16 @@ export const verifyPaystackPayment = async (reference) => {
     throw new Error(error.response?.data?.error || error.message || 'Failed to verify payment');
   }
 };
+
+//mpesa callback
+export const mpesaCallback = async (data) => {
+  try {
+    const response = await api.post('/api/payments/mpesacallback', data);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.error || error.message || 'Failed to verify payment');
+  }
+}
 // Fetch payment details (Protected)
 export const fetchPaymentDetails = async (sessionId) => {
   const response = await api.get(`/payment-details/${sessionId}`);

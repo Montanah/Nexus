@@ -69,7 +69,7 @@ exports.getCart = async (req, res) => {
             productFee: item.product?.productFee || 0,
             finalCharge: (item.product?.productFee || 0) * item.quantity * 1.15, // Add 15% markup
             category: item.product?.categoryName || 'N/A',
-            productPhotos: item.product?.productPhotos || [],ch
+            productPhotos: item.product?.productPhotos || [],
         }));
 
         return response(res, 200, 

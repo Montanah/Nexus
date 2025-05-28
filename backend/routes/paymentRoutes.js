@@ -23,6 +23,7 @@ router.get('/paystack/verify/:reference', authenticateClient, paystackController
 
 router.post("/combined", authenticateClient, payController.createCheckoutSessionCombined);
 router.get("/paystackverify/:reference", authenticateClient, payController.verifyPaystackPayment);
+router.post("/mpesacallback", authenticateClient, payController.handleMpesaCallback);
 
 router.get("/:orderNumber", authenticateClient, paymentController.getPaymentStatus);
 router.get("/:usersId", authenticateClient, paymentController.getClientPayments);
