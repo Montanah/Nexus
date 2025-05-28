@@ -1,41 +1,53 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../Context/AuthContext';
 import { loadStripe } from '@stripe/stripe-js';
 import { FaEdit, FaTrash, FaCcVisa, FaCcMastercard, FaCcPaypal, FaCcDiscover, FaMobileAlt } from 'react-icons/fa';
-import { fetchCart, deleteCartItem, initiateMpesaMobilePayment, initiateAirtelMobilePayment, createCheckoutSession } from '../Services/api';
+import { fetchCart, createCheckoutSessionCombined, checkout, fetchOneOrder, deleteCartItem, initiateMpesaMobilePayment, initiateAirtelMobilePayment, createCheckoutSession } from '../Services/api';
 import Header from '../Components/Header';
 
 // Initialize Stripe outside the component
 const stripePromise = loadStripe('pk_test_51OvoL6KzYkQzGZz6rK8Z5Qe5f6Y5X8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9'); // Replace with your Stripe publishable key
 
 const Checkout = () => {
-  const { userId } = useAuth();
+  const { userId, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-
+  const location = useLocation();
   const [cartItems, setCartItems] = useState([]);
   const [voucherCode, setVoucherCode] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [paymentDetails, setPaymentDetails] = useState({}); // For card number, phone number, etc.
+  
+  useEffect(() => {
+      if (!authLoading && !userId) {
+        navigate('/login');
+      } 
+      console.log('Auth loading:', authLoading, 'User ID:', userId);
+      console.log('User:', user);
+    }, [authLoading, userId, navigate]);
 
   // Fetch cart items on mount
   useEffect(() => {
     const fetchCartData = async () => {
-      if (!userId) {
-        setError('User not authenticated');
-        navigate('/login');
-        return;
-      }
-
-      try {
+      if (!userId) return;
+       try {
         setLoading(true);
-        const items = await fetchCart(userId);
+        let items = [];
+        if (location.state?.retry && location.state?.cartItems) {
+          items = location.state.cartItems; // Restore cart from failure state
+        } else {
+          items = await fetchCart(userId);
+        }
+        console.log('Cart items:', items);
         setCartItems(items);
+        // const items = await fetchCart(userId);
+        // console.log('Cart items:', items);
+        // setCartItems(items);
 
-        if (items.length === 0) {
+        if (items.length === 0 && !location.state?.retry) {
           navigate('/new-order');
         }
       } catch (err) {
@@ -46,11 +58,12 @@ const Checkout = () => {
       }
     };
     fetchCartData();
-  }, [userId, navigate]);
+  }, [userId, navigate, location.state]);
 
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + (item.finalCharge || 0), 0);
-  const total = subtotal.toFixed(2);
+  const total = Number(subtotal.toFixed(2));
+  const displayTotal = subtotal.toFixed(2);
 
   // Handle delete item
   const handleDelete = async (productId) => {
@@ -82,6 +95,22 @@ const Checkout = () => {
 
   // Handle pay with failure navigation
   const handlePay = async () => {
+    const paymentDetailsForFailure = {
+        paymentMethod: 
+          selectedPaymentMethod === 'mpesa' ? 'M-Pesa' :
+          selectedPaymentMethod === 'airtel' ? 'Airtel Money' :
+          selectedPaymentMethod === 'card' ? 'Credit Card' :
+          selectedPaymentMethod === 'paypal' ? 'PayPal' :
+          'Paystack',
+        paymentDetails:
+          selectedPaymentMethod === 'card' ? paymentDetails.cardNumber || 'Unknown Card' :
+          selectedPaymentMethod === 'paypal' ? paymentDetails.paypalEmail || 'Unknown Email' :
+          selectedPaymentMethod === 'paystack' ? paymentDetails.paystackEmail || 'Unknown Email' : 
+          paymentDetails.phoneNumber || 'Unknown Phone',
+        totalAmount: total,
+        cartItems,
+    };
+
     try {
       setLoading(true);
       setError(null);
@@ -92,57 +121,58 @@ const Checkout = () => {
         return;
       }
 
-      const paymentDetailsForFailure = {
-        paymentMethod: selectedPaymentMethod === 'mpesa' ? 'M-Pesa' :
-                       selectedPaymentMethod === 'airtel' ? 'Airtel Money' :
-                       selectedPaymentMethod === 'card' ? 'Credit Card' : 'PayPal',
-        paymentDetails: selectedPaymentMethod === 'card' ? paymentDetails.cardNumber || 'Unknown Card' :
-                        selectedPaymentMethod === 'paypal' ? paymentDetails.paypalEmail || 'Unknown Email' :
-                        paymentDetails.phoneNumber || 'Unknown Phone',
-        totalAmount: total,
+      const payload = {
+        userId,
+        paymentMethod:
+          selectedPaymentMethod === 'mpesa' ? 'Mpesa' :
+          selectedPaymentMethod === 'airtel' ? 'Airtel' :
+          selectedPaymentMethod === 'card' || selectedPaymentMethod === 'paypal' ? 'Stripe' :
+          'Paystack',
+        phoneNumber: selectedPaymentMethod === 'mpesa' || selectedPaymentMethod === 'airtel' ? paymentDetails.phoneNumber : undefined,
+        amount: total,
+        paymentMethodId: selectedPaymentMethod === 'card' || selectedPaymentMethod === 'paypal' ? paymentDetails.paymentMethodId : undefined,
+        email: selectedPaymentMethod === 'paystack' ? user?.data?.user?.email : undefined,
+        cartItems, // Pass cart items to create order on backend
+        voucherCode: selectedPaymentMethod === 'card' || selectedPaymentMethod === 'paypal' ? voucherCode : undefined,
       };
+      console.log('createCheckoutSessionCombined called with:', payload);
 
-      if (selectedPaymentMethod === 'mpesa') {
-        try {
-          const paymentData = await initiateMpesaMobilePayment(userId, cartItems, total);
-          paymentDetailsForFailure.orderNumber = paymentData.orderNumber || `ORD-${Date.now()}`;
+      const response = await createCheckoutSessionCombined(payload);
+      console.log('Payment response:', response);
+
+      if (selectedPaymentMethod === 'mpesa' || selectedPaymentMethod === 'airtel') {
+        if (response.success) {
+          paymentDetailsForFailure.orderNumber = response.orderNumber || `ORD-${Date.now()}`;
           navigate('/payment-success', { state: paymentDetailsForFailure });
-        } catch (err) {
+        } else {
           navigate('/payment-failure', {
-            state: { ...paymentDetailsForFailure, reason: err.message || 'M-Pesa payment declined' },
-          });
-        }
-      } else if (selectedPaymentMethod === 'airtel') {
-        try {
-          const paymentData = await initiateAirtelMobilePayment(userId, cartItems, total);
-          paymentDetailsForFailure.orderNumber = paymentData.orderNumber || `ORD-${Date.now()}`;
-          navigate('/payment-success', { state: paymentDetailsForFailure });
-        } catch (err) {
-          navigate('/payment-failure', {
-            state: { ...paymentDetailsForFailure, reason: err.message || 'Airtel payment declined' },
+            state: { ...paymentDetailsForFailure, reason: response.message || 'Payment initiation failed' },
           });
         }
       } else if (selectedPaymentMethod === 'card' || selectedPaymentMethod === 'paypal') {
-        const session = await createCheckoutSession(userId, cartItems, total, voucherCode);
         const stripe = await stripePromise;
-        const { error } = await stripe.redirectToCheckout({ sessionId: session.id });
+        const { error } = await stripe.redirectToCheckout({ sessionId: response.sessionId });
         if (error) {
           navigate('/payment-failure', {
             state: { ...paymentDetailsForFailure, reason: error.message || 'Payment declined by issuer' },
           });
         }
         // Success is handled by Stripe's success_url
+      } else if (selectedPaymentMethod === 'paystack') {
+        if (response.data.authorizationUrl) {
+          paymentDetailsForFailure.orderNumber = response.orderNumber || `ORD-${Date.now()}`;
+          window.location.href = response.data.authorizationUrl;
+        } else {
+          console.error('Paystack response missing authorizationUrl:', response);
+          navigate('/payment-failure', {
+            state: { ...paymentDetailsForFailure, reason: response.message || 'Paystack payment failed' },
+          });
+        }
       }
     } catch (err) {
       navigate('/payment-failure', {
         state: {
-          paymentMethod: selectedPaymentMethod === 'mpesa' ? 'M-Pesa' :
-                         selectedPaymentMethod === 'airtel' ? 'Airtel Money' :
-                         selectedPaymentMethod === 'card' ? 'Credit Card' : 'PayPal',
-          paymentDetails: selectedPaymentMethod === 'card' ? paymentDetails.cardNumber || 'Unknown Card' :
-                          selectedPaymentMethod === 'paypal' ? paymentDetails.paypalEmail || 'Unknown Email' :
-                          paymentDetails.phoneNumber || 'Unknown Phone',
-          totalAmount: total,
+          ...paymentDetailsForFailure,
           reason: err.message || 'Failed to initiate payment',
         },
       });
@@ -150,6 +180,14 @@ const Checkout = () => {
       setLoading(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-indigo-100 flex items-center justify-center">
+        <p>Loading authentication...</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -255,6 +293,7 @@ const Checkout = () => {
                 <option value="paypal">PayPal</option>
                 <option value="mpesa">Pay via M-Pesa</option>
                 <option value="airtel">Pay via Airtel Money</option>
+                <option value="paystack">Pay via Paystack</option>
               </select>
             </div>
 

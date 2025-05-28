@@ -1,6 +1,5 @@
-const Client = require("../models/Client");
 const Users = require("../models/Users");
-const Traveler = require("../models/Traveler");
+const Notification = require("../models/Notification");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const speakeasy = require("speakeasy");
@@ -13,6 +12,7 @@ const { use } = require("passport");
 const { sendEmail } = require("../utils/nodemailer");
 const { response } = require("../utils/responses");
 const redisClient = require("../middlewares/redisClient");
+const { sendEmailNew, sendTemplatedEmail } = require("../utils/emailService");
 const cookie = require('cookie');
 
 require('dotenv').config();
@@ -40,6 +40,25 @@ exports.createUser = async (req, res) => {
         //     from: process.env.TWILIO_PHONE_NUMBER,
         //     to: phone_number,
         //   });
+
+        // Send welcome email with verification
+        const emailResult = await sendTemplatedEmail(
+            email,
+            "welcomeUser",
+            { userName: name, verificationCode }
+        );
+
+        // Create welcome notification
+        await Notification.create({
+            recipient: user._id,
+            type: "welcome",
+            title: "Welcome to NEXUS!",
+            message: "Thank you for joining. Verify your email to get started.",
+            metadata: {
+                verificationRequired: true
+            }
+        });
+
         return response(res, 201, {
             message: "User registered successfully", "user": {
                 _id: user._id,
@@ -48,7 +67,8 @@ exports.createUser = async (req, res) => {
                 isVerified: user.isVerified,
                 avatar: user.avatar,
                 phone_number: user.phone_number
-            }
+            },
+             emailSent: emailResult
         });
     } catch (error) {
         console.error("Error registering user:", error);

@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@paystack/inline-js": "^2.22.4",
     "@upstash/redis": "^1.34.6",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",

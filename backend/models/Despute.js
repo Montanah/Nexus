@@ -1,22 +1,42 @@
 const mongoose = require("mongoose");
 
 const disputeSchema = new mongoose.Schema({
-    orderId: { 
+    payment: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: "Order", 
-        required: true },
-    clientId: { 
-        type: mongoose.Schema.Types.ObjectId, ref: "Client", required: true },
-    travelerId: { type: mongoose.Schema.Types.ObjectId, ref: "Traveler", required: true },
-    reason: { type: String, required: true }, // E.g., "Item damaged", "Delayed delivery"
-    evidence: [String], // Array of image URLs (proofs)
+        ref: "Payment", 
+        required: true 
+    },
+    raisedBy: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "User", 
+        required: true 
+    },
+    against: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "User", 
+        required: true 
+    },
+    reason: { 
+        type: String, 
+        required: true,
+        enum: ["item_damaged", "not_delivered", "wrong_item", "late_delivery"] 
+    },
+    evidence: [String],
     status: { 
         type: String, 
-        enum: ["pending", "under_review", "resolved", "rejected"], 
-        default: "pending" 
+        enum: ["open", "under_review", "resolved", "rejected"], 
+        default: "open" 
     },
-    resolution: { type: String, default: null }, // E.g., "Partial refund", "Re-delivery"
-    createdAt: { type: Date, default: Date.now }
-});
+    resolution: {
+        type: {
+            action: {
+                type: String,
+                enum: ["full_refund", "partial_refund", "redelivery", "release_funds"]
+            },
+            amount: Number,
+            notes: String
+        }
+    }
+}, { timestamps: true });
 
 module.exports = mongoose.model("Dispute", disputeSchema);

@@ -16,6 +16,7 @@ import TravelerDashboard from './Pages/travelerDashboard';
 import Settings from './Pages/settings';
 import RatingForm from './Pages/ratingsForm';
 import ProductDetails from './Pages/productDetails';
+import PaystackVerify from './Components/PaystackVerify';
 // import Help from './Pages/help';
 // import Notifications from './Pages/notifications';
 
@@ -45,6 +46,7 @@ const App = () => {
           <Route path="/product-details/:productId" element={<ProductDetails />} />
           <Route path="/rate-product/:productId" element={<RatingFormWithLocation />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/verify-paystack" element={<PaystackVerify />} />
           {/* <Route path="/help" element={<Help />} />
           <Route path="/notifications" element={<Notifications/>} /> */}
         </Routes>

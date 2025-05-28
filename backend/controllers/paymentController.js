@@ -4,6 +4,9 @@ const Payment = require("../models/Payment");
 const Transaction = require("../models/Transaction");
 const Dispute = require("../models/Dispute");
 const PaymentLog = require("../models/PaymentLog");
+const Notification = require("../models/Notification");
+const Order = require('../models/Order');
+const { notificationTemplates } = require("./notificationController");
 require('dotenv').config();
 
 const {
@@ -25,20 +28,53 @@ const response = (res, statusCode, data) => {
   });
 };
 // process payment
+// Enhanced processPayment
 exports.processPayment = async (req, res) => {
     try {
-        const { clientId, productId, totalAmount } = req.body;
-
+        const { clientId, orderId, productId, amount, paymentMethod } = req.body;
+        
+        // Calculate amounts
+        const productAmount = amount / 1.15; 
+        const markupAmount = amount - productAmount;
+        
+        // Create payment record
         const payment = new Payment({
             client: clientId,
+            order: orderId,
             product: productId,
-            totalAmount
+            productAmount,
+            markupAmount,
+            totalAmount: amount,
+            paymentMethod
         });
 
         await payment.save();
-        return response(res, 201, { message: "Payment processed successfully", payment });
+        
+        // Send notification to client
+        await Notification.create({
+            recipient: clientId,
+            relatedEntity: payment._id,
+            relatedEntityModel: "Payment",
+            ...notificationTemplates.paymentReceived(payment)
+        });
+
+        // Create escrow transaction record
+        await Transaction.create({
+            payment: payment._id,
+            type: "escrow_deposit",
+            amount,
+            status: "completed"
+        });
+
+        return response(res, 201, { 
+            message: "Payment processed and placed in escrow",
+            payment 
+        });
     } catch (error) {
-        return response(res, 500, { message: "Error processing payment", error });
+        return response(res, 500, { 
+            message: "Error processing payment", 
+            error: error.message 
+        });
     }
 };
 
@@ -49,83 +85,272 @@ exports.releaseFunds = async (req, res) => {
         const { paymentId, travelerId } = req.body;
 
         const payment = await Payment.findById(paymentId);
-        if (!payment || payment.status !== "escrow") {
-            return response(res, 400, { message: "Invalid escrow transaction" });
+        
+        // Validation checks
+        if (!payment) {
+            return response(res, 404, { message: "Payment not found" });
+        }
+        if (payment.status !== "escrow") {
+            return response(res, 400, { 
+                message: "Funds can only be released from escrow" 
+            });
+        }
+        if (new Date() < payment.escrowReleaseDate) {
+            return response(res, 400, { 
+                message: "Escrow period not yet completed" 
+            });
         }
 
-        // Calculate reward & platform fee
-        const markup = payment.totalAmount * 0.15;
-        const travelerReward = markup * 0.6; // 60%
-        const companyFee = markup * 0.4; // 40%
+        // Calculate splits
+        const travelerReward = payment.markupAmount * 0.6;
+        const companyFee = payment.markupAmount * 0.4;
 
-        // Mark payment as released
+        // Update payment status
         payment.status = "released";
         payment.traveler = travelerId;
         await payment.save();
 
-        // Log transaction
-        await Transaction.create({
-            payment: paymentId,
+        // Create transaction records
+        await Promise.all([
+            Transaction.create({
+                payment: paymentId,
+                type: "traveler_reward",
+                amount: travelerReward,
+                recipient: travelerId,
+                status: "completed"
+            }),
+            Transaction.create({
+                payment: paymentId,
+                type: "company_fee",
+                amount: companyFee,
+                status: "completed"
+            })
+        ]);
+
+        // Notify traveler
+        await Notification.create({
+            recipient: travelerId,
+            relatedEntity: payment._id,
+            relatedEntityModel: "Payment",
+            ...notificationTemplates.escrowReleased(payment, travelerReward)
+        });
+
+        return response(res, 200, { 
+            message: "Funds released successfully",
             travelerReward,
             companyFee
         });
-        return response(res, 200, { message: "Funds released to traveler", travelerReward, companyFee });
     } catch (error) {
-        return response(res, 500, { message: "Error releasing funds", error });
+        return response(res, 500, { 
+            message: "Error releasing funds", 
+            error: error.message 
+        });
     }
 };
 
 
 // raise dispute
-
 exports.raiseDispute = async (req, res) => {
     try {
-        const { paymentId, clientId, reason } = req.body;
+        const { paymentId, raisedById, reason, evidence = [] } = req.body;
 
-        const payment = await Payment.findById(paymentId);
-        if (!payment || payment.status !== "escrow") {
-            return response(res, 400, { message: "Invalid escrow transaction" }); 
+        // Validate input
+        if (!paymentId || !raisedById || !reason) {
+            return response(res, 400, { 
+                message: "Missing required fields: paymentId, raisedById, or reason" 
+            });
         }
 
-        const dispute = new Dispute({ payment: paymentId, client: clientId, reason });
+        // Check if payment exists and is in escrow
+        const payment = await Payment.findById(paymentId);
+        if (!payment) {
+            return response(res, 404, { message: "Payment not found" });
+        }
+        
+        if (payment.status !== "escrow") {
+            return response(res, 400, { 
+                message: "Disputes can only be raised against payments in escrow",
+                currentStatus: payment.status
+            }); 
+        }
+
+        // Verify the user raising the dispute is the client who made the payment
+        if (payment.client.toString() !== raisedById) {
+            return response(res, 403, { 
+                message: "Only the payment client can raise a dispute" 
+            });
+        }
+
+        // Check if dispute already exists for this payment
+        const existingDispute = await Dispute.findOne({ 
+            payment: paymentId, 
+            status: { $in: ["open", "under_review"] } 
+        });
+        
+        if (existingDispute) {
+            return response(res, 409, { 
+                message: "An active dispute already exists for this payment",
+                existingDisputeId: existingDispute._id
+            });
+        }
+
+        // Create new dispute
+        const dispute = new Dispute({ 
+            payment: paymentId,
+            raisedBy: raisedById,
+            against: payment.traveler, // The traveler is the one being disputed
+            reason,
+            evidence,
+            status: "open"
+        });
+
         await dispute.save();
 
-        // Mark payment as disputed
+        // Update payment status to disputed
         payment.status = "disputed";
         await payment.save();
-        return response(res, 201, { message: "Dispute raised successfully", dispute });
+
+        // Create a transaction log for the dispute
+        await Transaction.create({
+            payment: paymentId,
+            type: "dispute_opened",
+            amount: 0, // Or you could track dispute fees here if applicable
+            status: "completed"
+        });
+
+         // Notify admin
+        await Notification.create({
+            recipient: adminUserId, 
+            sender: raisedById,
+            relatedEntity: dispute._id,
+            relatedEntityModel: "Dispute",
+            title: "New Dispute Raised",
+            message: `A new dispute has been raised by a client: ${reason}`,
+            type: "dispute_opened",
+            metadata: { priority: "high" }
+        });
+
+        // Notify traveler if exists
+        if (payment.traveler) {
+            await Notification.create({
+                recipient: payment.traveler,
+                relatedEntity: dispute._id,
+                relatedEntityModel: "Dispute",
+                ...notificationTemplates.disputeOpened(dispute)
+            });
+        }
+
+        return response(res, 201, { 
+            message: "Dispute raised successfully", 
+            dispute,
+            actions: [
+                "Notification sent to admin",
+                "Payment frozen in escrow",
+                "Dispute case created"
+            ]
+        });
     } catch (error) {
-        return response(res, 500, { message: "Error raising dispute", error });
+        console.error(`Dispute Error - Payment: ${paymentId}`, error);
+        return response(res, 500, { 
+            message: "Error raising dispute", 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
 
 // Admin resolves dispute (refund or release funds)
 exports.resolveDispute = async (req, res) => {
     try {
-        const { disputeId, action } = req.body; // action: "refund" or "release"
-
+        const { disputeId, action, amount, notes } = req.body;
+        
         const dispute = await Dispute.findById(disputeId).populate("payment");
-        if (!dispute || dispute.status !== "open") {
-            return response(res, 400, { message: "Invalid dispute" });
+        if (!dispute) {
+            return response(res, 404, { message: "Dispute not found" });
+        }
+        if (dispute.status !== "open") {
+            return response(res, 400, { message: "Dispute already resolved" });
         }
 
         const payment = dispute.payment;
-        if (action === "refund") {
-            payment.status = "refunded";
-            dispute.status = "resolved";
-        } else if (action === "release") {
-            payment.status = "released";
-            dispute.status = "resolved";
-        } else {
-            return response(res, 400, { message: "Invalid action" });
+        let transactionType, transactionAmount;
+
+        switch(action) {
+            case "full_refund":
+                transactionType = "client_refund";
+                transactionAmount = payment.totalAmount;
+                payment.status = "refunded";
+                break;
+                
+            case "partial_refund":
+                transactionType = "client_refund";
+                transactionAmount = amount;
+                payment.status = "refunded";
+                break;
+                
+            case "release_funds":
+                // Call releaseFunds logic
+                await this.releaseFunds(
+                    { body: { paymentId: payment._id, travelerId: payment.traveler } },
+                    { json: () => {} }
+                );
+                break;
+                
+            default:
+                return response(res, 400, { message: "Invalid action" });
         }
 
-        await payment.save();
-        await dispute.save();
+        // Update dispute resolution
+        dispute.resolution = {
+            action,
+            amount: transactionAmount,
+            notes
+        };
+        dispute.status = "resolved";
+        
+        await Promise.all([
+            payment.save(),
+            dispute.save(),
+            action !== "release_funds" && Transaction.create({
+                payment: payment._id,
+                type: transactionType,
+                amount: transactionAmount,
+                recipient: payment.client,
+                status: "completed"
+            })
+        ]);
 
-        return response(res, 200, { message: `Dispute resolved: ${action}`, dispute });
+        // Notify all parties
+        const notifications = [
+            {
+                recipient: dispute.raisedBy,
+                relatedEntity: dispute._id,
+                relatedEntityModel: "Dispute",
+                ...notificationTemplates.disputeResolved(dispute, resolution.notes)
+            }
+        ];
+
+        if (dispute.against) {
+            notifications.push({
+                recipient: dispute.against,
+                relatedEntity: dispute._id,
+                relatedEntityModel: "Dispute",
+                title: "Dispute Resolved",
+                message: `The dispute against you has been resolved: ${resolution.notes}`,
+                type: "dispute_resolved"
+            });
+        }
+
+        await Notification.insertMany(notifications);
+
+        return response(res, 200, { 
+            message: `Dispute resolved with ${action}`,
+            dispute 
+        });
     } catch (error) {
-        return response(res, 500, { message: "Error resolving dispute", error });
+        return response(res, 500, { 
+            message: "Error resolving dispute", 
+            error: error.message 
+        });
     }
 };
 

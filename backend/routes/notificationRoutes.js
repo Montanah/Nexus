@@ -1,25 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const Notification = require("../models/Notification");
+const { authenticateClient } = require("../middlewares/authMiddleware");
+const notificationController = require("../controllers/notificationController");
 
-// Get all notifications for a user
-router.get("/:userId", async (req, res) => {
-    try {
-        const notifications = await Notification.find({ recipient: req.params.userId }).sort({ createdAt: -1 });
-        res.status(200).json(notifications);
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching notifications", error });
-    }
-});
+// Get user notifications
+router.get("/:userId", authenticateClient, notificationController.getUserNotifications);
 
-// Mark a notification as read
-router.put("/:id/read", async (req, res) => {
-    try {
-        await Notification.findByIdAndUpdate(req.params.id, { isRead: true });
-        res.status(200).json({ message: "Notification marked as read" });
-    } catch (error) {
-        res.status(500).json({ message: "Error updating notification", error });
-    }
-});
+// Mark notifications as read
+router.patch("/:userId/mark-read", authenticateClient, notificationController.markAsRead);
 
+// Get notification counts
+router.get("/:userId/count", authenticateClient, notificationController.getNotificationCount);
 module.exports = router;

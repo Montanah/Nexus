@@ -209,9 +209,10 @@ export const updateProduct = async (userId, productId, formData) => {
 };
 
 // Fetch cart items for a user (Protected)
-export const fetchCart = async (userId) => {
-  const response = await api.get(`/api/cart/${userId}`);
-  return response.data.items || [];
+export const fetchCart = async () => {
+  const response = await api.get(`/api/cart/`);
+  console.log('fetchCart response:', response.data);
+  return response.data.data.cart || [];
 };
 
 // Delete cart item (Protected)
@@ -224,6 +225,13 @@ export const deleteCartItem = async (userId, productId) => {
 export const fetchOrders = async () => {
   const response = await api.get(`/api/orders/`);
   return response.data; // e.g., [{ id, itemName, photo, quantity, unitPrice, totalPrice, details, ... }]
+};
+
+export const fetchOneOrder = async (orderNumber) => {
+  console.log('fetchOneOrder called with orderNumber:', orderNumber);
+  const response = await api.get(`/api/orders/${orderNumber}`);
+  console.log('fetchOneOrder response:', response.data);
+  return response.data.data.order; // e.g., [{ id, itemName, photo, quantity, unitPrice, totalPrice, details, ... }]
 };
 
 // PRODUCT ENDPOINTS FOR TRAVELERS
@@ -301,42 +309,69 @@ export const deleteProduct = async (productId) => {
 // Checkout (Protected)
 export const checkout = async () => {
   const response = await api.post('/api/cart/checkout');
-  return response.data;
+  return response.data.data.order;
 };
 
 // PAYMENT ENDPOINTS
 //One Function to handle all payments
-export const createCheckoutSessionCombined = async ({ 
-    userId, 
-    orderNumber, 
-    paymentMethod, 
-    phoneNumber, 
-    amount, 
-    paymentMethodId, // for Stripe only
+export const createCheckoutSessionCombined = async ({
+    userId,
+    paymentMethod,
+    phoneNumber,
+    amount,
+    paymentMethodId,
+    email,
+    cartItems,
+    voucherCode,
   }) => {
-    let endpoint = '';
-    let payload = { userId, orderNumber, amount };
+    try {
+      console.log('createCheckoutSessionCombined called with:', {
+        userId,
+        paymentMethod,
+        phoneNumber,
+        amount,
+        paymentMethodId,
+        email,
+        cartItems,
+        voucherCode,
+      })
+      if (!userId || !paymentMethod || !amount || !cartItems || !Array.isArray(cartItems)) {
+        throw new Error('Missing or invalid required parameters');
+      }
 
-    switch (paymentMethod) {
-      case 'Mpesa':
-        endpoint = '/api/payments/mpesa';
-        payload.phoneNumber = phoneNumber;
-        break;
-      case 'Airtel':
-        endpoint = '/api/payments/airtel';
-        payload.phoneNumber = phoneNumber;
-        break;
-      case 'Stripe':
-        endpoint = '/api/payments/stripe';
-        payload.paymentMethodId = paymentMethodId;
-        break;
-      default:
-        throw new Error('Unsupported payment method');
-  }
+      if (typeof amount !== 'number' || amount <= 0) {
+        throw new Error('Amount must be a number and greater than 0');
+      }
 
-  const response = await api.post(endpoint, payload);
-  return response.data;
-};
+      const payload = {
+        userId,
+        paymentMethod,
+        amount,
+        cartItems,
+        voucherCode,
+        phoneNumber: paymentMethod === 'Mpesa' || paymentMethod === 'Airtel' ? phoneNumber : undefined,
+        paymentMethodId: paymentMethod === 'Stripe' ? paymentMethodId : undefined,
+        email: paymentMethod === 'Paystack' ? email : undefined,
+      };
+
+      const response = await api.post('/api/payments/combined', payload);
+      return response.data;
+    } catch (error) {
+      console.error('Payment Initiation Error:', {
+        userId,
+        paymentMethod,
+        error: error.response?.data || error.message,
+      });
+
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to initiate payment';
+
+      throw new Error(errorMessage);
+    }
+  };
 
 // Initiate M-Pesa payment (Protected)
 export const initiateMpesaMobilePayment = async (userId, orderNumber, phoneNumber, amount) => {
@@ -401,6 +436,44 @@ export const initiateAirtelMobilePayment = async (userId, orderNumber, phoneNumb
   }
 };
 
+// initiate paystack Payment
+export const initiatePaystackPayment = async (userId, orderNumber, email, amount) => {
+   try {
+    if (!userId || !orderNumber || !email || !amount) {
+      throw new Error('Missing required parameters');
+    }
+
+    if (typeof amount !== 'number' || amount <= 0) {
+      throw new Error('Amount must be a number and greater than 0');
+    }
+  
+    const response = await api.post('/api/payments/paystack/initialize', { userId, orderNumber, email, amount });
+    return response.data;
+  } catch (error) {
+    console.error('Payment Initiation Error:', {
+      userId,
+      orderNumber,
+      error: error.response?.data || error.message
+    });
+  
+    const errorMessage = error.response?.data?.error 
+      || error.response?.data?.message
+      || error.message
+      || 'Failed to initiate payment';
+  
+    throw new Error(errorMessage);
+  }
+}
+
+// Verify Paystack Payment
+export const verifyPaystackPayment = async (reference) => {
+  try {
+    const response = await api.get(`/api/payments/paystackverify/${reference}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.error || error.message || 'Failed to verify payment');
+  }
+};
 // Fetch payment details (Protected)
 export const fetchPaymentDetails = async (sessionId) => {
   const response = await api.get(`/payment-details/${sessionId}`);

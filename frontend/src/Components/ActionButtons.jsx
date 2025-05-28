@@ -1,9 +1,21 @@
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
+
 const ActionButtons = ({ onCheckout, onSave }) => {
   const navigate = useNavigate();
 
+  // const handleCheckout = async () => {
+  //   //  const orderNumber = await onCheckout();
+  //   //  console.log('Order number:', orderNumber);
+  //   // if (orderNumber) {
+  //     // navigate('/checkout', { state: { orderNumber } });
+  //   // } else {
+  //     // Handle case where order number wasn't returned
+  //     // console.error('Failed to get order number');
+  //   // }
+  // };
+  
   const handleCheckout = async () => {
     await onCheckout();
     navigate('/checkout');

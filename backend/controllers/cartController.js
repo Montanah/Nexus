@@ -53,45 +53,30 @@ exports.getCart = async (req, res) => {
     try {
         const userID = req.user.id;
         
-        // const cart = await Cart.findOne({ user: userID }).populate("items.product");
-        const cart = await Cart.findOne({ user: userID })
-        .populate({
-            path: 'items.product',
-            select: 'productName productFee productPhotos',
-        });
-       console.log(cart);
-        // Sanitization helper
-        const sanitizeCart = (cart) => ({
-            _id: cart._id,
-            items: cart.items
-            .map(item => ({
-                product: {
-                 _id: item.product?.product,
-                        name: item.product?.productName || 'Deleted Product',
-                        price: item.product?.productFee || 0,
-                        imageUrl: item.product?.productPhotos?.[0]?.url || null
-                },
-                quantity: item.quantity
-            })),
-            createdAt: cart.createdAt
-        });
-
+        const cart = await Cart.findOne({ user: userID }).populate("items.product");
+        
         if (!cart) {
             return response(res, 200, {
-                "message": "Cart is empty", 
+                message: "Cart is empty", 
                 items: [],
                 totalItems: 0
-             });
-        }
-
-        const sanitizedCart = sanitizeCart(cart);
-        console.log("sanitize cart",sanitizedCart);
-        console.log("items", sanitizedCart.items[0]?.product);
+            });
+            }
+        const items = cart.items.map(item => ({
+            productId: item.product?._id || null,
+            productName: item.product?.productName || 'Deleted Product',
+            quantity: item.quantity,
+            productFee: item.product?.productFee || 0,
+            finalCharge: (item.product?.productFee || 0) * item.quantity * 1.15, // Add 15% markup
+            category: item.product?.categoryName || 'N/A',
+            productPhotos: item.product?.productPhotos || [],ch
+        }));
 
         return response(res, 200, 
             {"message": "Cart retrieved successfully", 
-                cart: sanitizedCart,
-            totalItems: sanitizedCart.items.length });
+                cart: items,
+                totalItems: items.length 
+            });
     } catch (error) {
         console.error("Error fetching cart:", error.message);
         return response(res, 500, { "message":"Error fetching cart", error });

@@ -6,23 +6,24 @@ const TransactionSchema = new mongoose.Schema({
         ref: "Payment", 
         required: true 
     },
-    travelerReward: { 
+    type: {
+        type: String,
+        enum: ["escrow_deposit", "traveler_reward", "company_fee", "client_refund"],
+        required: true
+    },
+    amount: { 
         type: Number, 
         required: true 
-    }, // 60% of 15% markup
-    companyFee: { 
-        type: Number, 
-        required: true 
-    }, // 40% of 15% markup
+    },
+    recipient: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    },
     status: { 
         type: String, 
-        enum: ["completed"], 
-        default: "completed" 
-    },
-    createdAt: { 
-        type: Date, 
-        default: Date.now 
+        enum: ["pending", "completed", "failed"], 
+        default: "pending" 
     }
-});
+}, { timestamps: true });
 
-module.exports = mongoose.model("Transaction", TransactionSchema);
+module.exports = mongoose.model("Transaction", TransactionSchema)

@@ -12,7 +12,7 @@ const paymentLogSchema = new mongoose.Schema({
  },
   paymentMethod: {
     type: String,
-    enum: ["Mpesa", "Airtel", "Stripe"],
+    enum: ["Mpesa", "Airtel", "Stripe", "Paystack"],
     required: true,
   },
   amount: { type: Number, required: true },

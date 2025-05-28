@@ -8,7 +8,7 @@ import InputField from '../Components/DashboardInputField';
 import PhotoUpload from '../Components/PhotoUpload';
 import PriceBreakdown from '../Components/PriceBreakdown';
 import ActionButtons from '../Components/ActionButtons';
-import { checkout, createCategory, getCategories, createProduct } from '../Services/api';
+import { checkout, createCategory, getCategories, createProduct, fetchCart } from '../Services/api';
 import CountryStateCityComponent from '../Components/State';
 
 const NewOrder = () => {
@@ -54,9 +54,9 @@ const NewOrder = () => {
       try {
         setLoading(true);
         const response = await getCategories();
-        console.log('Raw response:', response);
+        
         const categories = Array.isArray(response) ? response : [];
-        console.log('Processed categories:', categories);
+        
         setCategoryOptions(categories);
       } catch (err) {
         console.error('Fetch categories error:', err.response || err);
@@ -237,13 +237,20 @@ const NewOrder = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await checkout({ userId, cart });
+      const data = await fetchCart();
+      // const data = await checkout({ userId, cart });
+      console.log('Checkout response:', data);
+
+      // const orderNumber = data?.orderNumber; 
       setSuccess('Checkout successful');
       setCart([]);
       navigate('/payment-success', { state: { cart, total, paymentMethod: 'Pending', orderNumber: data.orderNumber } });
+      // console.log('Order number:', orderNumber);
+      // return orderNumber;
     } catch (err) {
       console.error('Error during checkout:', err.response || err);
       setError('Checkout failed: ' + (err.response?.data?.message || err.message));
+      return null;
     } finally {
       setLoading(false);
     }

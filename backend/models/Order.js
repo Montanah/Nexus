@@ -33,7 +33,7 @@ const orderSchema = new mongoose.Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ["Mpesa", "Airtel", "Stripe"],
+        enum: ["Mpesa", "Airtel", "Stripe", "Paystack"],
     },
     deliveryStatus: {
         type: String,
