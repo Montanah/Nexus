@@ -3,3 +3,8 @@ backend/node_modules
 backend/mailer
 node_modules
 .env
+backend/controllers/passportold.js
+frontend/src/Pages/clientDashboardo.jsx
+frontend/src/Pages/loginold.jsx
+frontend/src/Services/api old.js
+frontend/src/Context/AuthContextb.jsx
