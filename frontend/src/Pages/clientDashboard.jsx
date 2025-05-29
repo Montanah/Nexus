@@ -4,7 +4,7 @@ import Sidebar from '../Components/SideBar';
 import UserProfile from '../Components/UserProfile';
 import { FaSearch, FaPlus, FaBox } from 'react-icons/fa';
 import { useAuth } from '../Context/AuthContext';
-import { fetchOrders, updateDeliveryStatus } from '../Services/api';
+import { fetchOrders, updateDeliveryStatus, updateProductDeliveryStatus } from '../Services/api';
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
@@ -78,6 +78,65 @@ const ClientDashboard = () => {
       setSelectedOrder(prev => (prev?.id === orderId ? { ...prev, deliveryStatus: updatedOrder.deliveryStatus, delivered: newStatus === 'delivered' } : prev));
     } catch (err) {
       setError('Failed to confirm delivery: ' + err.message);
+    }
+  };
+
+  const handleProductDelivery = async (productId) => {
+    try {
+      if (!productId) {
+        throw new Error('Invalid product ID');
+      }
+
+      console.log('Confirming delivery for product ID:', productId);
+
+      // Find the order that includes this product
+      const order = orders.find(o =>
+        o.items.some(i => i.product._id === productId)
+      );
+
+      if (!order) {
+        throw new Error('Order not found for this product');
+      }
+
+      // Find the product item
+      const item = order.items.find(i => i.product._id === productId);
+      if (!item) {
+        throw new Error('Product item not found in order');
+      }
+
+      const currentStatus = item.deliveryStatus;
+      let newStatus = 'client_confirmed';
+
+      if (currentStatus === 'traveler_confirmed') {
+        newStatus = 'delivered';
+      }
+
+      // Call backend
+      await updateProductDeliveryStatus(productId, newStatus);
+
+      // Update local state
+      setOrders(prev =>
+        prev.map(o => ({
+          ...o,
+          items: o.items.map(i =>
+            i.product._id === productId
+              ? { ...i, deliveryStatus: newStatus }
+              : i
+          ),
+        }))
+      );
+
+      setSelectedOrder(prev => ({
+        ...prev,
+        items: prev.items.map(i =>
+          i.product._id === productId
+            ? { ...i, deliveryStatus: newStatus }
+            : i
+        ),
+      }));
+    } catch (err) {
+      console.error(err);
+      setError('Failed to update delivery status: ' + err.message);
     }
   };
 
@@ -240,13 +299,58 @@ const ClientDashboard = () => {
                   </button>
                 )}
               </div>
-              <div className="bg-white rounded-xl shadow-md p-6 w-1/2">
+              <div className="bg-white rounded-xl shadow-md p-6 w-full md:w-3/4 lg:w-1/2">
                 <h3 className="text-lg font-semibold text-indigo-900 mb-4">Traveler Information</h3>
-                <p className="text-gray-900 font-medium">Traveler Name</p>
-                <p className="text-gray-600 mb-2">{selectedOrder.travelerName || 'Not assigned'}</p>
-                <p className="text-gray-900 font-medium">Estimated Delivery Date</p>
-                <p className="text-gray-600">{selectedOrder.estimatedDeliveryDate || 'TBD'}</p>
+
+                {selectedOrder.items.length > 0 ? (
+                  selectedOrder.items.map((item, index) => (
+                    <div key={index} className="border-b border-gray-200 pb-4 mb-4">
+                      <p className="text-gray-900 font-medium">Product Name</p>
+                      <p className="text-gray-600 mb-2">
+                        {item.product?.productName || 'Not assigned'}
+                      </p>
+
+                      <p className="text-gray-900 font-medium">Traveler Name</p>
+                      <p className="text-gray-600 mb-2">
+                        {item.claimedBy?.userId?.name || 'Not assigned'}
+                      </p>
+
+                      <p className="text-gray-900 font-medium">Estimated Delivery Date</p>
+                      <p className="text-gray-600 mb-2">
+                        {item.product?.deliverydate
+                          ? new Date(item.product.deliverydate).toLocaleDateString()
+                          : 'TBD'}
+                      </p>
+
+                      {/* Conditionally render buttons for each product */}
+                      {item.product?.deliveryStatus !== 'delivered' && (
+                        <button
+                          onClick={() => handleProductDelivery(item.product._id)}
+                          className="mt-2 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                          disabled={item.product?.deliveryStatus === 'client_confirmed'}
+                        >
+                          {item.product?.deliveryStatus === 'client_confirmed'
+                            ? 'Awaiting Traveler'
+                            : 'Confirm Delivery'}
+                        </button>
+                      )}
+
+                      {item.product?.deliveryStatus === 'delivered' && (
+                        <button
+                          onClick={() => handleRateTraveler(item.product._id)}
+                          className="mt-2 w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                        >
+                          Rate Traveler
+                        </button>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-600">No products in this order.</p>
+                )}
               </div>
+
+
             </div>
           )}
         </div>

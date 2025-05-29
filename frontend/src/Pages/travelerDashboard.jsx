@@ -45,24 +45,21 @@ const TravelerDashboard = () => {
         console.log('Categories data:', categoriesData);
         console.log('Earnings data:', earningsData);
 
-       const mappedProducts = productsData.flatMap(order => {
-          if (!order.items || !Array.isArray(order.items)) return [];
-          return order.items.map(item => ({
-            productId: item.product?._id || `PRODUCT_${order.orderNumber}`,
-            productName: item.product?.productName || 'Unnamed Product',
-            destination: {
-              country: item.product?.destination?.country || '',
-              city: item.product?.destination?.city || '',
-              state: item.product?.destination?.state || ''
-            },
-            deliveryDate: item.product?.deliverydate || '',
-            productPrice: parseFloat(item.product?.totalPrice) || 0,
-            rewardAmount: parseFloat(item.product?.productMarkup) || 0,
-            urgencyLevel: item.product?.urgencyLevel || 'low',
-            productPhotos: item.product?.productPhotos || [],
-            categoryName: item.product?.categoryName || 'Uncategorized'
-          }));
-        });
+       const mappedProducts = productsData.map(product => ({
+        productId: product?._id || '',
+        productName: product?.productName || 'Unnamed Product',
+        destination: {
+          country: product?.destination?.country || '',
+          city: product?.destination?.city || '',
+          state: product?.destination?.state || ''
+        },
+        deliveryDate: product?.deliverydate || '',
+        productPrice: parseFloat(product?.totalPrice) || 0,
+        rewardAmount: parseFloat(product?.productMarkup) || 0,
+        urgencyLevel: product?.urgencyLevel || 'low',
+        productPhotos: product?.productPhotos || [],
+        categoryName: product?.categoryName || 'Uncategorized'
+      }));
 
       console.log('Mapped products:', mappedProducts);
       setProducts(mappedProducts);
@@ -80,7 +77,7 @@ const TravelerDashboard = () => {
         console.log('Unauthorized, navigating to login');
         navigate('/login');
       } else if (err.response?.status === 404) {
-        setError('Product service unavailable. Please try again later.');
+        setError('No Products available now. Please check again later.');
       } else {
         setError(err.response?.data?.message || 'Failed to load data. Please try again.');
       }

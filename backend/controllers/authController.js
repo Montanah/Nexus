@@ -41,23 +41,23 @@ exports.createUser = async (req, res) => {
         //     to: phone_number,
         //   });
 
-        // Send welcome email with verification
-        const emailResult = await sendTemplatedEmail(
-            email,
-            "welcomeUser",
-            { userName: name, verificationCode }
-        );
+        // // Send welcome email with verification
+        // const emailResult = await sendTemplatedEmail(
+        //     email,
+        //     "welcomeUser",
+        //     { userName: name, verificationCode }
+        // );
 
-        // Create welcome notification
-        await Notification.create({
-            recipient: user._id,
-            type: "welcome",
-            title: "Welcome to NEXUS!",
-            message: "Thank you for joining. Verify your email to get started.",
-            metadata: {
-                verificationRequired: true
-            }
-        });
+        // // Create welcome notification
+        // await Notification.create({
+        //     recipient: user._id,
+        //     type: "welcome",
+        //     title: "Welcome to NEXUS!",
+        //     message: "Thank you for joining. Verify your email to get started.",
+        //     metadata: {
+        //         verificationRequired: true
+        //     }
+        // });
 
         return response(res, 201, {
             message: "User registered successfully", "user": {

@@ -84,6 +84,8 @@ export const AuthProvider = ({ children }) => {
         setError('Login service unavailable. Please try again later.');
       } else if (error.response?.status === 401) {
         setError('Invalid email, password, or OTP. Please try again.');
+      } else if (error.response?.status === 400) {
+        setError('Not registered. Please sign up.');
       } else {
         setError(error.response?.data?.message || 'Login failed. Please try again.');
       }

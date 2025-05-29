@@ -98,7 +98,12 @@ const productSchema = new mongoose.Schema({
     isDelivered: {
         type: Boolean,
         default: false
-    }
+    },
+    deliveryStatus: {
+        type: String,
+        enum: ["Pending", "Assigned", "Shipped", "Delivered", "Cancelled", "client_confirmed", "traveler_confirmed"],
+        default: "Pending"
+    },
 }, { timestamps: true });
 
 productSchema.plugin(mongoosePaginate);

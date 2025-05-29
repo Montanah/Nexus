@@ -70,6 +70,11 @@ async function sendTemplatedEmail(email, templateName, templateData) {
       text: `Hello,\n\nA dispute has been opened regarding your transaction.\n\nReason: ${templateData.reason}\n\nPlease log in to respond.`,
       html: `<p>Hello,</p><p>A dispute has been opened regarding your transaction.</p><p><strong>Reason:</strong> ${templateData.reason}</p><p>Please log in to respond.</p>`
     },
+   Welcome_user: {
+      subject: "Nexus Verification Code",
+      text: `Hello,\n\nWelcome to Nexus!\n\nYour Verification Code: ${templateData.verificationCode}\n\nReason: ${templateData.reason}\n\nPlease activate your account by logging in.`,
+      html: `<p>Hello,</p><p>A dispute has been opened regarding your transaction.</p><p><strong>Reason:</strong> ${templateData.reason}</p><p>Please log in to respond.</p>`
+    },
     // Add more templates as needed
   };
 

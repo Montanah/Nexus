@@ -249,8 +249,8 @@ export const fetchOneOrder = async (orderNumber) => {
 
 export const getAvailableProducts = async (filters = {}) => {
   try {
-    const response = await api.get('/api/travelers/orders', { params: filters });
-    return response.data.data.orders;
+    const response = await api.get('/api/products/orders', { params: filters });
+    return response.data.data.products;
   } catch (error) {
     console.error('getAvailableProducts error:', {
       status: error.response?.status,
@@ -514,6 +514,7 @@ export const getTravelerOrders = async (filters) => {
 export const getTravelerEarnings = async () => {
   try {
     const response = await api.get(`/api/travelers/earnings`);
+    console.l
     return response.data;
   } catch (error) {
     console.error('getTravelerEarnings error:', error.response?.data || error.message);
@@ -524,7 +525,7 @@ export const getTravelerEarnings = async () => {
 // Get traveler history (Protected)
 export const getTravelerHistory = async (userId) => {
   try {
-    const response = await api.get(`/travelers/${userId}/history`);
+    const response = await api.get(`/api/travelers/${userId}/history`);
     return {
       success: true,
       data: response.data,
@@ -543,10 +544,28 @@ export const assignFulfillment = async (productId) => {
 };
 
 // Update delivery status (protected)
-export const updateDeliveryStatus = async (orderId, status) => {
+export const updateDeliveryStatus = async (productId, deliveryStatus) => {
   try {
-    const response = await api.put(`/orders/${orderId}/delivery`, { deliveryStatus: status });
-    return response.data.order; 
+    console.log('updateDeliveryStatus called with productId:', productId, 'and status:', status);
+    const response = await api.put(`/api/orders/deliveryStatus`, {
+      productId,
+      deliveryStatus,
+    });
+    return response.data;
+  } catch (err) {
+    console.error('Update delivery status error:', err);
+    throw new Error(err.response?.data?.message || 'Failed to update delivery status');
+  }
+};
+
+export const updateProductDeliveryStatus = async (productId, deliveryStatus) => {
+  try {
+    console.log('updateDeliveryStatus called with productId:', productId, 'and status:', status);
+    const response = await api.put(`/api/orders/clientDeliveryStatus`, {
+      productId,
+      deliveryStatus,
+    });
+    return response.data;
   } catch (err) {
     console.error('Update delivery status error:', err);
     throw new Error(err.response?.data?.message || 'Failed to update delivery status');

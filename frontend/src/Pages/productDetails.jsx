@@ -51,7 +51,7 @@ const ProductDetails = ({ productId, onClose }) => {
       setIsAccepted(true);
       setProduct(updatedProduct);
       setIsAccepted(true);
-      console.log(`Traveler ${userId} accepted fulfillment for ${productId}`, response);
+      console.log(`Traveler ${userId} accepted fulfillment for ${productId}`, updatedProduct);
     } catch (err) {
       setError(`Failed to accept fulfillment: ${err.message}`);
       console.error('Acceptance error:', err);
@@ -69,7 +69,7 @@ const ProductDetails = ({ productId, onClose }) => {
       if (currentStatus === 'client_confirmed') {
         newStatus = 'delivered';
       }
-      const response = await updateDeliveryStatus(productId, userId, newStatus);
+      const response = await updateDeliveryStatus(productId, newStatus);
       const updatedProduct = { ...product, deliveryStatus: newStatus, isDelivered: newStatus === 'delivered' };
       setProduct(updatedProduct);
       console.log(`Traveler ${userId} confirmed delivery for ${productId}`, response);
@@ -167,6 +167,29 @@ const ProductDetails = ({ productId, onClose }) => {
           >
             Deliver Product
           </button>
+        )}
+        {["Assigned", "Shipped"].includes(product.deliveryStatus) && (
+          <button
+            onClick={handleConfirmDelivery}
+            className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            disabled={confirming}
+          >
+            {confirming ? "Confirming..." : "Mark as Delivered"}
+          </button>
+        )}
+        {product.deliveryStatus === "traveler_confirmed" && (
+          <button
+            disabled
+            className="mt-4 w-full bg-gray-400 text-white px-4 py-2 rounded cursor-not-allowed"
+          >
+            Awaiting Client Confirmation
+          </button>
+        )}
+
+        {product.deliveryStatus === "client_confirmed" && (
+          <p className="mt-4 text-green-600 font-medium text-center">
+            🎉 Delivery Fully Confirmed
+          </p>
         )}
 
       {isAccepted && memoizedProduct.deliveryStatus !== 'delivered' && (

@@ -495,4 +495,6 @@ router.delete("/category/:id", authenticateClient, productController.deleteCateg
  
 router.get("/category/", productController.getCategories);
 
+router.get("/orders", productController.avaiableProducts)
+
 module.exports = router;

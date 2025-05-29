@@ -1,4 +1,5 @@
 const Order = require('../models/Order');
+const Traveler = require('../models/Traveler');
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 const { v4: uuidv4 } = require('uuid');
@@ -75,9 +76,18 @@ exports.getUserOrders = async (req, res) => {
         const userId = req.user.id;
 
         const orders = await Order.find({ userId })
-            .populate('items.product', 'productName productDescription totalPrice productPhotos deliverydate')
-            .populate('travelerId', 'name email')
-            .sort({ createdAt: -1 }); 
+            .populate({
+                path: 'items.product',
+                select: 'productName productDescription totalPrice productPhotos deliverydate'
+            })
+            .populate({
+                path: 'items.claimedBy',
+                populate: {
+                    path: 'userId', 
+                    select: 'name email'
+                }
+            })
+            .sort({ createdAt: -1 });
 
         if (!orders || orders.length === 0) {
             return response(res, 404, 'No orders found for this user');
@@ -148,35 +158,139 @@ exports.updatePaymentStatus = async (req, res) => {
 
 exports.updateDeliveryStatus = async (req, res) => {
     try {
-      const { orderId } = req.params;
-      const { deliveryStatus } = req.body;
-  
-      if (!['assigned', 'shipped', 'client_confirmed', 'traveler_confirmed', 'delivered'].includes(deliveryStatus)) {
-        return response(res, 400, { message: 'Invalid delivery status' });
+      const userId = req.user.id;
+      const { productId, deliveryStatus } = req.body;
+
+      if (!productId || !deliveryStatus) {
+        return response(res, 400, { message: 'Missing productId or deliveryStatus' });
+      }
+
+      const product = await Product.findById(productId);
+      if (!product) {
+        return response(res, 404, { message: 'Product not found' });
+      }
+
+      const traveler = await Traveler.findOne({ userId });
+      if (!traveler) {
+        return response(res, 404, { message: 'Traveler not found' });
       }
   
-      const order = await Order.findById(orderId);
-      if (!order) {
-        return response(res, 404, { message: 'Order not found' });
+      if (product.claimedBy?.toString() !== traveler._id.toString()) {
+        return response(res, 403, { message: 'You are not assigned to this product' });
       }
-  
-      if (req.user.id !== order.userId.toString()) {
-        return response(res, 403, { message: 'Unauthorized' });
-      }
-  
-      order.deliveryStatus = deliveryStatus;
-      const updatedOrder = await order.save();
-  
-      return response(res, 200, { 
-        message: 'Delivery status updated', 
-        order: updatedOrder,
-        deliveryStatus: updatedOrder.deliveryStatus
+
+       // Update product delivery status
+      product.deliveryStatus = deliveryStatus;
+      await product.save();
+
+      console.log(`Traveler ${userId} confirmed delivery for ${productId}`);
+
+   
+      // Find the matching order and item
+      const order = await Order.findOne({
+        'items.product': productId,
+        'items.claimedBy': traveler._id,
       });
+
+      if (!order) {
+        return response(res, 404, { message: 'Order not found for this product and traveler' });
+      }
+
+      const item = order.items.find(
+        i => i.product.toString() === productId && i.claimedBy?.toString() === traveler._id.toString()
+      );
+
+      if (item) {
+        item.deliveryStatus = deliveryStatus;
+      }
+
+      await order.save();
+
+      // Optional: update traveler history
+      const historyEntry = traveler.history.find(
+        h => h.orderId.toString() === order._id.toString()
+      );
+
+      if (historyEntry) {
+        if (deliveryStatus === 'traveler_confirmed') {
+          historyEntry.status = 'Awaiting Client Confirmation';
+        } else if (deliveryStatus === 'client_confirmed') {
+          historyEntry.status = 'Completed';
+        }
+      }
+
+      await traveler.save();
+
+      return response(res, 200, {
+        message: 'Delivery status updated successfully',
+        productId,
+        orderId: order._id,
+        deliveryStatus,
+      });
+
+
     } catch (error) {
       console.error('Error updating delivery status:', error);
       return response(res, 500, { message: 'Error updating delivery status', error: error.message });
     }
   };
+
+exports.updateProductDeliveryStatus = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { productId, deliveryStatus } = req.body;
+
+    if (!productId || !deliveryStatus) {
+      return response(res, 400, { message: 'Missing productId or deliveryStatus' });
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return response(res, 404, { message: 'Product not found' });
+    }
+
+    if (product.client?.toString() !== userId.toString()) {
+      return response(res, 403, { message: 'You did not order this product' });
+    }
+
+      // Update product delivery status
+    product.deliveryStatus = deliveryStatus;
+    await product.save();
+
+      
+    // Find the matching order and item
+    const order = await Order.findOne({
+      'items.product': productId,
+      'userId': userId,
+    });
+
+    if (!order) {
+      return response(res, 404, { message: 'Order not found for this product and client' });
+    }
+
+    const item = order.items.find(i => i.product.toString() === productId);
+    let traveler;
+
+    if (item) {
+      item.deliveryStatus = deliveryStatus;
+
+    }
+
+    await order.save();
+
+    return response(res, 200, {
+      message: 'Delivery status updated successfully',
+      productId,
+      orderId: order._id,
+      deliveryStatus,
+    });
+
+
+  } catch (error) {
+    console.error('Error updating delivery status:', error);
+    return response(res, 500, { message: 'Error updating delivery status', error: error.message });
+  }
+};
 
   exports.cancelOrder = async (req, res) => {
     try {

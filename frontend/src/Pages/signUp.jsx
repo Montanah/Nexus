@@ -154,7 +154,7 @@ const SignUp = () => {
     } catch (error) {
       console.error('Signup error:', error);
       setError(
-        error.response?.data?.message ||
+        error.response?.data ||
         'Something went wrong. Please try again.'
       );
     } finally {

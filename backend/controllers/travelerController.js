@@ -23,7 +23,9 @@ exports.getClaimedProducts = async (req, res) => {
 exports.getTravelerEarnings = async (req, res) => {
   try {
     const userId = req.user.id;
+    
     let traveler = await Traveler.findOne({ userId });
+    
     if (!traveler) {
       // return res.status(404).json({ message: 'Traveler not found' });
       traveler = await Traveler.create({
@@ -128,19 +130,19 @@ exports.getUnassignedOrders = async (req, res) => {
     const { category, destination, priceMin, priceMax, urgency } = req.query;
     const query = { travelerId: null }; // Only unassigned orders
 
-    if (category) query['items.product.categoryName'] = category;
+    if (category) query['product.categoryName'] = category;
     if (destination) {
       const [country, city] = destination.split(',');
-      query['items.product.destination.country'] = country;
-      if (city) query['items.product.destination.city'] = city;
+      query['product.destination.country'] = country;
+      if (city) query['product.destination.city'] = city;
     }
-    if (priceMin) query['items.product.totalPrice'] = { ...query['items.product.totalPrice'], $gte: Number(priceMin) };
-    if (priceMax) query['items.product.totalPrice'] = { ...query['items.product.totalPrice'], $lte: Number(priceMax) };
-    if (urgency) query['items.product.urgencyLevel'] = urgency;
+    if (priceMin) query['product.totalPrice'] = { ...query['product.totalPrice'], $gte: Number(priceMin) };
+    if (priceMax) query['product.totalPrice'] = { ...query['product.totalPrice'], $lte: Number(priceMax) };
+    if (urgency) query['product.urgencyLevel'] = urgency;
 
     const orders = await Order.find(query)
-      .populate('items.product', 'productName productDescription totalPrice productPhotos destination deliverydate urgencyLevel rewardAmount productMarkup categoryName')
-      .populate('travelerId', 'name email')
+      .populate('product', 'productName productDescription totalPrice productPhotos destination deliverydate urgencyLevel rewardAmount productMarkup categoryName')
+      .populate('claimedBy', 'name email')
       .sort({ createdAt: -1 });
 
     if (!orders || orders.length === 0) {
@@ -175,26 +177,30 @@ exports.assignFulfilment = async (req, res) => {
     }
 
     const traveler = await Traveler.findOne({ userId: userId });;
-    console.log(traveler);
-
+    
     if (!traveler) {
       return response(res, 404, { message: 'Traveler not found' });
     }
 
     const order = await Order.findOne({
       'items.product': productId,
-      travelerId: null
+      'items.claimedBy': null, 
     });
+
     if (!order) {
       return response(res, 404, { message: 'No unassigned order for this product ' });
     }
 
     //Assign product and order
     product.claimedBy = traveler._id;
-    order.travelerId = traveler._id;
-    order.deliveryStatus = 'Assigned';
-
+    product.deliveryStatus = 'Assigned';
     await product.save();
+
+    const item = order.items.find(i => i.product.toString() === productId && !i.claimedBy);
+    if (item) {
+      item.claimedBy = traveler._id;
+      item.deliveryStatus = 'Assigned';
+    }
     await order.save();
 
     //Add to traveler history
@@ -209,7 +215,7 @@ exports.assignFulfilment = async (req, res) => {
     return response(res, 200, {
       message: 'Order assigned successfully',
       product: productId,
-      order: order._id,
+      travelerId: traveler._id,
     });
   } catch (err) {
     console.error('Assign fulfilment error:', err);

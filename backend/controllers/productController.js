@@ -372,3 +372,13 @@ exports.deleteCategory = async (req, res) => {
     }
 }
 
+
+exports.avaiableProducts = async (req, res) => {
+    try {
+        const products = await Product.find({ isDelivered: false });
+        return response(res, 200, { message: "Products fetched successfully", products });
+    } catch (error) {
+        console.error("Error", error);
+        response(res, 500, { message: "Error fetching products", error: error.message });
+        }
+}

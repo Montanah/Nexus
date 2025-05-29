@@ -23,8 +23,18 @@ const orderSchema = new mongoose.Schema({
                 type: Number,
                 required: true
             },
-        },
-    ],
+            claimedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Traveler",
+                default: null
+            },
+            deliveryStatus: {
+                type: String,
+                enum: ["Pending", "Assigned", "Shipped", "Delivered", "Cancelled", "client_confirmed", "traveler_confirmed"],
+                default: "Pending"
+            }
+        }
+    ],    
     totalAmount: { type: Number, required: true },
     paymentStatus: {
         type: String,
@@ -39,10 +49,6 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ["Pending", "Assigned", "Shipped", "Delivered", "Cancelled", "client_confirmed", "traveler_confirmed"],
         default: "Pending"
-    },
-    travelerId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Traveler",
     },
     urgencyLevel: {
         type: String,

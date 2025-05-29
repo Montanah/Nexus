@@ -19,7 +19,7 @@ const travelerSchema = new mongoose.Schema({
         rewardAmount: { type: Number },
         status: {
             type: String,
-            enum: ["Completed", "Pending"],  
+            enum: ["Shipped", "Delivered", "Cancelled", "client_confirmed", "traveler_confirmed"],  
             default: "Pending"
         },
         completedAt: {
