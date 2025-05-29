@@ -1,7 +1,7 @@
 import { useState, useEffect,  useMemo } from 'react';
 import { useAuth } from '../Context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../Components/Sidebar';
+import Sidebar from '../Components/SideBar';
 import UserProfile from '../Components/UserProfile';
 import ProductDetails from './productDetails';
 import CountryStateCityComponent from '../Components/State';
@@ -9,7 +9,7 @@ import { getAvailableProducts, getCategories, getTravelerEarnings  } from '../Se
 
 const TravelerDashboard = () => {
   const navigate = useNavigate();
-  const { userId, loading: authLoading } = useAuth();
+  const { userId, logout, loading: authLoading } = useAuth();
   const [products, setProducts] = useState([]);
   const [filters, setFilters] = useState({ category: 'All', country: '', city: '', priceMin: '', priceMax: '', urgency: '' });
   const [earnings, setEarnings] = useState({ totalEarnings: '0.00', pendingPayments: '0.00', rating: { average: 0, count: 0 } });
@@ -17,6 +17,7 @@ const TravelerDashboard = () => {
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [categories, setCategories] = useState(['All']);
   const [country, setCountry] = useState('');
+  const [state, setState] = useState('')
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,6 +37,7 @@ const TravelerDashboard = () => {
       try {
         setLoading(true);
         setError(null);
+
         const [productsData, categoriesData, earningsData] = await Promise.all([
           getAvailableProducts(),
           getCategories(),
@@ -50,8 +52,8 @@ const TravelerDashboard = () => {
         productName: product?.productName || 'Unnamed Product',
         destination: {
           country: product?.destination?.country || '',
-          city: product?.destination?.city || '',
-          state: product?.destination?.state || ''
+          state: product?.destination?.state || '',
+          city: product?.destination?.city || ''
         },
         deliveryDate: product?.deliverydate || '',
         productPrice: parseFloat(product?.totalPrice) || 0,
@@ -91,8 +93,8 @@ const TravelerDashboard = () => {
   }, [userId, period, authLoading, navigate]);
 
   useEffect(() => {
-    setFilters(prev => ({ ...prev, country, city }));
-  }, [country, city]);
+    setFilters(prev => ({ ...prev, country, state, city }));
+  }, [country, state, city]);
 
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
@@ -100,6 +102,7 @@ const TravelerDashboard = () => {
         filters.category === 'All' || product.categoryName === filters.category;
       const matchesCountry =
         !filters.country || product.destination.country === filters.country;
+      const matchesState = !filters.state || product.destination.state === filters.state;
       const matchesCity = !filters.city || product.destination.city === filters.city;
       const matchesPriceMin =
         !filters.priceMin || product.productPrice >= Number(filters.priceMin);
@@ -110,6 +113,7 @@ const TravelerDashboard = () => {
       return (
         matchesCategory &&
         matchesCountry &&
+        matchesState &&
         matchesCity &&
         matchesPriceMin &&
         matchesPriceMax &&
@@ -128,6 +132,19 @@ const TravelerDashboard = () => {
 
   const handlePeriodChange = (e) => {
     setPeriod(e.target.value);
+  };
+
+   const handleLogout = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      await logout();
+    } catch (err) {
+      setError('Logout failed');
+      console.error('Logout error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Split products into two rows
@@ -149,26 +166,39 @@ const TravelerDashboard = () => {
 
       {/* Main Content */}
       <div className="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 min-w-0">
-        <h1 className="text-2xl sm:text-3xl font-bold text-blue-600 mb-6">Products for Fulfillment</h1>
+       <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-blue-600">Products for Fulfillment</h1>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 text-white px-4 py-2 rounded-md text-sm hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            Logout
+          </button>
+        </div>
 
         {/* Filters */}
         <div className="mb-6 flex flex-col sm:flex-wrap md:flex-wrap lg:flex-row gap-4">
-          <select
-            value={filters.category}
-            onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-            className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]"
-          >
-             {categories.map((categoryName) => (
+          <div className="flex flex-col w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]">
+            <label className="block text-blue-600 text-sm sm:text-base">Categories</label>
+            <select
+              value={filters.category}
+              onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+              className="mt-2 px-1 py-0 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px] h-[30px]"
+            >
+              {categories.map((categoryName) => (
                 <option key={categoryName} value={categoryName}>
                   {categoryName}
                 </option>
               ))}
-          </select>
+            </select>
+          </div>
 
           <div className="flex flex-col gap-2 w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]">
             <CountryStateCityComponent
               selectedCountry={country}
               setSelectedCountry={setCountry}
+              selectedState={state}
+              setSelectedState={setState}
               selectedCity={city}
               setSelectedCity={setCity}
             />
@@ -227,9 +257,9 @@ const TravelerDashboard = () => {
                     ) : null}
                     <p className="font-medium text-gray-700">{product.productName}</p>
                     <p className="text-sm text-gray-600">{`${product.destination.country}, ${product.destination.city}`}</p>
-                    <p className="text-sm text-gray-600">Reward: ${product.rewardAmount}</p>
-                    <p className="text-sm text-gray-600">Urgency: ${product.urgencyLevel}</p>
-                    <p className="text-sm text-gray-600">Price: ${product.productPrice}</p>
+                    <p className="text-sm text-gray-600">Reward: KES {product.rewardAmount}</p>
+                    <p className="text-sm text-gray-600">Urgency: KES {product.urgencyLevel}</p>
+                    <p className="text-sm text-gray-600">Price: KES {product.productPrice}</p>
                     <button
                       onClick={() => handleViewDetails(product.productId)}
                       className="mt-2 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
@@ -256,9 +286,9 @@ const TravelerDashboard = () => {
                     ) : null}
                     <p className="font-medium text-gray-700">{product.productName}</p>
                     <p className="text-sm text-gray-600">{`${product.destination.country}, ${product.destination.city}`}</p>
-                    <p className="text-sm text-gray-600">Reward: ${product.rewardAmount}</p>
-                    <p className="text-sm text-gray-600">Urgency: ${product.urgencyLevel}</p>
-                    <p className="text-sm text-gray-600">Price: ${product.productPrice}</p>
+                    <p className="text-sm text-gray-600">Reward: KES {product.rewardAmount}</p>
+                    <p className="text-sm text-gray-600">Urgency: KES {product.urgencyLevel}</p>
+                    <p className="text-sm text-gray-600">Price: KES {product.productPrice}</p>
                     <button
                       onClick={() => handleViewDetails(product.productId)}
                       className="mt-2 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
@@ -273,7 +303,7 @@ const TravelerDashboard = () => {
         </div>
 
         {/* Total Earnings Overview */}
-        <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="bg-white rounded-xl shadow-md p-6 sm:pb-96 md:pb-20">
           <div className="flex items-center mb-4">
             <h2 className="text-xl font-semibold text-blue-600">Total Earnings Overview</h2>
             <select
@@ -293,9 +323,9 @@ const TravelerDashboard = () => {
             <p className="text-red-600">Error: {error}</p>
           ) : (
             <>
-              <p className="text-gray-700 mb-4">Total Earnings: ${earnings.totalEarnings}</p>
+              <p className="text-gray-700 mb-4">Total Earnings: KES {earnings.totalEarnings}</p>
               <h3 className="text-lg font-medium text-blue-600 mb-2">Pending Escrow Amount</h3>
-              <p className="text-gray-700 mb-4">Pending Escrow Amount: ${earnings.pendingPayments}</p>
+              <p className="text-gray-700 mb-4">Pending Escrow Amount: KES {earnings.pendingPayments}</p>
               <h3 className="text-lg font-medium text-blue-600 mb-2">Traveler Ratings</h3>
               <p className="text-gray-700 mb-4">Rating: {earnings.rating.average.toFixed(1)} ({earnings.rating.count} reviews)</p>
               <button

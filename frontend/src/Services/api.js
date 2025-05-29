@@ -546,7 +546,7 @@ export const assignFulfillment = async (productId) => {
 // Update delivery status (protected)
 export const updateDeliveryStatus = async (productId, deliveryStatus) => {
   try {
-    console.log('updateDeliveryStatus called with productId:', productId, 'and status:', status);
+    console.log('updateDeliveryStatus called with productId:', productId, 'and status:');
     const response = await api.put(`/api/orders/deliveryStatus`, {
       productId,
       deliveryStatus,
@@ -560,7 +560,7 @@ export const updateDeliveryStatus = async (productId, deliveryStatus) => {
 
 export const updateProductDeliveryStatus = async (productId, deliveryStatus) => {
   try {
-    console.log('updateDeliveryStatus called with productId:', productId, 'and status:', status);
+    console.log('updateDeliveryStatus called with productId:', productId, 'and status:');
     const response = await api.put(`/api/orders/clientDeliveryStatus`, {
       productId,
       deliveryStatus,
