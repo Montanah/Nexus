@@ -537,10 +537,16 @@ export const getTravelerHistory = async (userId) => {
 };
 
 // Assign fulfillment to traveler (Protected)
+// api.js
 export const assignFulfillment = async (productId) => {
-  const response = await api.post('/api/travelers/products/claim', { productId });
-  console.log('assignFulfillment response:', response.data);
-  return response.data;
+  try {
+    const response = await api.put(`/api/orders/${productId}/claim`, { productId });
+    console.log('assignFulfillment response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('assignFulfillment error:', error.response?.data || error.message);
+    throw new Error(`Request failed with status ${error.response?.status || 'unknown'}`);
+  }
 };
 
 // Update delivery status (protected)

@@ -3,14 +3,16 @@ import { useAuth } from '../Context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../Components/SideBar';
 import UserProfile from '../Components/UserProfile';
-import ProductDetails from './productDetails';
+import ProductDetails from './ProductDetails';
 import CountryStateCityComponent from '../Components/State';
-import { getAvailableProducts, getCategories, getTravelerEarnings } from '../Services/api';
+import PhotoUpload from '../Components/PhotoUpload';
+import { getAvailableProducts, getCategories, getTravelerEarnings, getTravelerOrders, updateDeliveryStatus, uploadDeliveryProof } from '../Services/api';
 
 const TravelerDashboard = () => {
   const navigate = useNavigate();
   const { userId, logout, loading: authLoading } = useAuth();
   const [products, setProducts] = useState([]);
+  const [selectedProducts, setSelectedProducts] = useState([]);
   const [filters, setFilters] = useState({ category: 'All', country: '', city: '', priceMin: '', priceMax: '', urgency: '' });
   const [earnings, setEarnings] = useState({ totalEarnings: '0.00', pendingPayments: '0.00', rating: { average: 0, count: 0 } });
   const [period, setPeriod] = useState('all');
@@ -21,8 +23,12 @@ const TravelerDashboard = () => {
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [productPhotos, setProductPhotos] = useState({});
+  const [uploadError, setUploadError] = useState(null);
+  const [confirming, setConfirming] = useState({});
+  const [uploading, setUploading] = useState({});
 
-  // Fetch data using api service
+  // Fetch available products, categories, and earnings
   useEffect(() => {
     const fetchData = async () => {
       if (authLoading) {
@@ -65,7 +71,6 @@ const TravelerDashboard = () => {
 
         console.log('Mapped products:', mappedProducts);
         setProducts(mappedProducts);
-        console.log('Set products:', mappedProducts);
         const categoryList = Array.isArray(categoriesData)
           ? ['All', ...categoriesData.map(cat => cat.categoryName)]
           : ['All'];
@@ -90,6 +95,42 @@ const TravelerDashboard = () => {
     fetchData();
     console.log('Fetching data...', userId);
   }, [userId, period, authLoading, navigate]);
+
+  // Fetch traveler orders separately
+  // useEffect(() => {
+  //   const fetchTravelerOrders = async () => {
+  //     if (authLoading || !userId) return;
+  //     try {
+  //       const travelerOrders = await getTravelerOrders(userId);
+  //       console.log('Traveler orders:', travelerOrders);
+
+  //       const mappedSelectedProducts = travelerOrders.map(order => ({
+  //         productId: order?._id || '',
+  //         productName: order?.productName || 'Unnamed Product',
+  //         destination: {
+  //           country: order?.destination?.country || '',
+  //           state: order?.destination?.state || '',
+  //           city: order?.destination?.city || ''
+  //         },
+  //         deliveryStatus: order?.deliveryStatus || '',
+  //         isDelivered: order?.isDelivered || false,
+  //         productPrice: parseFloat(order?.totalPrice) || 0,
+  //         rewardAmount: parseFloat(order?.productMarkup) || 0,
+  //         urgencyLevel: order?.urgencyLevel || 'low',
+  //         productPhotos: order?.productPhotos || [],
+  //         categoryName: order?.categoryName || 'Uncategorized'
+  //       }));
+
+  //       console.log('Mapped selected products:', mappedSelectedProducts);
+  //       setSelectedProducts(mappedSelectedProducts);
+  //     } catch (err) {
+  //       console.error('Fetch traveler orders error:', err);
+  //       setError(err.response?.data?.message || 'Failed to load traveler orders. Please try again.');
+  //     }
+  //   };
+
+  //   fetchTravelerOrders();
+  // }, [userId, authLoading]);
 
   useEffect(() => {
     setFilters(prev => ({ ...prev, country, state, city }));
@@ -146,10 +187,65 @@ const TravelerDashboard = () => {
     }
   };
 
+  const handleConfirmDelivery = async (productId) => {
+    if (confirming[productId]) return;
+    setConfirming(prev => ({ ...prev, [productId]: true }));
+    try {
+      const product = selectedProducts.find(p => p.productId === productId);
+      const currentStatus = product.deliveryStatus;
+      let newStatus = 'traveler_confirmed';
+      if (currentStatus === 'client_confirmed') {
+        newStatus = 'delivered';
+      }
+      await updateDeliveryStatus(productId, newStatus);
+      setSelectedProducts(prev =>
+        prev.map(p =>
+          p.productId === productId
+            ? { ...p, deliveryStatus: newStatus, isDelivered: newStatus === 'delivered' }
+            : p
+        )
+      );
+      console.log(`Traveler ${userId} confirmed delivery for ${productId}`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setConfirming(prev => ({ ...prev, [productId]: false }));
+    }
+  };
+
+  const handleUploadProof = async (productId) => {
+    if (uploading[productId]) return;
+    if (!productPhotos[productId] || productPhotos[productId].length === 0) {
+      setUploadError('No photos selected.');
+      return;
+    }
+    setUploading(prev => ({ ...prev, [productId]: true }));
+    try {
+      await uploadDeliveryProof(productId, productPhotos[productId]);
+      console.log('Proof uploaded for product:', productId);
+      setUploadError(null);
+      alert('Proof uploaded successfully!');
+      setProductPhotos(prev => ({ ...prev, [productId]: [] }));
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(prev => ({ ...prev, [productId]: false }));
+    }
+  };
+
+  const handleRateClient = (productId) => {
+    navigate(`/rate-product/${productId}`, { state: { isTraveler: true } });
+  };
+
   // Split products into two rows
   const half = Math.ceil(filteredProducts.length / 2);
   const topRowProducts = filteredProducts.slice(0, half);
   const bottomRowProducts = filteredProducts.slice(half);
+
+  // Split selected products into two rows
+  const selectedHalf = Math.ceil(selectedProducts.length / 2);
+  const topRowSelectedProducts = selectedProducts.slice(0, selectedHalf);
+  const bottomRowSelectedProducts = selectedProducts.slice(selectedHalf);
 
   // Early returns after hooks
   if (authLoading) {
@@ -159,7 +255,7 @@ const TravelerDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-200 flex flex-col lg:flex-row">
       {/* Sidebar */}
-      <div className="lg:w-64 flex-shrink-0">
+      <div className="w-64 flex-shrink-0 hidden lg:block">
         <Sidebar />
       </div>
 
@@ -202,25 +298,25 @@ const TravelerDashboard = () => {
               setSelectedCity={setCity}
             />
           </div>
-
+          
           <input
             type="number"
             placeholder="Min Price"
             value={filters.priceMin}
             onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })}
-            className="px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]"
-          />
+            className="mt-6 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px] h-[40px]"
+          /> 
           <input
             type="number"
             placeholder="Max Price"
             value={filters.priceMax}
             onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })}
-            className="px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]"
+            className="px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px] h-[40px]"
           />
           <select
             value={filters.urgency}
             onChange={(e) => setFilters({ ...filters, urgency: e.target.value })}
-            className="px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px]"
+            className="px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px] h-[40px]"
           >
             <option value="">Urgency</option>
             <option value="Low">Low</option>
@@ -255,7 +351,7 @@ const TravelerDashboard = () => {
                       />
                     ) : null}
                     <p className="font-medium text-gray-700">{product.productName}</p>
-                    <p className="text-sm text-gray-600">{`${product.destination.country}, ${product.destination.city}`}</p>
+                    <p className="text-sm text-gray-600">{`${product.destination.country}, ${product.destination.state}, ${product.destination.city}`}</p>
                     <p className="text-sm text-gray-600">Reward: KES {product.rewardAmount}</p>
                     <p className="text-sm text-gray-600">Urgency: {product.urgencyLevel}</p>
                     <p className="text-sm text-gray-600">Price: KES {product.productPrice}</p>
@@ -284,7 +380,7 @@ const TravelerDashboard = () => {
                       />
                     ) : null}
                     <p className="font-medium text-gray-700">{product.productName}</p>
-                    <p className="text-sm text-gray-600">{`${product.destination.country}, ${product.destination.city}`}</p>
+                    <p className="text-sm text-gray-600">{`${product.destination.country}, ${product.destination.state}, ${product.destination.city}`}</p>
                     <p className="text-sm text-gray-600">Reward: KES {product.rewardAmount}</p>
                     <p className="text-sm text-gray-600">Urgency: {product.urgencyLevel}</p>
                     <p className="text-sm text-gray-600">Price: KES {product.productPrice}</p>
@@ -294,6 +390,158 @@ const TravelerDashboard = () => {
                     >
                       View Details
                     </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Products Selected for Delivery - Two Rows */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+          <h2 className="text-xl font-semibold text-blue-600 mb-4">Products Selected for Delivery</h2>
+          {loading ? (
+            <p className="text-gray-600">Loading selected products...</p>
+          ) : error ? (
+            <p className="text-red-600">Error: {error}</p>
+          ) : selectedProducts.length === 0 ? (
+            <p className="text-gray-600">No products selected for delivery.</p>
+          ) : (
+            <div className="space-y-6">
+              {/* Top Row */}
+              <div className="flex overflow-x-auto space-x-4 pb-4">
+                {topRowSelectedProducts.map(product => (
+                  <div
+                    key={product.productId}
+                    className="flex-shrink-0 w-64 bg-gray-50 p-4 rounded-md border shadow-sm"
+                  >
+                    {product.productPhotos && product.productPhotos.length > 0 ? (
+                      <img
+                        src={product.productPhotos[0]}
+                        alt={product.productName}
+                        className="w-full h-32 object-cover rounded-md mb-2"
+                      />
+                    ) : null}
+                    <p className="font-medium text-gray-700">{product.productName}</p>
+                    <p className="text-sm text-gray-600">{`${product.destination.country}, ${product.destination.state}, ${product.destination.city}`}</p>
+                    <p className="text-sm text-gray-600">Reward: KES {product.rewardAmount}</p>
+                    <p className="text-sm text-gray-600">Urgency: {product.urgencyLevel}</p>
+                    <p className="text-sm text-gray-600">Price: KES {product.productPrice}</p>
+                    <p className="text-sm text-gray-600">Status: {product.isDelivered ? 'Delivered' : product.deliveryStatus}</p>
+                    {["Assigned", "Shipped"].includes(product.deliveryStatus) && (
+                      <button
+                        onClick={() => handleConfirmDelivery(product.productId)}
+                        className="mt-2 w-full bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
+                        disabled={confirming[product.productId]}
+                      >
+                        {confirming[product.productId] ? "Confirming..." : "Mark as Delivered"}
+                      </button>
+                    )}
+                    {product.deliveryStatus === "traveler_confirmed" && (
+                      <button
+                        disabled
+                        className="mt-2 w-full bg-gray-400 text-white px-3 py-1 rounded cursor-not-allowed text-sm"
+                      >
+                        Awaiting Client Confirmation
+                      </button>
+                    )}
+                    {product.deliveryStatus === "client_confirmed" && (
+                      <p className="mt-2 text-green-600 font-medium text-center text-sm">
+                        🎉 Delivery Fully Confirmed
+                      </p>
+                    )}
+                    {product.isDelivered && (
+                      <>
+                        <PhotoUpload
+                          photos={productPhotos[product.productId] || []}
+                          setPhotos={(photos) => setProductPhotos(prev => ({ ...prev, [product.productId]: photos }))}
+                          className="w-full mt-2 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        />
+                        {uploadError && <p className="text-red-600 mt-2 text-sm">{uploadError}</p>}
+                        <button
+                          onClick={() => handleUploadProof(product.productId)}
+                          className="mt-2 w-full bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm"
+                          disabled={uploading[product.productId] || !productPhotos[product.productId] || productPhotos[product.productId].length === 0}
+                        >
+                          {uploading[product.productId] ? 'Uploading...' : 'Upload Proof'}
+                        </button>
+                        <button
+                          onClick={() => handleRateClient(product.productId)}
+                          className="mt-2 w-full bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
+                        >
+                          Rate Client
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom Row */}
+              <div className="flex overflow-x-auto space-x-4 pb-4">
+                {bottomRowSelectedProducts.map(product => (
+                  <div
+                    key={product.productId}
+                    className="flex-shrink-0 w-64 bg-gray-50 p-4 rounded-md border shadow-sm"
+                  >
+                    {product.productPhotos && product.productPhotos.length > 0 ? (
+                      <img
+                        src={product.productPhotos[0]}
+                        alt={product.productName}
+                        className="w-full h-32 object-cover rounded-md mb-2"
+                      />
+                    ) : null}
+                    <p className="font-medium text-gray-700">{product.productName}</p>
+                    <p className="text-sm text-gray-600">{`${product.destination.country}, ${product.destination.state}, ${product.destination.city}`}</p>
+                    <p className="text-sm text-gray-600">Reward: KES {product.rewardAmount}</p>
+                    <p className="text-sm text-gray-600">Urgency: {product.urgencyLevel}</p>
+                    <p className="text-sm text-gray-600">Price: KES {product.productPrice}</p>
+                    <p className="text-sm text-gray-600">Status: {product.isDelivered ? 'Delivered' : product.deliveryStatus}</p>
+                    {["Assigned", "Shipped"].includes(product.deliveryStatus) && (
+                      <button
+                        onClick={() => handleConfirmDelivery(product.productId)}
+                        className="mt-2 w-full bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
+                        disabled={confirming[product.productId]}
+                      >
+                        {confirming[product.productId] ? "Confirming..." : "Mark as Delivered"}
+                      </button>
+                    )}
+                    {product.deliveryStatus === "traveler_confirmed" && (
+                      <button
+                        disabled
+                        className="mt-2 w-full bg-gray-400 text-white px-3 py-1 rounded cursor-not-allowed text-sm"
+                      >
+                        Awaiting Client Confirmation
+                      </button>
+                    )}
+                    {product.deliveryStatus === "client_confirmed" && (
+                      <p className="mt-2 text-green-600 font-medium text-center text-sm">
+                        🎉 Delivery Fully Confirmed
+                      </p>
+                    )}
+                    {product.isDelivered && (
+                      <>
+                        <PhotoUpload
+                          photos={productPhotos[product.productId] || []}
+                          setPhotos={(photos) => setProductPhotos(prev => ({ ...prev, [product.productId]: photos }))}
+                          className="w-full mt-2 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        />
+                        {uploadError && <p className="text-red-600 mt-2 text-sm">{uploadError}</p>}
+                        <button
+                          onClick={() => handleUploadProof(product.productId)}
+                          className="mt-2 w-full bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm"
+                          disabled={uploading[product.productId] || !productPhotos[product.productId] || productPhotos[product.productId].length === 0}
+                        >
+                          {uploading[product.productId] ? 'Uploading...' : 'Upload Proof'}
+                        </button>
+                        <button
+                          onClick={() => handleRateClient(product.productId)}
+                          className="mt-2 w-full bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
+                        >
+                          Rate Client
+                        </button>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
@@ -339,9 +587,7 @@ const TravelerDashboard = () => {
       </div>
 
       {/* UserProfile */}
-      <div className="lg:w-64 flex-shrink-0">
-        <UserProfile userId={userId} />
-      </div>
+      <UserProfile userId={userId} />
 
       {/* Product Details Modal */}
       {selectedProductId && (

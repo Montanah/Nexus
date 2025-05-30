@@ -1,22 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../Context/AuthContext';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
-import PhotoUpload from '../Components/PhotoUpload';
-import { getProductDetails, assignFulfillment, uploadDeliveryProof, updateDeliveryStatus } from '../Services/api';
+import { getProductDetails, assignFulfillment } from '../Services/api';
 
 const ProductDetails = ({ productId, onClose }) => {
   const { userId } = useAuth();
-  const navigate = useNavigate();
   const [product, setProduct] = useState(null);
-  const [productPhotos, setProductPhotos] = useState([]);
-  const [uploadError, setUploadError] = useState(null);
   const [isAccepted, setIsAccepted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [accepting, setAccepting] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [uploading, setUploading] = useState(false);
 
   const fetchProduct = async () => {
     try {
@@ -50,59 +43,14 @@ const ProductDetails = ({ productId, onClose }) => {
       console.log('Updated product:', updatedProduct);
       setIsAccepted(true);
       setProduct(updatedProduct);
-      setIsAccepted(true);
       console.log(`Traveler ${userId} accepted fulfillment for ${productId}`, updatedProduct);
+      // Removed onClose() to keep the modal open
     } catch (err) {
       setError(`Failed to accept fulfillment: ${err.message}`);
       console.error('Acceptance error:', err);
     } finally {
       setAccepting(false);
     }
-  };
-
-  const handleConfirmDelivery = async () => {
-    if (confirming) return;
-    setConfirming(true);
-    try {
-      const currentStatus = product.deliveryStatus;
-      let newStatus = 'traveler_confirmed';
-      if (currentStatus === 'client_confirmed') {
-        newStatus = 'delivered';
-      }
-      const response = await updateDeliveryStatus(productId, newStatus);
-      const updatedProduct = { ...product, deliveryStatus: newStatus, isDelivered: newStatus === 'delivered' };
-      setProduct(updatedProduct);
-      console.log(`Traveler ${userId} confirmed delivery for ${productId}`, response);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setConfirming(false);
-    }
-  };
-
-  const handleUploadProof = async (orderId) => {
-    if (uploading) return;
-    if (productPhotos.length === 0) {
-      setUploadError('No photos selected.');
-      return;
-    }
-    setUploading(true);
-    try {
-      const response = await uploadDeliveryProof(orderId, productPhotos);
-      console.log('Proof uploaded:', response);
-      setUploadError(null);
-      alert('Proof uploaded successfully!');
-      setProductPhotos([]);
-    } catch (err) {
-      setUploadError(err.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleRateClient = () => {
-    navigate(`/rate-product/${productId}`, { state: { isTraveler: true } });
-    onClose();
   };
 
   const memoizedProduct = useMemo(() => product, [product]);
@@ -122,8 +70,6 @@ const ProductDetails = ({ productId, onClose }) => {
       </div>
     );
   }
-
-  const canUploadAndRate = memoizedProduct.deliveryStatus === 'delivered';
 
   return (
     <div className="w-full sm:w-96 max-w-md bg-white rounded-xl shadow-md p-6 relative max-h-[80vh] overflow-y-auto">
@@ -160,74 +106,21 @@ const ProductDetails = ({ productId, onClose }) => {
         <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Delivery Status:</span> {memoizedProduct.isDelivered ? 'Delivered' : memoizedProduct.deliveryStatus}</p>
       </div>
 
-      {!isAccepted && product.claimedBy === null && (
+      {!isAccepted && memoizedProduct.claimedBy === null && (
         <button
           onClick={handleAcceptFulfillment}
           className="mt-4 w-full bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 text-sm sm:text-base"
+          disabled={accepting}
         >
-          Deliver Product
+          {accepting ? 'Accepting...' : 'Deliver Product'}
         </button>
-      )}
-      {["Assigned", "Shipped"].includes(product.deliveryStatus) && (
-        <button
-          onClick={handleConfirmDelivery}
-          className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm sm:text-base"
-          disabled={confirming}
-        >
-          {confirming ? "Confirming..." : "Mark as Delivered"}
-        </button>
-      )}
-      {product.deliveryStatus === "traveler_confirmed" && (
-        <button
-          disabled
-          className="mt-4 w-full bg-gray-400 text-white px-4 py-2 rounded cursor-not-allowed text-sm sm:text-base"
-        >
-          Awaiting Client Confirmation
-        </button>
-      )}
-
-      {product.deliveryStatus === "client_confirmed" && (
-        <p className="mt-4 text-green-600 font-medium text-center text-sm sm:text-base">
-          🎉 Delivery Fully Confirmed
-        </p>
-      )}
-
-      {isAccepted && memoizedProduct.deliveryStatus !== 'delivered' && (
-        <button
-          onClick={handleConfirmDelivery}
-          className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm sm:text-base"
-          disabled={confirming || memoizedProduct.deliveryStatus === 'traveler_confirmed'}
-        >
-          {confirming ? 'Confirming...' : memoizedProduct.deliveryStatus === 'traveler_confirmed' ? 'Awaiting Client Confirmation' : 'Confirm Delivery'}
-        </button>
-      )}
-
-      {canUploadAndRate && (
-        <>
-          <PhotoUpload
-            photos={productPhotos}
-            setPhotos={setProductPhotos}
-            className="w-full mt-4 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-sm"
-          />
-          {uploadError && <p className="text-red-600 mt-2 text-sm sm:text-sm">{uploadError}</p>}
-          <button
-            onClick={handleUploadProof}
-            className="mt-4 w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm sm:text-base"
-            disabled={uploading || productPhotos.length === 0}
-          >
-            {uploading ? 'Uploading...' : 'Upload Proof'}
-          </button>
-          <button
-            onClick={handleRateClient}
-            className="mt-2 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm sm:text-base"
-          >
-            Rate Client
-          </button>
-        </>
       )}
 
       {memoizedProduct.assignedTraveler && !isAccepted && (
         <p className="mt-4 text-gray-600 text-center text-sm sm:text-sm">Already assigned to another traveler.</p>
+      )}
+      {isAccepted && (
+        <p className="mt-4 text-green-600 text-center text-sm sm:text-sm">You have accepted this product for delivery. Check the &quot;Products Selected for Delivery&quot; section.</p>
       )}
       {error && <p className="mt-4 text-red-600 text-center text-sm sm:text-sm">{error}</p>}
     </div>
@@ -237,6 +130,7 @@ const ProductDetails = ({ productId, onClose }) => {
 ProductDetails.propTypes = {
   productId: PropTypes.string.isRequired,
   onClose: PropTypes.func.isRequired,
+  travelerId: PropTypes.string.isRequired,
 };
 
 export default ProductDetails;
