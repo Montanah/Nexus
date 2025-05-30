@@ -108,7 +108,7 @@ const CartPage = () => {
                         <h2 className="text-lg font-semibold text-indigo-900">{item.productName}</h2>
                         <p className="text-sm text-gray-700">Quantity: {item.quantity}</p>
                         <p className="text-sm text-gray-700">
-                          Delivery: {item.delivery.country}, {item.delivery.city}, {item.delivery.town} - {item.delivery.deliveryDate}
+                          Delivery: {item.delivery.country}, {item.delivery.state}, {item.delivery.city} - {item.delivery.deliveryDate}
                         </p>
                         {item.productDescription && (
                           <p className="text-sm text-gray-700">Description: {item.productDescription}</p>
@@ -118,7 +118,7 @@ const CartPage = () => {
                         )}
                       </div>
                       <div className="flex items-center space-x-4">
-                        <p className="text-lg font-semibold text-purple-700">${item.finalCharge.toFixed(2)}</p>
+                        <p className="text-lg font-semibold text-purple-700">KES {item.finalCharge.toFixed(2)}</p>
                         <button
                           onClick={() => handleDeleteItem(item.productId)}
                           className="bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"
@@ -131,7 +131,7 @@ const CartPage = () => {
                 </ul>
                 <div className="mt-6 flex justify-between items-center">
                   <p className="text-xl font-semibold text-indigo-900">Total:</p>
-                  <p className="text-xl font-semibold text-purple-700">${totalPrice}</p>
+                  <p className="text-xl font-semibold text-purple-700">KES {totalPrice}</p>
                 </div>
                 <div className="mt-4 flex justify-end">
                   <button

@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+
 const PriceBreakdown = ({ productPrice, setProductPrice, finalCharge }) => (
   <div className="flex flex-col gap-4">
     <div className="w-full">
@@ -25,5 +27,11 @@ const PriceBreakdown = ({ productPrice, setProductPrice, finalCharge }) => (
     </div>
   </div>
 );
+
+PriceBreakdown.propTypes = {
+  productPrice: PropTypes.string.isRequired,
+  setProductPrice: PropTypes.func.isRequired,
+  finalCharge: PropTypes.func.isRequired,
+};
 
 export default PriceBreakdown;

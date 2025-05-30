@@ -61,7 +61,7 @@ const PaymentFailure = () => {
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm sm:text-base font-medium text-gray-700">Total Amount:</span>
-            <span className="text-sm sm:text-base font-bold text-gray-950">KES{parseFloat(totalAmount).toFixed(2)}</span>
+            <span className="text-sm sm:text-base font-bold text-gray-950">KES {parseFloat(totalAmount).toFixed(2)}</span>
           </div>
         </div>
         <div className="mt-6 text-center">

@@ -104,7 +104,7 @@ const PaymentSuccess = () => {
               <FaMoneyBillWave className="text-indigo-600 mr-2" />
               <span className="text-gray-700 font-medium">Total Amount Paid</span>
             </div>
-            <p className="text-gray-600">${total}</p>
+            <p className="text-gray-600">KES {total}</p>
           </div>
 
           {/* Escrow Message */}
@@ -136,7 +136,7 @@ const PaymentSuccess = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-gray-600 text-sm">Qty: {item.quantity}</p>
-                      <p className="text-indigo-600 font-semibold">KES{item.finalCharge.toFixed(2)}</p>
+                      <p className="text-indigo-600 font-semibold">KES {item.finalCharge.toFixed(2)}</p>
                     </div>
                   </li>
                 ))}

@@ -53,7 +53,7 @@ const EmailSentConfirmation = () => {
           {/* Message */}
           <p className="text-gray-600 text-sm mb-6">
             Thanks! An email was sent that will ask you to click on a link to verify that you own this account. If you don’t get the email, please contact{' '}
-            <a href="mailto:support@kinety.com" className="text-indigo-600 hover:underline">
+            <a href="mailto:support@nexus.com" className="text-indigo-600 hover:underline">
               support@nexus.com
             </a>.
           </p>

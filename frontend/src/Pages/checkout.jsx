@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../Context/AuthContext';
 import { loadStripe } from '@stripe/stripe-js';
 import { FaEdit, FaTrash, FaCcVisa, FaCcMastercard, FaCcPaypal, FaCcDiscover, FaMobileAlt } from 'react-icons/fa';
-import { fetchCart, createCheckoutSessionCombined, checkout, fetchOneOrder, deleteCartItem, initiateMpesaMobilePayment, initiateAirtelMobilePayment, createCheckoutSession } from '../Services/api';
+import { fetchCart, createCheckoutSessionCombined, deleteCartItem } from '../Services/api';
 import Header from '../Components/Header';
 
-// Initialize Stripe outside the component
-const stripePromise = loadStripe('pk_test_51OvoL6KzYkQzGZz6rK8Z5Qe5f6Y5X8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9'); // Replace with your Stripe publishable key
+// Initializing Stripe outside the component
+const stripePromise = loadStripe('pk_test_51OvoL6KzYkQzGZz6rK8Z5Qe5f6Y5X8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9nX8vJ9'); // Replace a Stripe publishable key
 
 const Checkout = () => {
   const { userId, user, loading: authLoading } = useAuth();
@@ -63,7 +63,7 @@ const Checkout = () => {
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + (item.finalCharge || 0), 0);
   const total = Number(subtotal.toFixed(2));
-  const displayTotal = subtotal.toFixed(2);
+  // const displayTotal = subtotal.toFixed(2); 
 
   // Handle delete item
   const handleDelete = async (productId) => {
@@ -237,7 +237,7 @@ const Checkout = () => {
                       <p className="text-sm text-gray-700">Category: {item.category || 'N/A'}</p>
                     </div>
                     <div className="flex items-center space-x-4">
-                      <p className="text-lg font-semibold text-purple-700">${item.finalCharge.toFixed(2)}</p>
+                      <p className="text-lg font-semibold text-purple-700">KES {item.finalCharge.toFixed(2)}</p>
                       <button
                         onClick={() => handleEdit(item)}
                         className="text-indigo-600 hover:text-indigo-800"
@@ -369,11 +369,11 @@ const Checkout = () => {
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Price Summary</h3>
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal:</span>
-                <span>KES{subtotal.toFixed(2)}</span>
+                <span>KES {subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-lg font-semibold text-purple-700 mt-2">
                 <span>Total:</span>
-                <span>KES{total}</span>
+                <span>KES {total}</span>
               </div>
             </div>
 
