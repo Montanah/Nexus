@@ -1,11 +1,11 @@
-import { useState, useEffect,  useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../Context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../Components/SideBar';
 import UserProfile from '../Components/UserProfile';
 import ProductDetails from './productDetails';
 import CountryStateCityComponent from '../Components/State';
-import { getAvailableProducts, getCategories, getTravelerEarnings  } from '../Services/api'; 
+import { getAvailableProducts, getCategories, getTravelerEarnings } from '../Services/api';
 
 const TravelerDashboard = () => {
   const navigate = useNavigate();
@@ -17,15 +17,15 @@ const TravelerDashboard = () => {
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [categories, setCategories] = useState(['All']);
   const [country, setCountry] = useState('');
-  const [state, setState] = useState('')
+  const [state, setState] = useState('');
   const [city, setCity] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Fetch data using api service
   useEffect(() => {
-      const fetchData = async () => {
-        if (authLoading) {
+    const fetchData = async () => {
+      if (authLoading) {
         console.log('Auth loading, skipping fetch');
         return;
       }
@@ -47,46 +47,45 @@ const TravelerDashboard = () => {
         console.log('Categories data:', categoriesData);
         console.log('Earnings data:', earningsData);
 
-       const mappedProducts = productsData.map(product => ({
-        productId: product?._id || '',
-        productName: product?.productName || 'Unnamed Product',
-        destination: {
-          country: product?.destination?.country || '',
-          state: product?.destination?.state || '',
-          city: product?.destination?.city || ''
-        },
-        deliveryDate: product?.deliverydate || '',
-        productPrice: parseFloat(product?.totalPrice) || 0,
-        rewardAmount: parseFloat(product?.productMarkup) || 0,
-        urgencyLevel: product?.urgencyLevel || 'low',
-        productPhotos: product?.productPhotos || [],
-        categoryName: product?.categoryName || 'Uncategorized'
-      }));
+        const mappedProducts = productsData.map(product => ({
+          productId: product?._id || '',
+          productName: product?.productName || 'Unnamed Product',
+          destination: {
+            country: product?.destination?.country || '',
+            state: product?.destination?.state || '',
+            city: product?.destination?.city || ''
+          },
+          deliveryDate: product?.deliverydate || '',
+          productPrice: parseFloat(product?.totalPrice) || 0,
+          rewardAmount: parseFloat(product?.productMarkup) || 0,
+          urgencyLevel: product?.urgencyLevel || 'low',
+          productPhotos: product?.productPhotos || [],
+          categoryName: product?.categoryName || 'Uncategorized'
+        }));
 
-      console.log('Mapped products:', mappedProducts);
-      setProducts(mappedProducts);
-      console.log('Set products:', mappedProducts);
-      // setCategories(['All', ...(Array.isArray(categoriesData) ? categoriesData : [])]);
-      const categoryList = Array.isArray(categoriesData)
+        console.log('Mapped products:', mappedProducts);
+        setProducts(mappedProducts);
+        console.log('Set products:', mappedProducts);
+        const categoryList = Array.isArray(categoriesData)
           ? ['All', ...categoriesData.map(cat => cat.categoryName)]
           : ['All'];
-      console.log('Category list:', categoryList);
-      setCategories(categoryList);
-      setEarnings(earningsData);
-    } catch (err) {
-      console.error('Fetch data error:', err);
-      if (err.response?.status === 401) {
-        console.log('Unauthorized, navigating to login');
-        navigate('/login');
-      } else if (err.response?.status === 404) {
-        setError('No Products available now. Please check again later.');
-      } else {
-        setError(err.response?.data?.message || 'Failed to load data. Please try again.');
+        console.log('Category list:', categoryList);
+        setCategories(categoryList);
+        setEarnings(earningsData);
+      } catch (err) {
+        console.error('Fetch data error:', err);
+        if (err.response?.status === 401) {
+          console.log('Unauthorized, navigating to login');
+          navigate('/login');
+        } else if (err.response?.status === 404) {
+          setError('No Products available now. Please check again later.');
+        } else {
+          setError(err.response?.data?.message || 'Failed to load data. Please try again.');
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
     fetchData();
     console.log('Fetching data...', userId);
@@ -134,7 +133,7 @@ const TravelerDashboard = () => {
     setPeriod(e.target.value);
   };
 
-   const handleLogout = async () => {
+  const handleLogout = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -152,7 +151,7 @@ const TravelerDashboard = () => {
   const topRowProducts = filteredProducts.slice(0, half);
   const bottomRowProducts = filteredProducts.slice(half);
 
-   // Early returns after hooks
+  // Early returns after hooks
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
@@ -166,7 +165,7 @@ const TravelerDashboard = () => {
 
       {/* Main Content */}
       <div className="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 min-w-0">
-       <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-blue-600">Products for Fulfillment</h1>
           <button
             onClick={handleLogout}
@@ -258,7 +257,7 @@ const TravelerDashboard = () => {
                     <p className="font-medium text-gray-700">{product.productName}</p>
                     <p className="text-sm text-gray-600">{`${product.destination.country}, ${product.destination.city}`}</p>
                     <p className="text-sm text-gray-600">Reward: KES {product.rewardAmount}</p>
-                    <p className="text-sm text-gray-600">Urgency: KES {product.urgencyLevel}</p>
+                    <p className="text-sm text-gray-600">Urgency: {product.urgencyLevel}</p>
                     <p className="text-sm text-gray-600">Price: KES {product.productPrice}</p>
                     <button
                       onClick={() => handleViewDetails(product.productId)}
@@ -287,7 +286,7 @@ const TravelerDashboard = () => {
                     <p className="font-medium text-gray-700">{product.productName}</p>
                     <p className="text-sm text-gray-600">{`${product.destination.country}, ${product.destination.city}`}</p>
                     <p className="text-sm text-gray-600">Reward: KES {product.rewardAmount}</p>
-                    <p className="text-sm text-gray-600">Urgency: KES {product.urgencyLevel}</p>
+                    <p className="text-sm text-gray-600">Urgency: {product.urgencyLevel}</p>
                     <p className="text-sm text-gray-600">Price: KES {product.productPrice}</p>
                     <button
                       onClick={() => handleViewDetails(product.productId)}
@@ -346,7 +345,7 @@ const TravelerDashboard = () => {
 
       {/* Product Details Modal */}
       {selectedProductId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center pt-4 sm:pt-20 overflow-y-auto">
+        <div className="fixed top-10 left-1/2 transform -translate-x-1/2 z-50">
           <ProductDetails productId={selectedProductId} onClose={handleCloseModal} travelerId={userId} />
         </div>
       )}

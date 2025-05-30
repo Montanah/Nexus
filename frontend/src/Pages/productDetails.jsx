@@ -109,7 +109,7 @@ const ProductDetails = ({ productId, onClose }) => {
 
   if (loading) {
     return (
-      <div className="w-full sm:w-96 bg-white rounded-xl shadow-md p-6 text-gray-600 text-center">
+      <div className="w-full sm:w-96 max-w-md bg-white rounded-xl shadow-md p-6 text-gray-600 text-center">
         Loading...
       </div>
     );
@@ -117,7 +117,7 @@ const ProductDetails = ({ productId, onClose }) => {
 
   if (error || !memoizedProduct) {
     return (
-      <div className="w-full sm:w-96 bg-white rounded-xl shadow-md p-6 text-red-600 text-center">
+      <div className="w-full sm:w-96 max-w-md bg-white rounded-xl shadow-md p-6 text-red-600 text-center">
         {error || 'Product not found.'}
       </div>
     );
@@ -126,14 +126,14 @@ const ProductDetails = ({ productId, onClose }) => {
   const canUploadAndRate = memoizedProduct.deliveryStatus === 'delivered';
 
   return (
-    <div className="w-full sm:w-96 bg-white rounded-xl shadow-md p-6 relative max-h-[80vh] overflow-y-auto">
+    <div className="w-full sm:w-96 max-w-md bg-white rounded-xl shadow-md p-6 relative max-h-[80vh] overflow-y-auto">
       <button
         onClick={onClose}
-        className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
+        className="absolute top-2 right-2 text-gray-600 hover:text-gray-800 text-sm sm:text-lg"
       >
         ✕
       </button>
-      <h1 className="text-2xl font-bold text-blue-600 mb-4 text-center">Product Details</h1>
+      <h1 className="text-2xl text-sm sm:text-2xl font-bold text-blue-600 mb-4 text-center">Product Details</h1>
       {memoizedProduct.productPhotos && memoizedProduct.productPhotos.length > 0 && (
         <img
           src={memoizedProduct.productPhotos[0]}
@@ -142,60 +142,60 @@ const ProductDetails = ({ productId, onClose }) => {
         />
       )}
       <div className="space-y-2">
-        <p className="text-lg font-medium text-gray-700">{memoizedProduct.productName}</p>
+        <p className="text-lg text-sm sm:text-lg font-medium text-gray-700">{memoizedProduct.productName}</p>
         {memoizedProduct.productDescription && (
-          <p className="text-gray-600"><span className="font-medium">Description:</span> {memoizedProduct.productDescription}</p>
+          <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Description:</span> {memoizedProduct.productDescription}</p>
         )}
-        <p className="text-gray-600"><span className="font-medium">Quantity:</span> {memoizedProduct.quantity}</p>
+        <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Quantity:</span> {memoizedProduct.quantity}</p>
         {memoizedProduct.dimensions && (
-          <p className="text-gray-600"><span className="font-medium">Dimensions:</span> {memoizedProduct.dimensions}</p>
+          <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Dimensions:</span> {memoizedProduct.dimensions}</p>
         )}
         {memoizedProduct.shippingRestrictions && (
-          <p className="text-gray-600"><span className="font-medium">Shipping Restrictions:</span> {memoizedProduct.shippingRestrictions}</p>
+          <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Shipping Restrictions:</span> {memoizedProduct.shippingRestrictions}</p>
         )}
-        <p className="text-gray-600"><span className="font-medium">Destination:</span> {`${memoizedProduct.destination.country}, ${memoizedProduct.destination.city}`}</p>
-        <p className="text-gray-600"><span className="font-medium">Reward:</span> KES {memoizedProduct.rewardAmount}</p>
-        <p className="text-gray-600"><span className="font-medium">Urgency:</span> {memoizedProduct.urgencyLevel}</p>
-        <p className="text-gray-600"><span className="font-medium">Price:</span> KES {memoizedProduct.productPrice}</p>
-        <p className="text-gray-600"><span className="font-medium">Delivery Status:</span> {memoizedProduct.isDelivered ? 'Delivered' : memoizedProduct.deliveryStatus}</p>
+        <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Destination:</span> {`${memoizedProduct.destination.country}, ${memoizedProduct.destination.city}`}</p>
+        <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Reward:</span> KES {memoizedProduct.rewardAmount}</p>
+        <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Urgency:</span> {memoizedProduct.urgencyLevel}</p>
+        <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Price:</span> KES {memoizedProduct.productPrice}</p>
+        <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Delivery Status:</span> {memoizedProduct.isDelivered ? 'Delivered' : memoizedProduct.deliveryStatus}</p>
       </div>
 
-        {!isAccepted && product.claimedBy === null && (
-          <button
-            onClick={handleAcceptFulfillment}
-            className="mt-4 w-full bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
-          >
-            Deliver Product
-          </button>
-        )}
-        {["Assigned", "Shipped"].includes(product.deliveryStatus) && (
-          <button
-            onClick={handleConfirmDelivery}
-            className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            disabled={confirming}
-          >
-            {confirming ? "Confirming..." : "Mark as Delivered"}
-          </button>
-        )}
-        {product.deliveryStatus === "traveler_confirmed" && (
-          <button
-            disabled
-            className="mt-4 w-full bg-gray-400 text-white px-4 py-2 rounded cursor-not-allowed"
-          >
-            Awaiting Client Confirmation
-          </button>
-        )}
+      {!isAccepted && product.claimedBy === null && (
+        <button
+          onClick={handleAcceptFulfillment}
+          className="mt-4 w-full bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 text-sm sm:text-base"
+        >
+          Deliver Product
+        </button>
+      )}
+      {["Assigned", "Shipped"].includes(product.deliveryStatus) && (
+        <button
+          onClick={handleConfirmDelivery}
+          className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm sm:text-base"
+          disabled={confirming}
+        >
+          {confirming ? "Confirming..." : "Mark as Delivered"}
+        </button>
+      )}
+      {product.deliveryStatus === "traveler_confirmed" && (
+        <button
+          disabled
+          className="mt-4 w-full bg-gray-400 text-white px-4 py-2 rounded cursor-not-allowed text-sm sm:text-base"
+        >
+          Awaiting Client Confirmation
+        </button>
+      )}
 
-        {product.deliveryStatus === "client_confirmed" && (
-          <p className="mt-4 text-green-600 font-medium text-center">
-            🎉 Delivery Fully Confirmed
-          </p>
-        )}
+      {product.deliveryStatus === "client_confirmed" && (
+        <p className="mt-4 text-green-600 font-medium text-center text-sm sm:text-base">
+          🎉 Delivery Fully Confirmed
+        </p>
+      )}
 
       {isAccepted && memoizedProduct.deliveryStatus !== 'delivered' && (
         <button
           onClick={handleConfirmDelivery}
-          className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm sm:text-base"
           disabled={confirming || memoizedProduct.deliveryStatus === 'traveler_confirmed'}
         >
           {confirming ? 'Confirming...' : memoizedProduct.deliveryStatus === 'traveler_confirmed' ? 'Awaiting Client Confirmation' : 'Confirm Delivery'}
@@ -207,19 +207,19 @@ const ProductDetails = ({ productId, onClose }) => {
           <PhotoUpload
             photos={productPhotos}
             setPhotos={setProductPhotos}
-            className="w-full mt-4 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full mt-4 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-sm"
           />
-          {uploadError && <p className="text-red-600 mt-2">{uploadError}</p>}
+          {uploadError && <p className="text-red-600 mt-2 text-sm sm:text-sm">{uploadError}</p>}
           <button
             onClick={handleUploadProof}
-            className="mt-4 w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            className="mt-4 w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm sm:text-base"
             disabled={uploading || productPhotos.length === 0}
           >
             {uploading ? 'Uploading...' : 'Upload Proof'}
           </button>
           <button
             onClick={handleRateClient}
-            className="mt-2 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="mt-2 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm sm:text-base"
           >
             Rate Client
           </button>
@@ -227,9 +227,9 @@ const ProductDetails = ({ productId, onClose }) => {
       )}
 
       {memoizedProduct.assignedTraveler && !isAccepted && (
-        <p className="mt-4 text-gray-600 text-center">Already assigned to another traveler.</p>
+        <p className="mt-4 text-gray-600 text-center text-sm sm:text-sm">Already assigned to another traveler.</p>
       )}
-      {error && <p className="mt-4 text-red-600 text-center">{error}</p>}
+      {error && <p className="mt-4 text-red-600 text-center text-sm sm:text-sm">{error}</p>}
     </div>
   );
 };
