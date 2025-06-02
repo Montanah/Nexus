@@ -40,15 +40,18 @@ const SignUp = () => {
     apple: false,
   });
   const [socialError, setSocialError] = useState('');
+  const [isProcessingCallback, setIsProcessingCallback] = useState(false)
 
   // Handle OAuth callback
   useEffect(() => {
     const handleCallback = async () => {
       const query = new URLSearchParams(location.search);
       const code = query.get('code');
+      const state = query.get('state');
       const provider = query.get('state')?.includes('google') ? 'google' : 'apple'; // Extract provider from state
 
       if (code && provider) {
+        setIsProcessingCallback(true);
         setLoading(true);
         setError('');
         try {
@@ -69,8 +72,10 @@ const SignUp = () => {
         } catch (error) {
           console.error('Social callback error:', error);
           setError(error.message || 'Failed to process social signup');
+          setStep('register');
         } finally {
-          setLoading(false);
+          setIsProcessingCallback(false);
+          // setLoading(false);
         }
       }
     };
@@ -79,6 +84,16 @@ const SignUp = () => {
       handleCallback();
     }
   }, [location, navigate, socialLogin]);
+
+  // Improved error extraction
+  const getErrorMessage = (error) => {
+    if (error.response) {
+      return error.response.data?.message || 
+             error.response.data?.error ||
+             JSON.stringify(error.response.data.data);
+    }
+    return error.message || 'An unexpected error occurred';
+  };
 
   // Form validation
   const validateForm = () => {
@@ -150,13 +165,12 @@ const SignUp = () => {
       const response = await signup(formData);
       if (response.status === 201) {
         setStep('verify');
+      } else {
+        throw new Error(response.message || 'Signup failed');
       }
     } catch (error) {
       console.error('Signup error:', error);
-      setError(
-        error.response?.data ||
-        'Something went wrong. Please try again.'
-      );
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -193,10 +207,7 @@ const SignUp = () => {
       }
     } catch (error) {
       console.error('Verification error:', error);
-      setError(
-        error.response?.data?.message ||
-        'Verification failed. Please try again.'
-      );
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -232,10 +243,7 @@ const SignUp = () => {
       }
     } catch (error) {
       console.error('Social verification error:', error);
-      setError(
-        error.response?.data?.message ||
-        'Verification failed. Please try again.'
-      );
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -252,6 +260,7 @@ const SignUp = () => {
     } catch (error) {
       console.error(`Error initiating ${platform} signup:`, error);
       setSocialError(`Failed to initiate ${platform} signup`);
+    } finally {
       setSocialLoading((prev) => ({ ...prev, [platform]: false }));
     }
   };
@@ -259,7 +268,12 @@ const SignUp = () => {
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-indigo-50 to-purple-100 p-4">
       <Header />
-
+      {isProcessingCallback ? (
+        <div className="flex-grow flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
+          <p className="text-indigo-700 font-medium">Processing social login...</p>
+        </div>
+      ) : (
       <div className="flex-grow flex items-center justify-center">
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8 mt-10">
           <div className="text-right mb-4">
@@ -408,7 +422,7 @@ const SignUp = () => {
           </div>
         </div>
       </div>
-
+      )}
       <div className="mt-auto w-full flex justify-center items-center text-gray-500 text-sm">
         <Footer />
       </div>

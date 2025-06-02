@@ -14,14 +14,19 @@ const RatingForm = ({ isTraveler }) => {
 
   const handleSubmit = async () => {
     try {
+      if (rating < 1 || rating > 5) {
+        setError('Rating must be between 1 and 5');
+        return;
+      }
+
       const data = {
         productId,
-        userId,
         rating,
         comment,
       };
 
       if (isTraveler) {
+        console.log('Traveler rates client, data:', data);
         await rateClient(data); // Traveler rates client
         navigate('/traveler-dashboard');
       } else {
@@ -31,7 +36,7 @@ const RatingForm = ({ isTraveler }) => {
       setError(null);
     } catch (error) {
       console.error('Error submitting rating:', error);
-      setError('Failed to submit rating. Please try again.');
+      setError(error.response?.data?.data?.message || error.message || 'Failed to submit rating. Please try again.');
     }
   };
 
@@ -43,14 +48,18 @@ const RatingForm = ({ isTraveler }) => {
         </h1>
         {error && <p className="text-red-600 mb-4 text-center">{error}</p>}
         <label className="block mb-2 text-blue-600">Rating (1-5)</label>
-        <input
-          type="number"
-          min="1"
-          max="5"
-          value={rating}
-          onChange={(e) => setRating(Number(e.target.value))}
-          className="w-full mb-4 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <select
+            value={rating}
+            onChange={(e) => setRating(Number(e.target.value))}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="0">Select rating</option>
+            {[1, 2, 3, 4, 5].map((num) => (
+              <option key={num} value={num}>
+                {num} star{num !== 1 ? 's' : ''}
+              </option>
+            ))}
+          </select>
         <label className="block mb-2 text-blue-600">Comment (Optional)</label>
         <textarea
           value={comment}

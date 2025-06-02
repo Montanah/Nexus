@@ -101,7 +101,7 @@ const productSchema = new mongoose.Schema({
     },
     deliveryStatus: {
         type: String,
-        enum: ["Pending", "Assigned", "Shipped", "Delivered", "Cancelled", "client_confirmed", "traveler_confirmed"],
+        enum: ["Pending", "Assigned", "Shipped", "Delivered", "Cancelled", "Client Confirmed", "Traveler Confirmed", "Complete"],
         default: "Pending"
     },
 }, { timestamps: true });

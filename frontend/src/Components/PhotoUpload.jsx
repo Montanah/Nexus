@@ -6,54 +6,81 @@ const PhotoUpload = ({ photos, setPhotos, className }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Ensure photos is always an array
+  const safePhotos = Array.isArray(photos) ? photos : [];
+
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      // Process each file
-      const processedPhotos = await Promise.all(
-        files.map(async (file) => {
-          // Check file type
+    try {
+      const processedPhotos = [];
+    
+      for (const file of files) {
+        try {
           if (!file.type.startsWith('image/')) {
             throw new Error('Only image files are allowed');
           }
 
-          // Check file size (5MB limit)
           if (file.size > 5 * 1024 * 1024) {
             throw new Error('File size should be less than 5MB');
           }
 
-          // Compress and convert to base64
           const base64String = await compressImage(file);
-          return {
+          const fullBase64 = base64String.startsWith('data:') ? base64String : `data:${file.type};base64,${base64String}`;
+
+          if (!base64String) throw new Error('Image compression failed');
+
+          processedPhotos.push({
+            id: Date.now() + Math.random(), // Add unique ID for better key management
             name: file.name,
             type: file.type,
             size: file.size,
-            base64: base64String
-          };
-        })
-      );
+            base64: fullBase64,
+          });
+          
+        } catch (innerErr) {
+          console.error('Skipping file due to error:', innerErr);
+          setError(prev => prev || innerErr.message); // Keep first error, don't overwrite
+        }
+      }
 
-      // Update photos state
-      setPhotos(prev => [...prev, ...processedPhotos]);
+      if (processedPhotos.length > 0) {
+        console.log('Processed photos:', processedPhotos.length);
+        // Use functional update to ensure we get the latest state
+        setPhotos((prevPhotos) => {
+          const safePrevPhotos = Array.isArray(prevPhotos) ? prevPhotos : [];
+          const newPhotos = [...safePrevPhotos, ...processedPhotos];
+          console.log('Setting photos:', newPhotos);
+          return newPhotos;
+        });
+      } else if (processedPhotos.length === 0 && files.length > 0) {
+        // All files failed to process
+        setError('No valid images could be processed');
+      }
+
     } catch (err) {
-      setError(err.message);
-      console.error('Error processing photos:', err);
+      setError('Unexpected error occurred while uploading photos');
+      console.error('Error in handleFileChange:', err);
     } finally {
       setLoading(false);
     }
   };
 
   const removePhoto = (index) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
+    setPhotos(prevPhotos => {
+      const safePrevPhotos = Array.isArray(prevPhotos) ? prevPhotos : [];
+      const newPhotos = safePrevPhotos.filter((_, i) => i !== index);
+      console.log('Removing photo at index', index, 'new photos:', newPhotos);
+      return newPhotos;
+    });
   };
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`space-y-4 ${className || ''}`}>
       <div className="flex flex-col space-y-2">
         <label className="text-sm font-medium text-gray-700">
           Product Photos
@@ -80,19 +107,21 @@ const PhotoUpload = ({ photos, setPhotos, className }) => {
       </div>
 
       {/* Photo Preview */}
-      {photos.length > 0 && (
+      {safePhotos.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {photos.map((photo, index) => (
-            <div key={index} className="relative group">
+          {safePhotos.map((photo, index) => (
+            <div key={photo.id || index} className="relative group">
               <img
                 src={photo.base64}
                 alt={`Preview ${index + 1}`}
                 className="w-full h-32 object-cover rounded-lg"
+                onError={() => console.error('Failed to load image:', photo.name)}
               />
               <button
                 type="button"
                 onClick={() => removePhoto(index)}
-                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                title="Remove photo"
               >
                 <svg
                   className="w-4 h-4"
@@ -119,6 +148,7 @@ const PhotoUpload = ({ photos, setPhotos, className }) => {
 PhotoUpload.propTypes = {
   photos: PropTypes.arrayOf(PropTypes.object).isRequired,
   setPhotos: PropTypes.func.isRequired,
+  className: PropTypes.string,
 };
 
 export default PhotoUpload;

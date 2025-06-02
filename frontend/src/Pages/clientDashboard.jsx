@@ -6,6 +6,15 @@ import { FaSearch, FaPlus, FaBox } from 'react-icons/fa';
 import { useAuth } from '../Context/AuthContext';
 import { fetchOrders, updateDeliveryStatus, updateProductDeliveryStatus } from '../Services/api';
 
+const DELIVERY_STATUS = {
+  PENDING: 'Pending',
+  ASSIGNED: 'Assigned',
+  SHIPPED: 'Shipped',
+  TRAVELER_CONFIRMED: 'Traveler Confirmed',
+  CLIENT_CONFIRMED: 'Client Confirmed',
+  COMPLETE: 'Complete',
+};
+
 const ClientDashboard = () => {
   const navigate = useNavigate();
   const {userId, logout, loading: authLoading } = useAuth(); // Rename to avoid confusion
@@ -39,9 +48,6 @@ const ClientDashboard = () => {
     loadOrders();
   }, [userId, authLoading, navigate]);
 
-  // const filteredOrders = orders.filter(order =>
-  //   order.itemName?.toLowerCase().includes(searchQuery.toLowerCase())
-  // );
   const filteredOrders = Array.isArray(orders)
     ? orders.filter(order => 
         order.items.some(item =>
@@ -65,17 +71,17 @@ const ClientDashboard = () => {
         throw new Error('Order not found');
       }
 
-      const currentStatus = order.deliveryStatus;
-      let newStatus = 'client_confirmed';
-      if (currentStatus === 'traveler_confirmed') {
-        newStatus = 'delivered';
+      if (order.deliveryStatus !== DELIVERY_STATUS.TRAVELER_CONFIRMED) {
+        throw new Error('Order must be in Traveler Confirmed status to confirm delivery');
       }
+
+      const newStatus = DELIVERY_STATUS.CLIENT_CONFIRMED;
       const updatedOrder = await updateDeliveryStatus(orderId, newStatus);
 
       setOrders(prev =>
-        prev.map(o => (o.id === orderId ? { ...o, deliveryStatus: updatedOrder.deliveryStatus, delivered: newStatus === 'delivered' } : o))
+        prev.map(o => (o.id === orderId ? { ...o, deliveryStatus: updatedOrder.deliveryStatus, delivered: newStatus === 'Delivered' } : o))
       );
-      setSelectedOrder(prev => (prev?.id === orderId ? { ...prev, deliveryStatus: updatedOrder.deliveryStatus, delivered: newStatus === 'delivered' } : prev));
+      setSelectedOrder(prev => (prev?.id === orderId ? { ...prev, deliveryStatus: updatedOrder.deliveryStatus, delivered: newStatus === 'Delivered' } : prev));
     } catch (err) {
       setError('Failed to confirm delivery: ' + err.message);
     }
@@ -104,12 +110,10 @@ const ClientDashboard = () => {
         throw new Error('Product item not found in order');
       }
 
-      const currentStatus = item.deliveryStatus;
-      let newStatus = 'client_confirmed';
-
-      if (currentStatus === 'traveler_confirmed') {
-        newStatus = 'delivered';
+      if (item.deliveryStatus !== DELIVERY_STATUS.TRAVELER_CONFIRMED) {
+        throw new Error('Product must be in Traveler Confirmed status to confirm delivery');
       }
+      const newStatus = DELIVERY_STATUS.CLIENT_CONFIRMED;
 
       // Call backend
       await updateProductDeliveryStatus(productId, newStatus);
@@ -140,8 +144,8 @@ const ClientDashboard = () => {
     }
   };
 
-  const handleRateTraveler = (orderId) => {
-    navigate(`/rate-product/${orderId}`, { state: { isTraveler: false } });
+  const handleRateTraveler = (productId) => {
+    navigate(`/rate-product/${productId}`, { state: { isTraveler: false } });
   };
 
   const handleLogout = async () => {
@@ -257,7 +261,7 @@ const ClientDashboard = () => {
                     { label: 'Payment Status', value: selectedOrder.paymentStatus || 'Pending' },
                     { label: 'Date to be Delivered', value: formatDate(selectedOrder.items[0]?.product.deliverydate) || 'TBD' },
                     { label: 'Delivered', value: selectedOrder.delivered ? 'Yes' : 'No' },
-                    { label: 'Delivery Status', value: selectedOrder.deliveryStatus || 'Pending' },
+                    { label: 'Delivery Status', value: selectedOrder.deliveryStatus || DELIVERY_STATUS.PENDING },
                   ].map((step, index) => (
                     <div key={index} className="flex items-start mb-6 relative">
                       <div className="flex flex-col items-center mr-4">
@@ -281,22 +285,30 @@ const ClientDashboard = () => {
                     </div>
                   ))}
                 </div>
-                {selectedOrder.deliveryStatus !== 'delivered' && (
+                {selectedOrder.deliveryStatus === DELIVERY_STATUS.TRAVELER_CONFIRMED && (
                   <button
                     onClick={() => handleConfirmDelivery(selectedOrder._id)}
                     className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    disabled={selectedOrder.deliveryStatus === 'client_confirmed'}
+                    disabled={selectedOrder.deliveryStatus === 'Client Confirmed'}
                   >
-                    {selectedOrder.deliveryStatus === 'client_confirmed' ? 'Awaiting Traveler' : 'Confirm Delivery'}
+                    {selectedOrder.deliveryStatus === 'Client Confirmed' ? 'Awaiting Traveler' : 'Confirm Delivery'}
                   </button>
                 )}
-                {selectedOrder.deliveryStatus === 'delivered' && (
+                {[DELIVERY_STATUS.CLIENT_CONFIRMED, DELIVERY_STATUS.COMPLETE].includes(
+                  selectedOrder.deliveryStatus
+                ) && (
                   <button
                     onClick={() => handleRateTraveler(selectedOrder.id)}
                     className="mt-4 w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                   >
                     Rate Traveler
                   </button>
+                )}
+                {selectedOrder.deliveryStatus === DELIVERY_STATUS.CLIENT_CONFIRMED && (
+                  <p className="mt-2 text-gray-600 text-center">Awaiting Traveler Proof Upload</p>
+                )}
+                {selectedOrder.deliveryStatus === DELIVERY_STATUS.COMPLETE && (
+                  <p className="mt-2 text-green-600 text-center">Delivery Completed</p>
                 )}
               </div>
               <div className="bg-white rounded-xl shadow-md p-6 w-full md:w-3/4 lg:w-1/2">
@@ -323,25 +335,34 @@ const ClientDashboard = () => {
                       </p>
 
                       {/* Conditionally render buttons for each product */}
-                      {item.product?.deliveryStatus !== 'delivered' && (
+                      <p className="text-gray-900 font-medium">Delivery Status</p>
+                      <p className="text-gray-600 mb-2">
+                        {item.deliveryStatus || DELIVERY_STATUS.PENDING}
+                      </p>
+                      {item.deliveryStatus === DELIVERY_STATUS.TRAVELER_CONFIRMED && (
                         <button
                           onClick={() => handleProductDelivery(item.product._id)}
                           className="mt-2 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                          disabled={item.product?.deliveryStatus === 'client_confirmed'}
                         >
-                          {item.product?.deliveryStatus === 'client_confirmed'
-                            ? 'Awaiting Traveler'
-                            : 'Confirm Delivery'}
+                          Confirm Delivery
                         </button>
                       )}
 
-                      {item.product?.deliveryStatus === 'delivered' && (
+                      {[DELIVERY_STATUS.CLIENT_CONFIRMED, DELIVERY_STATUS.COMPLETE].includes(
+                        item.deliveryStatus
+                      ) && (
                         <button
                           onClick={() => handleRateTraveler(item.product._id)}
                           className="mt-2 w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                         >
                           Rate Traveler
                         </button>
+                      )}
+                      {item.deliveryStatus === DELIVERY_STATUS.CLIENT_CONFIRMED && (
+                        <p className="mt-2 text-gray-600">Delivery Confirmed</p>
+                      )}
+                      {item.deliveryStatus === DELIVERY_STATUS.COMPLETE && (
+                        <p className="mt-2 text-green-600">Delivery Completed</p>
                       )}
                     </div>
                   ))

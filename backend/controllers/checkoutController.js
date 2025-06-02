@@ -8,14 +8,6 @@ const { response } = require("../utils/responses");
 exports.createOrder = async (req, res) => {
     try {
         const userId = req.user.id;
-        // const { cart } = req.body;
-
-        // if (!userId || !cart || !Array.isArray(cart.items)) {
-        //     return response(res, 400, { 
-        //         success: false, 
-        //         message: 'Invalid request data Invalid cart data' 
-        //     });
-        // }
         console.log(userId);
         const userCart = await Cart.findOne({ user: userId }).populate('items.product');
         if (!userCart) {
@@ -212,10 +204,10 @@ exports.updateDeliveryStatus = async (req, res) => {
       );
 
       if (historyEntry) {
-        if (deliveryStatus === 'traveler_confirmed') {
+        if (deliveryStatus === 'Traveler Confirmed') {
           historyEntry.status = 'Awaiting Client Confirmation';
-        } else if (deliveryStatus === 'client_confirmed') {
-          historyEntry.status = 'Completed';
+        } else if (deliveryStatus === 'Client Confirmed') {
+          historyEntry.status = 'Delivered';
         }
       }
 
@@ -273,7 +265,6 @@ exports.updateProductDeliveryStatus = async (req, res) => {
 
     if (item) {
       item.deliveryStatus = deliveryStatus;
-
     }
 
     await order.save();

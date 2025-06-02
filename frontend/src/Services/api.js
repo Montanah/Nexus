@@ -505,9 +505,11 @@ export const createCheckoutSession = async (userId, cartItems, total, voucherCod
 
 // TRAVELER DASHBOARD ENDPOINTS
 // Get traveler orders (Protected)
-export const getTravelerOrders = async (filters) => {
-  const response = await api.get('/travelers/orders', { params: filters });
-  return response;
+export const getTravelerOrders = async (userId) => {
+  console.log('getTravelerOrders called with userId:', userId);
+  const response = await api.get(`/api/travelers/products/claimed/${userId}`);
+  console.log('getTravelerOrders response:', response.data.data.products);
+  return response.data.data.products;
 };
 
 // Get traveler earnings (Protected)
@@ -539,15 +541,11 @@ export const getTravelerHistory = async (userId) => {
 // Assign fulfillment to traveler (Protected)
 // api.js
 export const assignFulfillment = async (productId) => {
-  try {
-    const response = await api.put(`/api/orders/${productId}/claim`, { productId });
-    console.log('assignFulfillment response:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('assignFulfillment error:', error.response?.data || error.message);
-    throw new Error(`Request failed with status ${error.response?.status || 'unknown'}`);
-  }
+  const response = await api.post('/api/travelers/products/claim', { productId });
+  console.log('assignFulfillment response:', response.data);
+  return response.data;
 };
+
 
 // Update delivery status (protected)
 export const updateDeliveryStatus = async (productId, deliveryStatus) => {
@@ -578,40 +576,66 @@ export const updateProductDeliveryStatus = async (productId, deliveryStatus) => 
   }
 };
 
-// Update delivery proof (protected)
-export const uploadDeliveryProof = async (orderId, file) => {
+export const uploadDeliveryProof = async (productId, photo) => {
+  console.log('uploadDeliveryProof called with productId:', productId, 'and photo:', photo);
   try {
-    if (!orderId || !file) {
-      throw new Error('Missing order ID or file');
+    if (!productId || !photo) {
+      throw new Error('Missing product ID or photo data');
     }
-    const base64String = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result.split(',')[1]); // Remove data URL prefix
-      reader.onerror = error => reject(error);
-    });
 
-    const response = await api.post('/api/travelers/orders/${orderId}/delivery-proof', {
-      deliveryProof: base64String,
-      mimeType: file.type
-    });
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!validTypes.includes(photo.type)) {
+      throw new Error('Invalid file type. Only JPEG, PNG, PDF allowed');
+    }
 
+    // Validate file size (max 5MB)
+    if (photo.size > 5 * 1024 * 1024) {
+      throw new Error('File size exceeds 5MB limit');
+    }
+
+    // Use the base64 string directly
+    const base64String = photo.base64;
+    
+    // Remove data URL prefix if present
+    const cleanBase64 = base64String.includes(',') 
+      ? base64String.split(',')[1] 
+      : base64String;
+    console.log('cleanBase64:', cleanBase64, productId);
+    const response = await api.put(`/api/travelers/proof/${productId}`, {
+      deliveryProof: cleanBase64,
+      mimeType: photo.type,
+    });
 
     return {
       success: true,
-      orderId,
-      proofUrl: response.data.proofUrl
+      productId,
+      proofUrl: response.data.proofUrl,
     };
-
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('Upload error:', error.response?.data || error.message);
     return {
       success: false,
       message: error.response?.data?.message || 'Failed to upload proof',
-      error: error.message
+      error: error.message,
     };
   }
 };
+
+export const uploadDeliveryProofF = async (productId, formData) => {
+  try {
+    const response = await api.post(`/api/travelers/deliveryProof/${productId}/delivery-proof`, formData, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to upload proof');
+  }
+};
+    
 
 // RATING ENDPOINTS
 // Rate client (Protected)
@@ -635,6 +659,7 @@ export const rateTraveler = async (ratingData) => {
     throw error;
   }
 };
+
 
 // Get traveler ratings (Protected)
 export const getTravelerRatings = async (userId) => {

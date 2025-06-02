@@ -9,10 +9,15 @@ const mongoose = require("mongoose");
 // Get all claimed products for a traveler
 exports.getClaimedProducts = async (req, res) => {
   try {
-    const travelerId = req.params.travelerId;
+    const userId = req.params.travelerId;
 
-    const products = await Product.find({ claimedBy: travelerId })
-
+    const travelerid = await Traveler.findOne({ userId: userId });
+    if (!travelerid) {
+      return response(res, 404, { message: 'Traveler not found' });
+    }
+    
+    const products = await Product.find({ claimedBy: travelerid._id })
+    
     return response(res, 200, { message: 'Claimed products fetched successfully', products });
   } catch (error) {
     return response(res, 500, { message: 'Server error' });
@@ -225,7 +230,7 @@ exports.assignFulfilment = async (req, res) => {
 
 exports.uploadDeliveryProof = async (req, res) => {
   try {
-    const orderId = req.params;
+    const { productId } = req.params;
     const { deliveryProof, mimeType } = req.body;
 
      if (!/^[A-Za-z0-9+/]+={0,2}$/.test(deliveryProof)) {
@@ -237,29 +242,53 @@ exports.uploadDeliveryProof = async (req, res) => {
       return response(res, 400, 'Invalid file type. Only JPEG, PNG, PDF allowed');
     }
 
-    if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      return response(res, 400, { message: 'Invalid orderId' });
+    const buffer = Buffer.from(deliveryProof, 'base64');
+    if (buffer.length > 5 * 1024 * 1024) {
+      return response(res, 400, { message: 'File size exceeds 5MB limit' });
     }
 
-    const order = await Order.findById(orderId);
+    const order = await Order.findOne({
+      'items.product': productId,
+    });
 
     if (!order) {
-      return response(res, 404, { message: 'Order not found' });
+      return response(res, 404, { message: 'Order not found for this product' });
     }
 
-    if (!req.user.id) {
-      return response(res, 403, { message: 'Unauthorized: You can only upload delivery proof for your own orders' });
+    const item = order.items.find(i => i.product.toString() === productId);
+    if (!item) {
+      return response(res, 404, { message: 'Product not found in order' });
+    }
+
+    if (item.deliveryStatus !== 'Client Confirmed') {
+      return response(res, 400, { message: 'Product must be in Client Confirmed status to upload proof' });
     }
 
     //Store
-    order.deliveryProof = `data:${mimeType};base64,${deliveryProof}`;
-    order.deliveryStatus = 'Delivered';
+    item.deliveryProof = `data:${mimeType};base64,${deliveryProof}`;
+    item.deliveryStatus = 'Complete';
     await order.save();
+
+    const traveler = await Traveler.findOne({ userId: req.user.id });
+    if (!traveler) {
+      return response(res, 404, { message: 'Traveler not found' });
+    }
+
+    //Add to traveler history
+    traveler.history.push({
+      orderId: order._id,
+      rewardAmount: item.rewardAmount,
+      status: 'Complete',
+      completedAt: new Date(),
+    });
+
+    traveler.earnings.pendingPayments += item.rewardAmount;
+    await traveler.save();
 
     return response(res, 200, {
       message: 'Delivery proof uploaded successfully',
-      order: orderId,
-      proofUrl: order.deliveryProof
+      order: productId,
+      proofUrl: item.deliveryProof
     });
   } catch (err) {
     console.error('Upload delivery proof error:', err);
@@ -290,3 +319,81 @@ exports.getTravelersOrders = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 }
+
+exports.uploadDeliveryProofFile = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const file = req.file;
+    const { mimeType } = req.body;
+
+    if (!file) {
+      return response(res, 400, { message: 'No file uploaded' });
+    }
+
+    const validMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!validMimeTypes.includes(file.mimetype)) {
+      return response(res, 400, { message: 'Invalid file type. Only JPEG, PNG, PDF allowed' });
+    }
+
+    // Convert file to Base64
+    const base64String = file.buffer.toString('base64');
+
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(base64String)) {
+      return response(res, 400, { message: 'Invalid base64 format' });
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      return response(res, 400, { message: 'File size exceeds 5MB limit' });
+    }
+
+    const order = await Order.findOne({
+      'items.product': productId,
+    });
+
+    if (!order) {
+      return response(res, 404, { message: 'Order not found for this product' });
+    }
+
+    const item = order.items.find((i) => i.product.toString() === productId);
+    if (!item) {
+      return response(res, 404, { message: 'Product not found in order' });
+    }
+
+    if (item.claimedBy.toString() !== req.user.id) {
+      return response(res, 403, { message: 'Unauthorized: Not your delivery' });
+    }
+
+    if (item.deliveryStatus !== 'Client Confirmed') {
+      return response(res, 400, { message: 'Product must be in Client Confirmed status to upload proof' });
+    }
+
+    // Store
+    item.deliveryProof = `data:${file.mimetype};base64,${base64String}`;
+    item.deliveryStatus = 'Complete';
+    await order.save();
+
+    const traveler = await Traveler.findOne({ userId: req.user.id });
+    if (!traveler) {
+      return response(res, 404, { message: 'Traveler not found' });
+    }
+
+    traveler.history.push({
+      orderId: order._id,
+      rewardAmount: item.rewardAmount,
+      status: 'Complete',
+      completedAt: new Date(),
+    });
+
+    traveler.earnings.pendingPayments += item.rewardAmount;
+    await traveler.save();
+
+    return response(res, 200, {
+      message: 'Delivery proof uploaded successfully',
+      order: productId,
+      proofUrl: item.deliveryProof,
+    });
+  } catch (err) {
+    console.error('Upload delivery proof error:', err);
+    return response(res, 500, { message: 'Server error' });
+  }
+};

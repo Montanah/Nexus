@@ -68,7 +68,7 @@ exports.createUser = async (req, res) => {
                 avatar: user.avatar,
                 phone_number: user.phone_number
             },
-             emailSent: emailResult
+             
         });
     } catch (error) {
         console.error("Error registering user:", error);

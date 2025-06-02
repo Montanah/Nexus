@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const travelerController = require("../controllers/travelerController");
 const { authenticateClient } = require("../middlewares/authMiddleware");
+const multer = require('multer');
+const upload = multer({ limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
 
 
 // Claim a product
@@ -20,5 +22,8 @@ router.get('/orders', authenticateClient, travelerController.getUnassignedOrders
 
 router.get('/orders/:travelerId', authenticateClient, travelerController.getTravelersOrders);
 
-router.put('/proof/:orderId', authenticateClient, travelerController.uploadDeliveryProof);
+router.put('/proof/:productId', authenticateClient, travelerController.uploadDeliveryProof);
+
+router.post('/deliveryProof/:productId', upload.single('deliveryProof'), authenticateClient, travelerController.uploadDeliveryProofFile);
+
 module.exports = router;

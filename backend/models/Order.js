@@ -30,9 +30,31 @@ const orderSchema = new mongoose.Schema({
             },
             deliveryStatus: {
                 type: String,
-                enum: ["Pending", "Assigned", "Shipped", "Delivered", "Cancelled", "client_confirmed", "traveler_confirmed"],
+                enum: ["Pending", "Assigned", "Shipped", "Delivered", "Cancelled", "Client Confirmed", "Traveler Confirmed", "Complete"],
                 default: "Pending"
-            }
+            },
+            clientRating: {
+                type: Number,
+                min: 1,
+                max: 5,
+            },
+            travelerRating: {
+                type: Number,
+                min: 1,
+                max: 5,
+            },
+            clientComment: {
+                type: String,
+                maxlength: 500,
+            },
+            travelerComment: {
+                type: String,
+                maxlength: 500,
+            },
+            deliveryProof: {
+                type: String,
+                default: null,
+            },
         }
     ],    
     totalAmount: { type: Number, required: true },
@@ -47,35 +69,13 @@ const orderSchema = new mongoose.Schema({
     },
     deliveryStatus: {
         type: String,
-        enum: ["Pending", "Assigned", "Shipped", "Delivered", "Cancelled", "client_confirmed", "traveler_confirmed"],
+        enum: ["Pending", "Assigned", "Shipped", "Delivered", "Cancelled", "CLient Confirmed", "Traveler Confirmed", "Complete"],
         default: "Pending"
     },
     urgencyLevel: {
         type: String,
         enum: ["low", "medium", "high"],
         default: "low"
-    },
-    clientRating: {
-        type: Number,
-        min: 1,
-        max: 5,
-    },
-    travelerRating: {
-        type: Number,
-        min: 1,
-        max: 5,
-    },
-    clientComment: {
-        type: String,
-        maxlength: 500,
-    },
-    travelerComment: {
-        type: String,
-        maxlength: 500,
-    },
-    deliveryProof: {
-        type: String,
-        default: null,
     },
 }, { timestamps: true });
 
