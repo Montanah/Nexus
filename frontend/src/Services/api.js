@@ -145,7 +145,21 @@ export const initiateSocialLogin = async (provider, role) => {
     throw error;
   }
 };
-
+export const initiateSocialSignup = async (provider) => {
+  try {
+    console.log('initiating social signup...', provider);
+    const response = await api.get(`/api/auth/${provider}/initiate`);
+    console.log('initiateSocialSignup response:', response);
+    if (response.data && response.data.url) {
+      window.location.href = response.data.url;
+    } else {
+      throw new Error('Failed to get social signup URL');
+    }
+  } catch (error) {
+    console.error(`Error initiating ${provider} signup:`, error);
+    throw error;
+  }
+}
 export const handleSocialCallback = async (provider, code) => {
   try {
     const response = await api.post(`/api/auth/${provider}/callback`, { code });
@@ -216,8 +230,8 @@ export const fetchCart = async () => {
 };
 
 // Delete cart item (Protected)
-export const deleteCartItem = async (userId, productId) => {
-  const response = await api.delete(`/api/cart/${userId}/${productId}`);
+export const deleteCartItem = async (productId) => {
+  const response = await api.delete(`/api/cart/${productId}`);
   return response.data;
 };
 

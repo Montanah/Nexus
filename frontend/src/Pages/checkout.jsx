@@ -68,7 +68,7 @@ const Checkout = () => {
   // Handle delete item
   const handleDelete = async (productId) => {
     try {
-      await deleteCartItem(userId, productId);
+      await deleteCartItem(productId);
       setCartItems(cartItems.filter(item => item.productId !== productId));
     } catch (err) {
       setError('Failed to delete item');

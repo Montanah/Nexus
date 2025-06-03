@@ -2,6 +2,8 @@ const express = require("express");
 const passport = require("passport");
 const authController = require("../controllers/authController");
 const { authenticateClient } = require("../middlewares/authMiddleware");
+const { getOAuthRedirectUrl } = require('../controllers/Passport');
+
 const router = express.Router();
 
 //router.post("/register", authController.register);
@@ -200,7 +202,8 @@ router.get('/google', passport.authenticate('google', {
  */
 router.get(
   "/google/callback", 
-  passport.authenticate("google", { session: false, failureRedirect: "/login?error=google_auth_failed" }), 
+  passport.authenticate("google", 
+    { session: false, failureRedirect: "/login?error=google_auth_failed" }), 
   authController.socialLogin);
 
 // Facebook OAuth routes
@@ -381,19 +384,14 @@ router.get('/get-user-id', authController.getUserIdFromCookie);
 
 router.post('/verify-social', authController.verifySocialUser);
 
-router.get('/:provider', (req, res) => {
-  const { provider } = req.params;
-  const state = req.query.state || '';
-
-  if (provider === 'google') {
-    return res.json({ url: `/api/auth/google?state=${encodeURIComponent(state)}` });
-  }
-
-  if (provider === 'apple') {
-    return res.json({ url: `/api/auth/apple?state=${encodeURIComponent(state)}` });
-  }
-
-  return res.status(400).json({ message: 'Invalid provider' });
+router.get('/:provider/initiate', (req, res) => {
+  const provider = req.params.provider;
+  const redirectUri = getOAuthRedirectUrl(provider);
+  console.log(redirectUri);
+  res.json({ url: redirectUri });
 });
 
+router.get('/:provider/callback', authController.socialSignup);
+
+router.post('/verify', authController.verifySocialUser);
 module.exports = router;

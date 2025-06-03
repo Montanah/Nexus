@@ -5,7 +5,7 @@ import Header from '../Components/Header';
 import SocialLogin from '../Components/SocialLogin';
 import Footer from '../Components/Footer';
 import InputField from '../Components/InputField';
-import { signup, verifyUser, initiateSocialLogin, handleSocialCallback, verifySocialUser } from '../Services/api';
+import { signup, verifyUser, initiateSocialLogin, handleSocialCallback, verifySocialUser, initiateSocialSignup } from '../Services/api';
 
 const SignUp = () => {
   const { socialLogin } = useAuth();
@@ -50,35 +50,63 @@ const SignUp = () => {
       const state = query.get('state');
       const provider = query.get('state')?.includes('google') ? 'google' : 'apple'; // Extract provider from state
 
-      if (code && provider) {
-        setIsProcessingCallback(true);
-        setLoading(true);
-        setError('');
-        try {
-          const response = await handleSocialCallback(provider, code);
-          if (response.success) {
-            if (response.data.requiresVerification) {
-              setSocialEmail(response.data.email);
-              setSocialProvider(provider);
-              setStep('social-verify');
-            } else {
-              // Directly log in
-              await socialLogin(response.data);
-              navigate('/dashboard');
-            }
-          } else {
-            throw new Error(response.message || 'Social signup failed');
-          }
-        } catch (error) {
-          console.error('Social callback error:', error);
-          setError(error.message || 'Failed to process social signup');
-          setStep('register');
-        } finally {
-          setIsProcessingCallback(false);
-          // setLoading(false);
+      if (!code || !provider) return;
+      
+      setIsProcessingCallback(true);
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await handleSocialCallback(provider, code);
+
+        console.log('handleSocialCallback response:', response);
+
+        if (!response.success) {
+          throw new Error(response.message || 'Social signup failed');
         }
+
+        const { requiresVerification, email, token, user } = response.data;
+
+        if (requiresVerification) {
+          setSocialEmail(email);
+          setSocialProvider(provider);
+          setStep('social-verify');
+        } else {
+          await socialLogin({ token, user });
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Social callback error:', error);
+        setError(error.message || 'Failed to process social signup');
+        setStep('register');
+      } finally {
+        setIsProcessingCallback(false);
+        setLoading(false);
       }
     };
+  //       if (response.success) {
+  //         if (response.data.requiresVerification) {
+  //           setSocialEmail(response.data.email);
+  //           setSocialProvider(provider);
+  //           setStep('social-verify');
+  //         } else {
+  //           // Directly log in
+  //           await socialLogin(response.data);
+  //           navigate('/dashboard');
+  //         }
+  //       } else {
+  //         throw new Error(response.message || 'Social signup failed');
+  //       }
+  //     } catch (error) {
+  //       console.error('Social callback error:', error);
+  //       setError(error.message || 'Failed to process social signup');
+  //       setStep('register');
+  //     } finally {
+  //       setIsProcessingCallback(false);
+  //       // setLoading(false);
+  //     }
+  //   }
+  // };
 
     if (location.search.includes('code')) {
       handleCallback();
@@ -255,7 +283,10 @@ const SignUp = () => {
     setSocialError('');
 
     try {
-      await initiateSocialLogin(platform, 'client');
+      const response = await initiateSocialSignup(platform);
+      console.log("signup response", response)
+
+      // await initiateSocialLogin(platform, 'client');
       // Redirect is handled by initiateSocialLogin via window.location.href
     } catch (error) {
       console.error(`Error initiating ${platform} signup:`, error);
@@ -382,7 +413,7 @@ const SignUp = () => {
                 {loading ? 'Verifying...' : 'Verify Account'}
               </button>
             </form>
-          ) : (
+          ) : step === 'socialVerify' ? (
             <form onSubmit={handleSocialVerifySubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
@@ -408,7 +439,7 @@ const SignUp = () => {
                 {loading ? 'Verifying...' : 'Verify Social Account'}
               </button>
             </form>
-          )}
+          ): null }
 
           <div className="text-center text-sm text-gray-500 mt-6">
             By signing up, you agree to our{' '}

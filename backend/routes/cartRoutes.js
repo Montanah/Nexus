@@ -148,7 +148,7 @@ const { authenticate } = require("passport");
 
 router.post("/", authenticateClient, cartController.addToCart);
 router.get("/", authenticateClient, cartController.getCart);
-router.delete("/product/", authenticateClient, cartController.removeFromCart);
+router.delete("/:productID", authenticateClient, cartController.removeFromCart);
 
 /**
  * @swagger

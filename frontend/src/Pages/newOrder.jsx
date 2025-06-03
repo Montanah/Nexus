@@ -8,8 +8,9 @@ import InputField from '../Components/DashboardInputField';
 import PhotoUpload from '../Components/PhotoUpload';
 import PriceBreakdown from '../Components/PriceBreakdown';
 import ActionButtons from '../Components/ActionButtons';
-import { checkout, createCategory, getCategories, createProduct, fetchCart } from '../Services/api';
+import { createCategory, getCategories, createProduct, fetchCart } from '../Services/api';
 import CountryStateCityComponent from '../Components/State';
+
 
 const NewOrder = () => {
   const { userId, logout, loading: authLoading } = useAuth();
@@ -41,6 +42,9 @@ const NewOrder = () => {
   const [cart, setCart] = useState([]);
 
   const quantityOptions = Array.from({ length: 10 }, (_, i) => i + 1);
+
+  const base64Strings = productPhotos.map(photo => photo.base64);
+  console.log(base64Strings); 
 
   useEffect(() => {
     if (!authLoading && !userId) {
@@ -147,13 +151,15 @@ const NewOrder = () => {
       deliverydate: deliveryDate,
       productDescription,
       productCategory: effectiveCategory || categoryId,
-      productPhotos: productPhotos.map(photo => photo.base64),
+      productPhotos: base64Strings || [],
       weight: weight || null,
       dimensions: dimensions || null,
       shippingRestrictions: shippingRestrictions || '',
       productFee: Number(productPrice),
       urgencyLevel: 'medium',
     };
+
+    console.log('New Item:', newItem);
 
     try {
       setLoading(true);
@@ -332,7 +338,10 @@ const NewOrder = () => {
               />
             </div>
           </div>
-          <PhotoUpload photos={productPhotos} setPhotos={setProductPhotos} className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
+          <PhotoUpload 
+            photos={productPhotos} setPhotos={setProductPhotos} 
+            className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" 
+          />
           <div className="flex flex-col md:flex-row gap-4">
             <InputField label="Weight (Optional)" value={weight} onChange={setWeight} placeholder="Enter weight" className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
             <InputField label="Dimensions (Optional)" value={dimensions} onChange={setDimensions} placeholder="L x W x H" className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />

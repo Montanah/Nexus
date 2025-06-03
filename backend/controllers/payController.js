@@ -236,7 +236,7 @@ exports.createCheckoutSessionCombined = async (req, res) => {
     // Update order with payment status
     await Order.findOneAndUpdate(
       { orderNumber },
-      { paymentStatus: paymentResponse.status || 'Paid', paymentMethod }
+      { paymentStatus: 'Paid', paymentMethod }
     );
     
     return response(res, 200, {

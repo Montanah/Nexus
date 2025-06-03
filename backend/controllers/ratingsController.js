@@ -147,7 +147,7 @@ exports.travelerToClientRating = async (req, res) => {
 
     console.log(item);
     // Check delivery status
-    if (item.deliveryStatus !== 'Delivered') {
+    if (item.deliveryStatus !== 'Complete') {
       return response(res, 400, { message: 'Product must be delivered to submit a rating' });
     }
 

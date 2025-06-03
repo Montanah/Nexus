@@ -74,7 +74,7 @@ const upload = multer({ storage });
  *         description: Internal server error
  */
 // router.post("/", authenticateClient, upload.array("images", 5), productController.createProduct);
-router.post("/", authenticateClient, upload.array("images", 5), productController.createProductAndAddToCart);
+router.post("/", authenticateClient, productController.createProductAndAddToCart);
 
 /**
  * @swagger

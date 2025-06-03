@@ -14,6 +14,7 @@ const { response } = require("../utils/responses");
 const redisClient = require("../middlewares/redisClient");
 const { sendEmailNew, sendTemplatedEmail } = require("../utils/emailService");
 const cookie = require('cookie');
+const { exchangeCodeForProfile } = require("../controllers/Passport");
 
 require('dotenv').config();
 
@@ -386,7 +387,14 @@ exports.socialLogin = async (req, res) => {
         }
 
         if (!user.isVerified) {
-            return response(res, 400, "User is not verified");
+            return res.status(200).json({
+                success: true,
+                data: {
+                requiresVerification: true,
+                isNewUser: false,
+                user
+                },
+            });
         }
 
         const accessToken = generateAccessToken(user._id);
@@ -759,3 +767,87 @@ exports.verifySocialUser = async (req, res) => {
   }
 };
 
+// GET /auth/oauth/google/callback
+exports.socialSignup = async (req, res) => {
+  const { code } = req.query;
+  const provider = req.params.provider;
+
+  try {
+    const userInfo = await exchangeCodeForProfile(provider, code); 
+    console.log("userInfo:", userInfo);
+    const existingUser = await findUserByEmail(userInfo.email);
+
+    if (!existingUser) {
+      const verificationCode = generateOTP();
+      
+      await sendEmail(userInfo.email, "Verify Your Account", `Your verification code is: ${verificationCode}`);
+      await saveUser({
+        email: userInfo.email,
+        provider,
+        name: userInfo.name || '',
+        verificationCode,
+        requiresVerification: true,
+        isVerified: false
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          requiresVerification: true,
+          isNewUser: true,
+          email: userInfo.email
+        },
+      });
+    }
+
+    if (!existingUser.verified) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          requiresVerification: true,
+          isNewUser: false,
+          email: userInfo.email
+        },
+      });
+    }
+
+    // Generate tokens
+    const accessToken = generateAccessToken(userId);
+    const refreshToken = generateRefreshToken(userId);
+
+    // Store tokens in Redis
+    await redisClient.set(`authToken:${userId}`, accessToken, { EX: 15 * 60 });
+    await redisClient.set(`refreshToken:${userId}`, refreshToken, { EX: 7 * 24 * 60 * 60 });
+
+    // Set cookies
+    res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 15 * 60 * 1000
+    });
+    res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    console.log('Setting cookies:', { accessToken, refreshToken })
+    return response(res, 200, {
+        message: "Login successful",
+        token: accessToken,
+        user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            isVerified: user.isVerified,
+            avatar: user.avatar
+        }
+    });
+
+  } catch (err) {
+    console.error('OAuth error:', err);
+    res.status(500).json({ success: false, message: 'OAuth login failed' });
+  }
+};

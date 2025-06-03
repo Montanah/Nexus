@@ -527,6 +527,14 @@ const TravelerDashboard = () => {
                         </button>
                       </>
                     )}
+                    {product.deliveryStatus === DELIVERY_STATUS.COMPLETE &&(
+                      <button
+                          onClick={() => handleRateClient(product.productId)}
+                          className="mt-2 w-full bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
+                        >
+                          Rate Client
+                        </button>
+                    )}
                     {(product.deliveryStatus === DELIVERY_STATUS.CLIENT_CONFIRMED || 
                       product.deliveryStatus === DELIVERY_STATUS.DELIVERED) && (
                       <p className="mt-2 text-green-600 font-medium text-center text-sm">
@@ -619,6 +627,14 @@ const TravelerDashboard = () => {
                           Rate Client
                         </button>
                       </>
+                    )}
+                    {product.deliveryStatus === DELIVERY_STATUS.COMPLETE &&(
+                      <button
+                          onClick={() => handleRateClient(product.productId)}
+                          className="mt-2 w-full bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
+                        >
+                          Rate Client
+                        </button>
                     )}
                     {(product.deliveryStatus === DELIVERY_STATUS.CLIENT_CONFIRMED || 
                       product.deliveryStatus === DELIVERY_STATUS.DELIVERED) && (

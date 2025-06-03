@@ -76,7 +76,8 @@ exports.createProductAndAddToCart = async (req, res) => {
             deliverydate,
             productFee, 
             shippingRestrictions, 
-            urgencyLevel 
+            urgencyLevel,
+            productPhotos
         } = req.body;
 
         if (!productName || !quantity || !productDescription || !productCategory || !productFee || !deliverydate) {
@@ -107,7 +108,8 @@ exports.createProductAndAddToCart = async (req, res) => {
             return response(res, 400, "Invalid product category");
         }
 
-        const imageUrls = req.files?.map(file => file.path) || [];
+        // const imageUrls = req.files?.map(file => file.path) || [];
+        const imageUrls = productPhotos || []; 
 
         const parsedWeight = productWeight ? Number(productWeight) : null;
         if (productWeight && isNaN(parsedWeight)) {
@@ -180,7 +182,7 @@ exports.createProductAndAddToCart = async (req, res) => {
                 error: cartError.message
             });
         }
-        console.log(newProduct);
+        // console.log(newProduct);
         response(res, 201, { message: "Product created and added to cart successfully",
             product: newProduct, 
             cart: await Cart.findOne({ user: clientID }).populate('items.product', 'productName') }
@@ -375,7 +377,13 @@ exports.deleteCategory = async (req, res) => {
 
 exports.avaiableProducts = async (req, res) => {
     try {
-        const products = await Product.find({ isDelivered: false });
+        const products = await Product.find({ 
+            isDelivered: false, 
+            claimedBy: null });
+            
+        if (!products.length) {
+            return response(res, 404, { message: "No available products found" });
+        }
         return response(res, 200, { message: "Products fetched successfully", products });
     } catch (error) {
         console.error("Error", error);

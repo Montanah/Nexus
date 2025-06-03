@@ -212,7 +212,7 @@ const ProductDetails = ({ productId, onClose, travelerId }) => {
         </button>
       )}
 
-      {canUploadAndRate && memoizedProduct.deliveryStatus === DELIVERY_STATUS.CLIENT_CONFIRMED || memoizedProduct.deliveryStatus === DELIVERY_STATUS.DELIVERED (
+      {canUploadAndRate && memoizedProduct.deliveryStatus === DELIVERY_STATUS.CLIENT_CONFIRMED  (
         <>
           <PhotoUpload
             photos={productPhotos}

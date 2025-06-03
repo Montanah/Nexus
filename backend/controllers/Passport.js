@@ -1,10 +1,10 @@
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const FacebookStrategy = require("passport-facebook").Strategy;
 const AppleStrategy = require("passport-apple");
-const Client = require("../models/Client");
-const Traveler = require("../models/Traveler");
 const Users = require("../models/Users")
+const axios = require('axios');
+const { generateOTP } = require("../utils/otp-generator");
+const { sendEmail } = require("../utils/nodemailer");
 
 require('dotenv').config();
 
@@ -14,7 +14,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "process.env.GOOGLE_CALLBACK_URL",
+      callbackURL: process.env.GOOGLE_CALLBACK_URL,
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -25,14 +25,19 @@ passport.use(
           return done(null, user);
         }
 
+        const verificationCode = generateOTP();
+        await sendEmail(profile.emails[0].value, "Verify Your Account", `Your verification code is: ${verificationCode}`);
+
         // Create a new user (default to client)
         const newUser = new Users({
           name: profile.displayName,
           email: profile.emails[0].value,
-          phone_number: profile.phoneNumber,
+          phone_number: profile.phoneNumber || '',
+          verificationCode,
+          requiresVerification: true,
           password: "google-auth", // Placeholder password
         });
-
+        console.log('newUser:', newUser);
         await newUser.save();
         done(null, newUser);
       } catch (error) {
@@ -97,44 +102,66 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
+function getOAuthRedirectUrl(provider) {
+  const clientId = process.env.GOOGLE_CLIENT_ID; // or APPLE_CLIENT_ID
+  const redirectUri = encodeURIComponent(`${process.env.BACKEND_URL}/api/auth/${provider}/callback`);
 
-// Facebook OAuth Strategy
-// passport.use(
-//   new FacebookStrategy(
-//     {
-//       clientID: process.env.FACEBOOK_APP_ID,
-//       clientSecret: process.env.FACEBOOK_APP_SECRET,
-//       callbackURL: process.env.FACEBOOK_CALLBACK_URL,
-//       profileFields: ["id", "displayName", "email"],
-//     },
-//     async (accessToken, refreshToken, profile, done) => {
-//       try {
-//         // Check if user already exists
-//         // let user = await Client.findOne({ email: profile.emails[0].value });
-//         // if (!user) {
-//         //   user = await Traveler.findOne({ email: profile.emails[0].value });
-//         // }
+  if (provider === 'google') {
+    return `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${clientId}&` +
+      `redirect_uri=${redirectUri}&` +
+      `response_type=code&` +
+      `scope=openid%20email%20profile&` +
+      `access_type=offline&` +
+      `prompt=consent`;
+  }
 
-//         let user = await Users.findOne({ email: profile.emails[0].value });
+  if (provider === 'apple') {
+    // Apple-specific logic (more complex, involves JWT etc.)
+    return `https://appleid.apple.com/auth/authorize?...`; // needs proper values
+  }
 
-//         if (user) {
-//           return done(null, user);
-//         }
+  throw new Error(`Unsupported provider: ${provider}`);
+}
 
-//         // Create a new user (default to client)
-//         const newUser = new Users({
-//           name: profile.displayName,
-//           email: profile.emails[0].value,
-//           password: "facebook-auth", // Placeholder password
-//         });
+async function exchangeCodeForProfile(provider, code) {
+  if (provider === 'google') {
+   
+    const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', null, {
+      params: {
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: process.env.GOOGLE_CALLBACK_URL,
+        grant_type: 'authorization_code',
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
 
-//         await newUser.save();
-//         done(null, newUser);
-//       } catch (error) {
-//         done(error, null);
-//       }
-//     }
-//   )
-// );
+    const { access_token } = tokenResponse.data;
 
-//APPLE ID
+    // 2. Use access token to get user info
+    const profileResponse = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+
+    return {
+      email: profileResponse.data.email,
+      name: profileResponse.data.name,
+    };
+  }
+
+  if (provider === 'apple') {
+    // Apple requires JWT token handling — do you want help with this part?
+    throw new Error('Apple login not implemented yet.');
+  }
+
+  throw new Error(`Unsupported provider: ${provider}`);
+}
+
+
+module.exports = { getOAuthRedirectUrl, exchangeCodeForProfile };
