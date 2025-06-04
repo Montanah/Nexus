@@ -380,61 +380,63 @@ exports.resendVerification = async (req, res) => {
  * @param {Object} res - The response object
  */
 exports.socialLogin = async (req, res) => {
-    try {
-        const user = req.user;
-        if (!user) {
-            return response(res, 400, "Authentication failed");
-        }
+  try {
+    const userProfile = req.user;
+    const state = req.query.state || '';
+    console.log('socialLogin userProfile:', userProfile, 'state:', state);
 
-        if (!user.isVerified) {
-            return res.status(200).json({
-                success: true,
-                data: {
-                requiresVerification: true,
-                isNewUser: false,
-                user
-                },
-            });
-        }
+    const existingUser = await Users.findOne({ email: userProfile.email });
+    console.log('existingUser:', existingUser);
 
-        const accessToken = generateAccessToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
-
-        // Store tokens in Redis
-        await redisClient.set(`authToken:${user._id}`, accessToken, { EX: 15 * 60 });
-        await redisClient.set(`refreshToken:${user._id}`, refreshToken, { EX: 7 * 24 * 60 * 60 });
-
-        // Set cookies
-        res.cookie('accessToken', accessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 15 * 60 * 1000
-        });
-
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        });
-
-        return response(res, 200, {
-            message: "Social login successful",
-            token: accessToken,
-            user: {
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                isVerified: user.isVerified,
-                avatar: user.avatar
-            }
-        })
-        
-    } catch (error) {
-        console.error("Social login error:", error);
-        return response(res, 500, "Social login error", error);
+    if (!existingUser) {
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/signup?error=no_account&message=${encodeURIComponent('No account found. Please sign up.')}&state=${encodeURIComponent(state)}`
+      );
     }
+
+    if (existingUser.isVerified === false) {
+      const verificationCode = generateOTP();
+      await sendEmail(userProfile.email, 'Verify Your Login', `Your verification code is: ${verificationCode}`);
+      
+      existingUser.verificationCode = verificationCode;
+      existingUser.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
+      await existingUser.save();
+
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/login?provider=${userProfile.provider}&email=${encodeURIComponent(userProfile.email)}&requiresVerification=true&state=${encodeURIComponent(state)}`
+      );
+    }
+
+    const userId = existingUser._id;
+    const accessToken = generateAccessToken(userId);
+    const refreshToken = generateRefreshToken(userId);
+
+    await redisClient.set(`authToken:${userId}`, accessToken, { EX: 15 * 60 });
+    await redisClient.set(`refreshToken:${userId}`, refreshToken, { EX: 7 * 24 * 60 * 60 });
+
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/login?provider=${userProfile.provider}&email=${encodeURIComponent(userProfile.email)}&requiresVerification=false&token=${accessToken}&state=${encodeURIComponent(state)}`
+    );
+  } catch (err) {
+    console.error('OAuth login error:', err);
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/login?error=login_failed&message=${encodeURIComponent(err.message)}&state=${encodeURIComponent(state)}`
+    );
+  }
 };
 
 //Log out user
@@ -720,22 +722,29 @@ exports.getUserIdFromCookie = (req, res) => {
 };
 
 exports.verifySocialUser = async (req, res) => {
-  const { email, code, provider } = req.body;
-
   try {
+    const { email, code, provider } = req.body;
+  
+    if(!email || !code || !provider) { 
+        return response(res, 400, {
+        success: false,
+        message: 'Email and verification code are required'
+        });
+    }
+  
     // Find user by email and verification code
-    const user = await Users.findOne({
-      email,
-      verificationCode: code,
-      verificationCodeExpires: { $gt: Date.now() },
-      // Only check authProvider if it's provided and not undefined
-      ...(provider && provider !== 'undefined' ? { authProvider: provider } : {})
-    });
-
+    const user = await Users.findOne({ email });
     if (!user) {
       return response(res, 400, {
         success: false,
-        message: 'Invalid or expired verification code'
+        message: 'User not found'
+      });
+    }
+
+    if (user.verificationCode !== code || new Date() > user.verificationCodeExpires) {
+      return response(res, 400, {
+        success: false,
+        message: 'Invalid or expired code'
       });
     }
 
@@ -744,6 +753,13 @@ exports.verifySocialUser = async (req, res) => {
     user.verificationCode = undefined;
     user.verificationCodeExpires = undefined;
     await user.save();
+
+    const userId = user._id;
+    const accessToken = generateAccessToken(userId);
+    const refreshToken = generateRefreshToken(userId);
+
+    await redisClient.set(`authToken:${user._id}`, accessToken, { EX: 15 * 60 });
+    await redisClient.set(`refreshToken:${user._id}`, refreshToken, { EX: 7 * 24 * 60 * 60 });
 
     return response(res, 200, {
       success: true,
@@ -767,87 +783,105 @@ exports.verifySocialUser = async (req, res) => {
   }
 };
 
-// GET /auth/oauth/google/callback
+// GET /auth/oauth/:provider/signup/callback - for new user signup
 exports.socialSignup = async (req, res) => {
-  const { code } = req.query;
-  const provider = req.params.provider;
+    try {
+        const userProfile = req.user;
+        console.log("userProfile from passport:", userProfile);
+        
+        const existingUser = await Users.findOne({ email: userProfile.email });
+        console.log('existingUser:', existingUser);
+        if (!existingUser) {
+            // New user - requires verification
+            const verificationCode = generateOTP();
+            
+            await sendEmail(userProfile.email, "Verify Your Account", `Your verification code is: ${verificationCode}`);
+            
+            // Save new user with verification required
+            const newUser = await Users.create({
+                name: userProfile.name,
+                email: userProfile.email,
+                provider: userProfile.provider,
+                providerId: userProfile.providerId,
+                verificationCode,
+                requiresVerification: true,
+                isVerified: false,
+                password: `${userProfile.provider}-auth` // Placeholder password
+            });
 
-  try {
-    const userInfo = await exchangeCodeForProfile(provider, code); 
-    console.log("userInfo:", userInfo);
-    const existingUser = await findUserByEmail(userInfo.email);
-
-    if (!existingUser) {
-      const verificationCode = generateOTP();
-      
-      await sendEmail(userInfo.email, "Verify Your Account", `Your verification code is: ${verificationCode}`);
-      await saveUser({
-        email: userInfo.email,
-        provider,
-        name: userInfo.name || '',
-        verificationCode,
-        requiresVerification: true,
-        isVerified: false
-      });
-
-      return res.status(200).json({
-        success: true,
-        data: {
-          requiresVerification: true,
-          isNewUser: true,
-          email: userInfo.email
-        },
-      });
-    }
-
-    if (!existingUser.verified) {
-      return res.status(200).json({
-        success: true,
-        data: {
-          requiresVerification: true,
-          isNewUser: false,
-          email: userInfo.email
-        },
-      });
-    }
-
-    // Generate tokens
-    const accessToken = generateAccessToken(userId);
-    const refreshToken = generateRefreshToken(userId);
-
-    // Store tokens in Redis
-    await redisClient.set(`authToken:${userId}`, accessToken, { EX: 15 * 60 });
-    await redisClient.set(`refreshToken:${userId}`, refreshToken, { EX: 7 * 24 * 60 * 60 });
-
-    // Set cookies
-    res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 15 * 60 * 1000
-    });
-    res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000
-    });
-
-    console.log('Setting cookies:', { accessToken, refreshToken })
-    return response(res, 200, {
-        message: "Login successful",
-        token: accessToken,
-        user: {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            isVerified: user.isVerified,
-            avatar: user.avatar
+            // Redirect to frontend with query params
+            return res.redirect(
+                `${process.env.FRONTEND_URL}/signup?provider=${userProfile.provider}&email=${encodeURIComponent(userProfile.email)}&requiresVerification=true&isNewUser=true`
+            );
         }
-    });
 
-  } catch (err) {
-    console.error('OAuth error:', err);
-    res.status(500).json({ success: false, message: 'OAuth login failed' });
-  }
+        if ( existingUser.isVerified === false ) {
+            // Send new verification code
+            const verificationCode = generateOTP();
+            await sendEmail(userProfile.email, "Verify Your Account", `Your verification code is: ${verificationCode}`);
+            
+            // Update user with new verification code
+            existingUser.verificationCode = verificationCode;
+            existingUser.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
+            await existingUser.save();
+
+            // Redirect to frontend with query params
+            return res.redirect(
+                `${process.env.FRONTEND_URL}/signup?provider=${userProfile.provider}&email=${encodeURIComponent(userProfile.email)}&requiresVerification=true&isNewUser=true`
+            );
+        }
+
+        // Existing verified user - direct login
+        const userId = existingUser._id;
+        const accessToken = generateAccessToken(userId);
+        const refreshToken = generateRefreshToken(userId);
+
+        // Store tokens in Redis
+        await redisClient.set(`authToken:${userId}`, accessToken, { EX: 15 * 60 });
+        await redisClient.set(`refreshToken:${userId}`, refreshToken, { EX: 7 * 24 * 60 * 60 });
+
+        // Set cookies
+        res.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 15 * 60 * 1000
+        });
+        
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        console.log('Setting cookies:', { accessToken, refreshToken });
+        return res.redirect(
+          `${process.env.FRONTEND_URL}/login`
+        );
+        // return res.status(200).json({
+        //     success: true,
+        //     data: {
+        //         requiresVerification: false,
+        //         message: "Login successful",
+        //         token: accessToken,
+        //         user: {
+        //             _id: existingUser._id,
+        //             name: existingUser.name,
+        //             email: existingUser.email,
+        //             isVerified: existingUser.isVerified || existingUser.verified,
+        //             avatar: existingUser.avatar
+        //         }
+        //     }
+        // });
+
+    } catch (err) {
+        console.error('OAuth signup error:', err);
+        res.status(500).json({ 
+            success: false, 
+            message: 'OAuth signup failed',
+            error: err.message 
+        });
+    }
 };
+

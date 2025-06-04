@@ -3,12 +3,12 @@ import { useAuth } from '../Context/AuthContext';
 import InputField from './InputField';
 import propTypes from 'prop-types';
 
-const LoginForm = ({ navigate, setStep, step }) => {
+const LoginForm = ({ navigate, setStep, step, loginRole, setLoginRole }) => {
   const { login, error: authError, loading: authLoading, clearError} = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    role: '',
+    role: 'loginRole',
     token: '',
   });
   const [localError, setLocalError] = useState('');
@@ -16,7 +16,13 @@ const LoginForm = ({ navigate, setStep, step }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  //   setFormData({ ...formData, [e.target.name]: e.target.value });
+  // };
+    const { name, value } = e.target;
+      setFormData({ ...formData, [name]: value });
+      if (name === 'role') {
+        setLoginRole(value); 
+      }
   };
 
   const togglePasswordVisibility = () => {
@@ -172,6 +178,8 @@ LoginForm.propTypes = {
   navigate: propTypes.func.isRequired,
   setStep: propTypes.func.isRequired,
   step: propTypes.string.isRequired,
+  loginRole: propTypes.string.isRequired,
+  setLoginRole: propTypes.func.isRequired,
 };
 
 export default LoginForm;

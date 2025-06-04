@@ -16,12 +16,7 @@ api.interceptors.request.use((config) => {
     '/api/auth/verifyUser',
     '/api/auth/resendVerificationCode',
     '/api/auth/forgotPassword',
-    '/api/auth/resetPassword',,
-    '/api/auth/logout',
-    '/api/auth/google/login/initiate',
-    '/api/auth/google/callback',
-    '/api/auth/google/signup/initiate',
-    '/api/auth//google/signup/callback',
+    '/api/auth/resetPassword',
   ];
 
   if (publicEndpoints.some(endpoint => config.url.includes(endpoint))) {
@@ -139,11 +134,9 @@ export const logoutUser = async () => {
 // Social Authentication
 export const initiateSocialLogin = async (provider, role) => {
   try {
-    console.log('initiating social login...', provider, role);
-    const state = encodeURIComponent(`${provider}_login_${Date.now()}_${role}`);
-    const response = await api.get(`/api/auth/${provider}/login/initiate?state=${state}`); 
+    const response = await api.get(`/api/auth/${provider}?state=${role}`);
     if (response.data && response.data.url) {
-      return response.data; // Return data for window.location.href in Login.js
+      window.location.href = response.data.url;
     } else {
       throw new Error('Failed to get social login URL');
     }
@@ -153,25 +146,9 @@ export const initiateSocialLogin = async (provider, role) => {
   }
 };
 
-export const initiateSocialSignup = async (provider) => {
-  try {
-    console.log('initiating social signup...', provider);
-    const response = await api.get(`/api/auth/${provider}/signup/initiate`);
-    console.log('initiateSocialSignup response:', response);
-    if (response.data && response.data.url) {
-      window.location.href = response.data.url;
-    } else {
-      throw new Error('Failed to get social signup URL');
-    }
-  } catch (error) {
-    console.error(`Error initiating ${provider} signup:`, error);
-    throw error;
-  }
-}
 export const handleSocialCallback = async (provider, code) => {
   try {
-    const response = await api.post(`/api/auth/${provider}/signup/callback`, { code });
-    console.log('handleSocialCallback response:', response);
+    const response = await api.post(`/api/auth/${provider}/callback`, { code });
     return response.data;
   } catch (error) {
     console.error(`Error handling ${provider} callback:`, error);
@@ -185,7 +162,7 @@ export const verifySocialUser = async ({ email, code, provider }) => {
       email,
       code,
       provider
-    });s
+    });
     return response.data;
   } catch (error) {
     console.error('Error verifying social user:', error);
@@ -239,8 +216,8 @@ export const fetchCart = async () => {
 };
 
 // Delete cart item (Protected)
-export const deleteCartItem = async (productId) => {
-  const response = await api.delete(`/api/cart/${productId}`);
+export const deleteCartItem = async (userId, productId) => {
+  const response = await api.delete(`/api/cart/${userId}/${productId}`);
   return response.data;
 };
 
@@ -528,11 +505,9 @@ export const createCheckoutSession = async (userId, cartItems, total, voucherCod
 
 // TRAVELER DASHBOARD ENDPOINTS
 // Get traveler orders (Protected)
-export const getTravelerOrders = async (userId) => {
-  console.log('getTravelerOrders called with userId:', userId);
-  const response = await api.get(`/api/travelers/products/claimed/${userId}`);
-  console.log('getTravelerOrders response:', response.data.data.products);
-  return response.data.data.products;
+export const getTravelerOrders = async (filters) => {
+  const response = await api.get('/travelers/orders', { params: filters });
+  return response;
 };
 
 // Get traveler earnings (Protected)
@@ -562,13 +537,11 @@ export const getTravelerHistory = async (userId) => {
 };
 
 // Assign fulfillment to traveler (Protected)
-// api.js
 export const assignFulfillment = async (productId) => {
   const response = await api.post('/api/travelers/products/claim', { productId });
   console.log('assignFulfillment response:', response.data);
   return response.data;
 };
-
 
 // Update delivery status (protected)
 export const updateDeliveryStatus = async (productId, deliveryStatus) => {
@@ -599,66 +572,38 @@ export const updateProductDeliveryStatus = async (productId, deliveryStatus) => 
   }
 };
 
-export const uploadDeliveryProof = async (productId, photo) => {
-  console.log('uploadDeliveryProof called with productId:', productId, 'and photo:', photo);
+// Update delivery proof (protected)
+export const uploadDeliveryProof = async (productId, file) => {
   try {
-    if (!productId || !photo) {
-      throw new Error('Missing product ID or photo data');
-    }
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (!validTypes.includes(photo.type)) {
-      throw new Error('Invalid file type. Only JPEG, PNG, PDF allowed');
-    }
-
-    // Validate file size (max 5MB)
-    if (photo.size > 5 * 1024 * 1024) {
-      throw new Error('File size exceeds 5MB limit');
-    }
-
-    // Use the base64 string directly
-    const base64String = photo.base64;
     
-    // Remove data URL prefix if present
-    const cleanBase64 = base64String.includes(',') 
-      ? base64String.split(',')[1] 
-      : base64String;
-    console.log('cleanBase64:', cleanBase64, productId);
-    const response = await api.put(`/api/travelers/proof/${productId}`, {
-      deliveryProof: cleanBase64,
-      mimeType: photo.type,
+    const base64String = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]); 
+      reader.onerror = error => reject(error);
     });
+
+    const response = await api.post('/api/travelers/orders/${productId}/delivery-proof', {
+      deliveryProof: base64String,
+      mimeType: file.type
+    });
+
 
     return {
       success: true,
-      productId,
-      proofUrl: response.data.proofUrl,
+      orderId,
+      proofUrl: response.data.proofUrl
     };
+
   } catch (error) {
-    console.error('Upload error:', error.response?.data || error.message);
+    console.error('Upload error:', error);
     return {
       success: false,
       message: error.response?.data?.message || 'Failed to upload proof',
-      error: error.message,
+      error: error.message
     };
   }
 };
-
-export const uploadDeliveryProofF = async (productId, formData) => {
-  try {
-    const response = await api.post(`/api/travelers/deliveryProof/${productId}/delivery-proof`, formData, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.message || 'Failed to upload proof');
-  }
-};
-    
 
 // RATING ENDPOINTS
 // Rate client (Protected)
@@ -682,7 +627,6 @@ export const rateTraveler = async (ratingData) => {
     throw error;
   }
 };
-
 
 // Get traveler ratings (Protected)
 export const getTravelerRatings = async (userId) => {

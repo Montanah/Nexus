@@ -3,18 +3,10 @@ import { useAuth } from '../Context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../Components/SideBar';
 import UserProfile from '../Components/UserProfile';
-import ProductDetails from './productDetails';
+import ProductDetails from './ProductDetails';
 import CountryStateCityComponent from '../Components/State';
 import PhotoUpload from '../Components/PhotoUpload';
 import { getAvailableProducts, getCategories, getTravelerEarnings, getTravelerOrders, updateDeliveryStatus, uploadDeliveryProof } from '../Services/api';
-
-const DELIVERY_STATUS = {
-  ASSIGNED: 'Assigned',
-  SHIPPED: 'Shipped',
-  TRAVELER_CONFIRMED: 'Traveler Confirmed',
-  CLIENT_CONFIRMED: 'Client Confirmed',
-  COMPLETE: 'Complete',
-};
 
 const TravelerDashboard = () => {
   const navigate = useNavigate();
@@ -52,28 +44,14 @@ const TravelerDashboard = () => {
         setLoading(true);
         setError(null);
 
-        let productsData = [];
-        try {
-          productsData = await getAvailableProducts();
-          console.log('Products data:', productsData);
-        } catch (err) {
-          if (err.response?.status === 404) {
-            console.log('No available products found, setting empty array');
-            productsData = [];
-          } else {
-            throw err; 
-          }
-        }
-
-        const [categoriesData, earningsData, travelerOrders] = await Promise.all([
+        const [productsData, categoriesData, earningsData] = await Promise.all([
+          getAvailableProducts(),
           getCategories(),
           getTravelerEarnings(userId),
-          getTravelerOrders(userId),
         ]);
-
+        console.log('Products data:', productsData);
         console.log('Categories data:', categoriesData);
         console.log('Earnings data:', earningsData);
-        console.log('Traveler orders:', travelerOrders);
 
         const mappedProducts = productsData.map(product => ({
           productId: product?._id || '',
@@ -88,30 +66,11 @@ const TravelerDashboard = () => {
           rewardAmount: parseFloat(product?.productMarkup) || 0,
           urgencyLevel: product?.urgencyLevel || 'low',
           productPhotos: product?.productPhotos || [],
-          categoryName: product?.categoryName || 'Uncategorized',
-          deliveryStatus: product?.deliveryStatus || '',
-        }));
-
-        const mappedSelectedProducts = travelerOrders.map(order => ({
-          productId: order?._id || '',
-          productName: order?.productName || 'Unnamed Product',
-          destination: {
-            country: order?.destination?.country || '',
-            state: order?.destination?.state || '',
-            city: order?.destination?.city || ''
-          },
-          deliveryStatus: order?.deliveryStatus || DELIVERY_STATUS.ASSIGNED,
-          isDelivered: order?.isDelivered || false,
-          productPrice: parseFloat(order?.totalPrice) || 0,
-          rewardAmount: parseFloat(order?.productMarkup) || 0,
-          urgencyLevel: order?.urgencyLevel || 'low',
-          productPhotos: order?.productPhotos || [],
-          categoryName: order?.categoryName || 'Uncategorized',
+          categoryName: product?.categoryName || 'Uncategorized'
         }));
 
         console.log('Mapped products:', mappedProducts);
         setProducts(mappedProducts);
-        setSelectedProducts(mappedSelectedProducts);
         const categoryList = Array.isArray(categoriesData)
           ? ['All', ...categoriesData.map(cat => cat.categoryName)]
           : ['All'];
@@ -136,6 +95,42 @@ const TravelerDashboard = () => {
     fetchData();
     console.log('Fetching data...', userId);
   }, [userId, period, authLoading, navigate]);
+
+  // Fetch traveler orders separately
+  // useEffect(() => {
+  //   const fetchTravelerOrders = async () => {
+  //     if (authLoading || !userId) return;
+  //     try {
+  //       const travelerOrders = await getTravelerOrders(userId);
+  //       console.log('Traveler orders:', travelerOrders);
+
+  //       const mappedSelectedProducts = travelerOrders.map(order => ({
+  //         productId: order?._id || '',
+  //         productName: order?.productName || 'Unnamed Product',
+  //         destination: {
+  //           country: order?.destination?.country || '',
+  //           state: order?.destination?.state || '',
+  //           city: order?.destination?.city || ''
+  //         },
+  //         deliveryStatus: order?.deliveryStatus || '',
+  //         isDelivered: order?.isDelivered || false,
+  //         productPrice: parseFloat(order?.totalPrice) || 0,
+  //         rewardAmount: parseFloat(order?.productMarkup) || 0,
+  //         urgencyLevel: order?.urgencyLevel || 'low',
+  //         productPhotos: order?.productPhotos || [],
+  //         categoryName: order?.categoryName || 'Uncategorized'
+  //       }));
+
+  //       console.log('Mapped selected products:', mappedSelectedProducts);
+  //       setSelectedProducts(mappedSelectedProducts);
+  //     } catch (err) {
+  //       console.error('Fetch traveler orders error:', err);
+  //       setError(err.response?.data?.message || 'Failed to load traveler orders. Please try again.');
+  //     }
+  //   };
+
+  //   fetchTravelerOrders();
+  // }, [userId, authLoading]);
 
   useEffect(() => {
     setFilters(prev => ({ ...prev, country, state, city }));
@@ -192,26 +187,15 @@ const TravelerDashboard = () => {
     }
   };
 
-  
   const handleConfirmDelivery = async (productId) => {
     if (confirming[productId]) return;
     setConfirming(prev => ({ ...prev, [productId]: true }));
     try {
       const product = selectedProducts.find(p => p.productId === productId);
       const currentStatus = product.deliveryStatus;
-      let newStatus;
-      switch (currentStatus) {
-        case DELIVERY_STATUS.ASSIGNED:
-          newStatus = DELIVERY_STATUS.SHIPPED;
-          break;
-        case DELIVERY_STATUS.SHIPPED:
-          newStatus = DELIVERY_STATUS.TRAVELER_CONFIRMED;
-          break;
-        case DELIVERY_STATUS.CLIENT_CONFIRMED:
-          newStatus = DELIVERY_STATUS.COMPLETE;
-          break;
-        default:
-          throw new Error('Invalid status transition');
+      let newStatus = 'traveler_confirmed';
+      if (currentStatus === 'client_confirmed') {
+        newStatus = 'delivered';
       }
       await updateDeliveryStatus(productId, newStatus);
       setSelectedProducts(prev =>
@@ -229,60 +213,26 @@ const TravelerDashboard = () => {
     }
   };
 
- const handleUploadProof = async (productId) => {
-  const photos = productPhotos[productId];
-  
-  if (uploading[productId]) return;
-  
-  if (!photos || !Array.isArray(photos) || photos.length === 0) {
-    setUploadError('Please select at least one photo before uploading.');
-    return;
-  }
-
-  const photo = photos[0];
-  if (!photo?.base64 || !photo?.type || !photo?.size) {
-    setUploadError('Invalid photo data. Please try uploading again.');
-    return;
-  }
-  
-  setUploading(prev => ({ ...prev, [productId]: true }));
-  setUploadError(null);
-  
-  try {
-    console.log('Uploading photo for product:', productId, {
-      type: photo.type,
-      size: photo.size,
-      hasBase64: !!photo.base64
-    });
-    
-    const response = await uploadDeliveryProof(productId, {
-      base64: photo.base64,
-      type: photo.type,
-      size: photo.size
-    });
-
-    console.log('Upload response:', response);
-    alert('Proof uploaded successfully!');
-    setProductPhotos(prev => ({ ...prev, [productId]: [] }));
-    
-    const product = selectedProducts.find(p => p.productId === productId);
-    if (product.deliveryStatus === DELIVERY_STATUS.CLIENT_CONFIRMED) {
-      await updateDeliveryStatus(productId, DELIVERY_STATUS.COMPLETE);
-      setSelectedProducts(prev =>
-        prev.map(p =>
-          p.productId === productId
-            ? { ...p, deliveryStatus: DELIVERY_STATUS.COMPLETE, isDelivered: true }
-            : p
-        )
-      );
+  const handleUploadProof = async (productId) => {
+    if (uploading[productId]) return;
+    if (!productPhotos[productId] || productPhotos[productId].length === 0) {
+      setUploadError('No photos selected.');
+      return;
     }
-  } catch (err) {
-    console.error('Upload error:', err);
-    setUploadError(err.message || 'Failed to upload proof. Please try again.');
-  } finally {
-    setUploading(prev => ({ ...prev, [productId]: false }));
-  }
-};
+    setUploading(prev => ({ ...prev, [productId]: true }));
+    try {
+      await uploadDeliveryProof(productId, productPhotos[productId]);
+      console.log('Proof uploaded for product:', productId);
+      setUploadError(null);
+      alert('Proof uploaded successfully!');
+      setProductPhotos(prev => ({ ...prev, [productId]: [] }));
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(prev => ({ ...prev, [productId]: false }));
+    }
+  };
+
   const handleRateClient = (productId) => {
     navigate(`/rate-product/${productId}`, { state: { isTraveler: true } });
   };
@@ -348,14 +298,14 @@ const TravelerDashboard = () => {
               setSelectedCity={setCity}
             />
           </div>
-
+          
           <input
             type="number"
             placeholder="Min Price"
             value={filters.priceMin}
             onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })}
             className="mt-6 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto md:min-w-[140px] lg:min-w-[120px] h-[40px]"
-          />
+          /> 
           <input
             type="number"
             placeholder="Max Price"
@@ -478,16 +428,16 @@ const TravelerDashboard = () => {
                     <p className="text-sm text-gray-600">Urgency: {product.urgencyLevel}</p>
                     <p className="text-sm text-gray-600">Price: KES {product.productPrice}</p>
                     <p className="text-sm text-gray-600">Status: {product.isDelivered ? 'Delivered' : product.deliveryStatus}</p>
-                    {[DELIVERY_STATUS.ASSIGNED, DELIVERY_STATUS.SHIPPED].includes(product.deliveryStatus) && (
+                    {["Assigned", "Shipped"].includes(product.deliveryStatus) && (
                       <button
                         onClick={() => handleConfirmDelivery(product.productId)}
                         className="mt-2 w-full bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
                         disabled={confirming[product.productId]}
                       >
-                        {confirming[product.productId] ? 'Updating...' : product.deliveryStatus === DELIVERY_STATUS.ASSIGNED ? 'Mark as Shipped' : 'Mark as Traveler Confirmed'}
+                        {confirming[product.productId] ? "Confirming..." : "Mark as Delivered"}
                       </button>
                     )}
-                    {product.deliveryStatus === DELIVERY_STATUS.TRAVELER_CONFIRMED && (
+                    {product.deliveryStatus === "traveler_confirmed" && (
                       <button
                         disabled
                         className="mt-2 w-full bg-gray-400 text-white px-3 py-1 rounded cursor-not-allowed text-sm"
@@ -495,39 +445,23 @@ const TravelerDashboard = () => {
                         Awaiting Client Confirmation
                       </button>
                     )}
-                    {product.deliveryStatus === DELIVERY_STATUS.CLIENT_CONFIRMED && (
+                    {product.deliveryStatus === "client_confirmed" && (
+                      <p className="mt-2 text-green-600 font-medium text-center text-sm">
+                        🎉 Delivery Fully Confirmed
+                      </p>
+                    )}
+                    {product.isDelivered && (
                       <>
                         <PhotoUpload
                           photos={productPhotos[product.productId] || []}
-                            setPhotos={(newPhotosOrFunction) => {
-                              console.log('TravelerDashboard: Setting photos for product:', product.productId);
-                              
-                              if (typeof newPhotosOrFunction === 'function') {
-                                // If PhotoUpload passes a function, handle it
-                                setProductPhotos(prev => ({ 
-                                  ...prev, 
-                                  [product.productId]: newPhotosOrFunction(prev[product.productId] || [])
-                                }));
-                              } else {
-                                // If PhotoUpload passes the actual array, use it directly
-                                setProductPhotos(prev => ({ 
-                                  ...prev, 
-                                  [product.productId]: newPhotosOrFunction
-                                }));
-                              }
-                            }}
+                          setPhotos={(photos) => setProductPhotos(prev => ({ ...prev, [product.productId]: photos }))}
                           className="w-full mt-2 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         />
                         {uploadError && <p className="text-red-600 mt-2 text-sm">{uploadError}</p>}
                         <button
                           onClick={() => handleUploadProof(product.productId)}
                           className="mt-2 w-full bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm"
-                          disabled={
-                            uploading[product.productId] || 
-                            !productPhotos[product.productId] || 
-                            !Array.isArray(productPhotos[product.productId]) ||
-                            productPhotos[product.productId].length === 0 ||
-                            productPhotos[product.productId].some((photo) => !photo?.base64 || !photo?.type || !photo?.size) }
+                          disabled={uploading[product.productId] || !productPhotos[product.productId] || productPhotos[product.productId].length === 0}
                         >
                           {uploading[product.productId] ? 'Uploading...' : 'Upload Proof'}
                         </button>
@@ -538,20 +472,6 @@ const TravelerDashboard = () => {
                           Rate Client
                         </button>
                       </>
-                    )}
-                    {product.deliveryStatus === DELIVERY_STATUS.COMPLETE &&(
-                      <button
-                          onClick={() => handleRateClient(product.productId)}
-                          className="mt-2 w-full bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
-                        >
-                          Rate Client
-                        </button>
-                    )}
-                    {(product.deliveryStatus === DELIVERY_STATUS.CLIENT_CONFIRMED || 
-                      product.deliveryStatus === DELIVERY_STATUS.DELIVERED) && (
-                      <p className="mt-2 text-green-600 font-medium text-center text-sm">
-                        Awaiting Proof Upload
-                      </p>
                     )}
                   </div>
                 ))}
@@ -577,16 +497,16 @@ const TravelerDashboard = () => {
                     <p className="text-sm text-gray-600">Urgency: {product.urgencyLevel}</p>
                     <p className="text-sm text-gray-600">Price: KES {product.productPrice}</p>
                     <p className="text-sm text-gray-600">Status: {product.isDelivered ? 'Delivered' : product.deliveryStatus}</p>
-                    {[DELIVERY_STATUS.ASSIGNED, DELIVERY_STATUS.SHIPPED].includes(product.deliveryStatus) && (
+                    {["Assigned", "Shipped"].includes(product.deliveryStatus) && (
                       <button
                         onClick={() => handleConfirmDelivery(product.productId)}
                         className="mt-2 w-full bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
                         disabled={confirming[product.productId]}
                       >
-                        {confirming[product.productId] ? 'Updating...' : product.deliveryStatus === DELIVERY_STATUS.ASSIGNED ? 'Mark as Shipped' : 'Mark as Traveler Confirmed'}
+                        {confirming[product.productId] ? "Confirming..." : "Mark as Delivered"}
                       </button>
                     )}
-                    {product.deliveryStatus === DELIVERY_STATUS.TRAVELER_CONFIRMED && (
+                    {product.deliveryStatus === "traveler_confirmed" && (
                       <button
                         disabled
                         className="mt-2 w-full bg-gray-400 text-white px-3 py-1 rounded cursor-not-allowed text-sm"
@@ -594,41 +514,23 @@ const TravelerDashboard = () => {
                         Awaiting Client Confirmation
                       </button>
                     )}
-                    {product.deliveryStatus === DELIVERY_STATUS.CLIENT_CONFIRMED && (
+                    {product.deliveryStatus === "client_confirmed" && (
+                      <p className="mt-2 text-green-600 font-medium text-center text-sm">
+                        🎉 Delivery Fully Confirmed
+                      </p>
+                    )}
+                    {product.isDelivered && (
                       <>
                         <PhotoUpload
-                           photos={productPhotos[product.productId] || []}
-                            setPhotos={(newPhotosOrFunction) => {
-                              console.log('TravelerDashboard: Setting photos for product:', product.productId);
-                              
-                              if (typeof newPhotosOrFunction === 'function') {
-                                // If PhotoUpload passes a function, handle it
-                                setProductPhotos(prev => ({ 
-                                  ...prev, 
-                                  [product.productId]: newPhotosOrFunction(prev[product.productId] || [])
-                                }));
-                              } else {
-                                // If PhotoUpload passes the actual array, use it directly
-                                setProductPhotos(prev => ({ 
-                                  ...prev, 
-                                  [product.productId]: newPhotosOrFunction
-                                }));
-                              }
-                            }}
+                          photos={productPhotos[product.productId] || []}
+                          setPhotos={(photos) => setProductPhotos(prev => ({ ...prev, [product.productId]: photos }))}
                           className="w-full mt-2 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                          productId={product.productId}
                         />
                         {uploadError && <p className="text-red-600 mt-2 text-sm">{uploadError}</p>}
                         <button
                           onClick={() => handleUploadProof(product.productId)}
                           className="mt-2 w-full bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm"
-                          disabled={
-                            uploading[product.productId] ||
-                            !productPhotos[product.productId] ||
-                            !Array.isArray(productPhotos[product.productId]) ||
-                            productPhotos[product.productId].length === 0 ||
-                            productPhotos[product.productId].some((photo) => !photo?.base64 || !photo?.type || !photo?.size)
-                          }
+                          disabled={uploading[product.productId] || !productPhotos[product.productId] || productPhotos[product.productId].length === 0}
                         >
                           {uploading[product.productId] ? 'Uploading...' : 'Upload Proof'}
                         </button>
@@ -639,20 +541,6 @@ const TravelerDashboard = () => {
                           Rate Client
                         </button>
                       </>
-                    )}
-                    {product.deliveryStatus === DELIVERY_STATUS.COMPLETE &&(
-                      <button
-                          onClick={() => handleRateClient(product.productId)}
-                          className="mt-2 w-full bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
-                        >
-                          Rate Client
-                        </button>
-                    )}
-                    {(product.deliveryStatus === DELIVERY_STATUS.CLIENT_CONFIRMED || 
-                      product.deliveryStatus === DELIVERY_STATUS.DELIVERED) && (
-                      <p className="mt-2 text-green-600 font-medium text-center text-sm">
-                        Awaiting Proof Upload
-                      </p>
                     )}
                   </div>
                 ))}

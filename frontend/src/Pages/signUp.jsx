@@ -43,75 +43,68 @@ const SignUp = () => {
   const [isProcessingCallback, setIsProcessingCallback] = useState(false)
 
   // Handle OAuth callback
-  useEffect(() => {
-    const handleCallback = async () => {
-      const query = new URLSearchParams(location.search);
-      const code = query.get('code');
-      const state = query.get('state');
-      const provider = query.get('state')?.includes('google') ? 'google' : 'apple'; // Extract provider from state
+ useEffect(() => {
+  const handleCallback = async () => {
+    console.log('🔍 handleCallback started');
+    console.log('🔍 Current location.search:', location.search);
+    const query = new URLSearchParams(location.search);
+    const provider = query.get('provider');
+    const email = query.get('email');
+    const requiresVerification = query.get('requiresVerification') === 'true';
+    const isNewUser = query.get('isNewUser') === 'true';
+    const error = query.get('error');
+    const message = query.get('message');
 
-      if (!code || !provider) return;
-      
-      setIsProcessingCallback(true);
-      setLoading(true);
-      setError('');
-
-      try {
-        const response = await handleSocialCallback(provider, code);
-
-        console.log('handleSocialCallback response:', response);
-
-        if (!response.success) {
-          throw new Error(response.message || 'Social signup failed');
-        }
-
-        const { requiresVerification, email, token, user } = response.data;
-
-        if (requiresVerification) {
-          setSocialEmail(email);
-          setSocialProvider(provider);
-          setStep('social-verify');
-        } else {
-          await socialLogin({ token, user });
-          navigate('/dashboard');
-        }
-      } catch (error) {
-        console.error('Social callback error:', error);
-        setError(error.message || 'Failed to process social signup');
-        setStep('register');
-      } finally {
-        setIsProcessingCallback(false);
-        setLoading(false);
-      }
-    };
-  //       if (response.success) {
-  //         if (response.data.requiresVerification) {
-  //           setSocialEmail(response.data.email);
-  //           setSocialProvider(provider);
-  //           setStep('social-verify');
-  //         } else {
-  //           // Directly log in
-  //           await socialLogin(response.data);
-  //           navigate('/dashboard');
-  //         }
-  //       } else {
-  //         throw new Error(response.message || 'Social signup failed');
-  //       }
-  //     } catch (error) {
-  //       console.error('Social callback error:', error);
-  //       setError(error.message || 'Failed to process social signup');
-  //       setStep('register');
-  //     } finally {
-  //       setIsProcessingCallback(false);
-  //       // setLoading(false);
-  //     }
-  //   }
-  // };
-
-    if (location.search.includes('code')) {
-      handleCallback();
+    if (error) {
+      console.error('OAuth error:', message);
+      setError(decodeURIComponent(message) || 'Failed to process social signup');
+      setStep('register');
+      setIsProcessingCallback(false);
+      setLoading(false);
+      return;
     }
-  }, [location, navigate, socialLogin]);
+
+    if (!provider || !email || isProcessingCallback) {
+      console.log('🚫 Missing provider, email, or already processing');
+      return;
+    }
+
+    setIsProcessingCallback(true);
+    setLoading(true);
+    setError('');
+
+    try {
+      if (requiresVerification) {
+        console.log('🔄 Transitioning to social-verify step for email:', email);
+        setSocialEmail(decodeURIComponent(email));
+        setSocialProvider(provider);
+        setStep('social-verify');
+        
+      } else {
+        console.log('✅ No verification required, attempting login');
+        // For verified users, the backend should provide a token
+        // const token = query.get('token');
+        // if (!token) {
+        //   throw new Error('No token provided for verified user');
+        // }
+        // await socialLogin({ token, user: { email: decodeURIComponent(email), isVerified: true } });
+        alert('Social login successful!');
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Social callback error:', error);
+      setError(error.message || 'Failed to process social signup');
+      setStep('register');
+    } finally {
+      setIsProcessingCallback(false);
+      setLoading(false);
+    }
+  };
+
+  if (location.search.includes('provider') && !isProcessingCallback) {
+    handleCallback();
+  }
+}, [location.search, navigate, socialLogin, isProcessingCallback]);
 
   // Improved error extraction
   const getErrorMessage = (error) => {
@@ -254,18 +247,20 @@ const SignUp = () => {
     }
 
     try {
+      console.log('social verification code', verificationCode)
       const response = await verifySocialUser({
         email: socialEmail,
         code: verificationCode,
         provider: socialProvider,
       });
+      console.log('social verification response', response)
 
-      if (response.success) {
+      if (response.status === 200) {
         await socialLogin(response.data);
         setVerificationCode('');
         setSocialEmail('');
         setSocialProvider('');
-        navigate('/dashboard');
+        navigate('/login');
       } else {
         throw new Error(response.message || 'Social verification failed');
       }
@@ -286,8 +281,11 @@ const SignUp = () => {
       const response = await initiateSocialSignup(platform);
       console.log("signup response", response)
 
-      // await initiateSocialLogin(platform, 'client');
-      // Redirect is handled by initiateSocialLogin via window.location.href
+      if (response.url) {
+        window.location.href = response.url;
+      } else {
+        throw new Error('No redirect URL received');
+      }
     } catch (error) {
       console.error(`Error initiating ${platform} signup:`, error);
       setSocialError(`Failed to initiate ${platform} signup`);
@@ -413,7 +411,7 @@ const SignUp = () => {
                 {loading ? 'Verifying...' : 'Verify Account'}
               </button>
             </form>
-          ) : step === 'socialVerify' ? (
+          ) : step === 'social-verify' ? (
             <form onSubmit={handleSocialVerifySubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">

@@ -115,6 +115,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const socialLogin = async ({ token, user }) => {
+    try {
+      localStorage.setItem('accessToken', token);
+      setUser(user);
+      setUserId(user._id || user.email); 
+      await checkAuth();
+
+      return { success: true };
+    } catch (error) {
+      console.error('Social login error:', error);
+      throw new Error('Failed to log in');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = {
     user,
     userId,
@@ -123,7 +139,8 @@ export const AuthProvider = ({ children }) => {
     clearError,
     login,
     logout,
-    checkAuth 
+    checkAuth,
+    socialLogin, 
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

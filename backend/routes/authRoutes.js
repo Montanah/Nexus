@@ -180,11 +180,7 @@ router.post("/verify2FA/:id", authController.verify2FA);
  *       500:
  *         description: Internal server error
  */
-router.get('/google', passport.authenticate('google', {
-  scope: ['email', 'profile'],
-  accessType: 'offline',
-  prompt: 'select_account',
-}));
+
 
 /**
  * @swagger
@@ -200,19 +196,9 @@ router.get('/google', passport.authenticate('google', {
  *       500:
  *         description: Internal server error
  */
-router.get(
-  "/google/callback", 
-  passport.authenticate("google", 
-    { session: false, failureRedirect: "/login?error=google_auth_failed" }), 
-  authController.socialLogin);
+
 
 // Facebook OAuth routes
-router.get("/facebook", passport.authenticate("facebook", { scope: ["email"] }));
-router.get(
-  "/facebook/callback",
-  passport.authenticate("facebook", { session: false }),
-  authController.socialLogin
-);
 
 /**
  * @swagger
@@ -228,7 +214,7 @@ router.get(
  *       500:
  *         description: Internal server error
  */
-router.get('/apple', passport.authenticate('apple'));
+
 
 /**
  * @swagger
@@ -244,9 +230,7 @@ router.get('/apple', passport.authenticate('apple'));
  *       500:
  *         description: Internal server error
  */
-router.post('/apple/callback', 
-  passport.authenticate('apple', {session: false, failureRedirect: '/login?error=apple_auth_failed' }), 
-  authController.socialLogin);
+
 
 /**
  * @swagger
@@ -384,14 +368,74 @@ router.get('/get-user-id', authController.getUserIdFromCookie);
 
 router.post('/verify-social', authController.verifySocialUser);
 
-router.get('/:provider/initiate', (req, res) => {
-  const provider = req.params.provider;
-  const redirectUri = getOAuthRedirectUrl(provider);
-  console.log(redirectUri);
-  res.json({ url: redirectUri });
+// === GOOGLE LOGIN ROUTES (for existing users) ===
+router.get('/google/login/initiate', (req, res) => {
+  const state = req.query.state || '';
+  console.log('Initiate Google login with state:', state);
+  const redirectUrl = getOAuthRedirectUrl('google', 'login', state);
+  console.log('Generated redirect URL:', redirectUrl);
+  res.json({ url: redirectUrl });
 });
 
-router.get('/:provider/callback', authController.socialSignup);
+router.get('/google/login/callback', 
+  passport.authenticate('google-login', { 
+    session: false, 
+    failureRedirect: `${process.env.FRONTEND_URL}/login?error=google_auth_failed` 
+  }), 
+  authController.socialLogin
+);
 
-router.post('/verify', authController.verifySocialUser);
+// === GOOGLE SIGNUP ROUTES (for new users) ===
+router.get('/google/signup/initiate', (req, res) => {
+  const redirectUrl = getOAuthRedirectUrl('google', 'signup');
+  console.log('Google signup redirect URL:', redirectUrl);
+  res.json({ url: redirectUrl });
+});
+
+router.get('/google/signup/callback', 
+  passport.authenticate('google-signup', { 
+    session: false, 
+    failureRedirect: `${process.env.FRONTEND_URL}/signup?error=google_signup_failed` 
+  }), 
+  authController.socialSignup
+);
+
+// === APPLE LOGIN ROUTES (for existing users) ===
+router.get('/apple/login/initiate', (req, res) => {
+  const state = req.query.state || '';
+  const redirectUrl = getOAuthRedirectUrl('apple', 'login', state);
+  res.json({ url: redirectUrl });
+});
+
+router.get('/apple/callback', 
+  passport.authenticate('apple-login', { 
+    session: false, 
+    failureRedirect: `${process.env.FRONTEND_URL}/login?error=apple_auth_failed` 
+  }), 
+  authController.socialLogin
+);
+
+// === APPLE SIGNUP ROUTES (for new users) ===
+router.get('/apple/signup/initiate', (req, res) => {
+  const redirectUrl = getOAuthRedirectUrl('apple', 'signup');
+  console.log('Apple signup redirect URL:', redirectUrl);
+  res.json({ url: redirectUrl });
+});
+
+router.post('/apple/signup/callback', // Apple uses POST
+  passport.authenticate('apple-signup', { 
+    session: false, 
+    failureRedirect: `${process.env.FRONTEND_URL}/signup?error=apple_signup_failed` 
+  }), 
+  authController.socialSignup
+);
+
+// Legacy routes (for backward compatibility)
+router.get('/:provider/initiate', (req, res) => {
+  const provider = req.params.provider;
+  const redirectUrl = getOAuthRedirectUrl(provider, 'login');
+  console.log(`${provider} redirect URL:`, redirectUrl);
+  res.json({ url: redirectUrl });
+});
+
 module.exports = router;

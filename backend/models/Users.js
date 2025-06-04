@@ -14,6 +14,7 @@ const UsersSchema = new mongoose.Schema({
     phone_number: {
         type: String,
         unique: true,
+        sparse: true,
     },
     password: {
         type: String,
@@ -52,6 +53,14 @@ const UsersSchema = new mongoose.Schema({
     rating: {
         average: { type: Number, default: 0 },
         count: { type: Number, default: 0 },
+    },
+    provider: {
+        type: String,
+        default: null,
+    },
+    providerId: {
+        type: String,
+        default: null,
     },
     createdAt: {
         type: Date,
