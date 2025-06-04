@@ -57,7 +57,7 @@ const LandingPage = () => {
               <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
                 Ship with Travelers, Not Couriers
               </h2>
-              <p className="text-gray-700 text-base sm:text-lg leading-relaxed">
+              <p className="text-gray-700  text-sm sm:text-base leading-relaxed">
                 Connect with our global network of verified travelers to deliver anything, anywhere — faster and more affordably than traditional shipping.
               </p>
             </motion.div>
@@ -83,14 +83,14 @@ const LandingPage = () => {
                   transition={{ delay: 0.8 + index * 0.1, duration: 0.5 }}
                 >
                   <span className="text-green-500 text-xl mt-0.5">✓</span>
-                  <span className="text-gray-700 text-base sm:text-lg">{feature}</span>
+                  <span className="text-gray-700 text-sm sm:text-base">{feature}</span>
                 </motion.div>
               ))}
             </motion.div>
 
             {/* Closing Statement */}
             <motion.p 
-              className="text-gray-700 italic text-base sm:text-lg"
+              className="text-gray-700 italic text-sm sm:text-base"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.2, duration: 0.8 }}
@@ -155,7 +155,7 @@ const LandingPage = () => {
       </div>
 
       {/* Footer */}
-      <div className="w-full flex justify-center p-2 sm:p-2">
+      <div className="w-full flex justify-center sm:p-2">
         <Footer />
       </div>
     </div>
