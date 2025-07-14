@@ -17,11 +17,11 @@ const DELIVERY_STATUS = {
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
-  const {userId, logout, loading: authLoading } = useAuth(); // Rename to avoid confusion
+  const {userId, logout, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [orderLoading, setOrderLoading] = useState(true); // Renamed for clarity
+  const [orderLoading, setOrderLoading] = useState(true);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
