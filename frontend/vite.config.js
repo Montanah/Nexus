@@ -22,5 +22,11 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/auth/, ''), // Strips /auth prefix
       },
     },
+    host: '0.0.0.0', // Required for Render.com
+    port: 5173,      // Your Vite port (default: 5173)
+    allowedHosts: [
+      'nexusdashboard.onrender.com', // Allow Render domain
+      'localhost',                  // Allow localhost (optional)
+    ],
   },
 });
