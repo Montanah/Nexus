@@ -123,9 +123,7 @@ const TravelerDashboard = () => {
         if (err.response?.status === 401) {
           console.log('Unauthorized, navigating to login');
           navigate('/login');
-        } else if (err.response?.status === 404) {
-          setError('No Products available now. Please check again later.');
-        } else {
+       } else {
           setError(err.response?.data?.message || 'Failed to load data. Please try again.');
         }
       } finally {

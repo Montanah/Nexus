@@ -69,9 +69,24 @@ exports.clientToTravelerRating = async (req, res) => {
     }
 
     // Update traveler's rating
-    const travelerId = item.claimedBy;
-    console.log(travelerId);
-    const traveler = await Traveler.findById({  travelerId });
+    //const travelerId = item.claimedBy;
+    // Extract the ObjectId from the claimedBy string
+    let travelerId;
+    if (typeof item.claimedBy === 'string' && item.claimedBy.includes('ObjectId')) {
+      // Use a more flexible regex to extract the 24-character hex string
+      const match = item.claimedBy.match(/ObjectId\(['"]?([a-f0-9]{24})['"]?\)/i);
+      travelerId = match ? match[1] : null;
+    } else {
+      travelerId = item.claimedBy.toString(); // Convert to string if it's an ObjectId instance
+    }
+
+    if (!travelerId || !/^[a-f0-9]{24}$/.test(travelerId)) {
+      return response(res, 400, { message: 'Invalid traveler ID format' });
+    }
+
+    console.log('Extracted Traveler ID:', travelerId);
+
+    const traveler = await Traveler.findById(travelerId);
     if (!traveler) {
       return response(res, 404, { message: 'Traveler not found' });
     }
@@ -91,7 +106,7 @@ exports.clientToTravelerRating = async (req, res) => {
     });
   } catch (err) {
     console.error('Client to traveler rating error:', err);
-    return response(res, 500, { message: 'Server error' });
+    return response(res, 500, { message: 'Server error', err });
   }
 };
 

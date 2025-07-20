@@ -31,7 +31,7 @@ const RatingForm = ({ isTraveler }) => {
         navigate('/traveler-dashboard');
       } else {
         await rateTraveler(data); // Client rates traveler
-        navigate('/orders');
+        navigate('/client-dashboard');
       }
       setError(null);
     } catch (error) {

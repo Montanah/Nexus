@@ -50,7 +50,7 @@ const LoginForm = ({ navigate, setStep, step, loginRole, setLoginRole }) => {
       }
     } catch (err) {
       const errorMessage = err.response?.data || err.message || 'An error occurred';
-      setError(errorMessage);
+      setLocalError(errorMessage);
       // setError(err.message || 'An error occurred');
     } finally {
       setLoading(false);
@@ -76,7 +76,7 @@ const LoginForm = ({ navigate, setStep, step, loginRole, setLoginRole }) => {
         navigate(formData.role === 'client' ? '/client-dashboard' : '/traveler-dashboard');
       }
     } catch (err) {
-      setError(err.message || 'An error occurred');
+      setLocalError(err.message || 'An error occurred');
     } finally {
       setLoading(false);
     }

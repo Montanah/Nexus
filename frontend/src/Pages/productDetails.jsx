@@ -128,6 +128,7 @@ const ProductDetails = ({ productId, onClose, travelerId }) => {
   }, [productPhotos]);
 
   const memoizedProduct = useMemo(() => product, [product]);
+  console.log(memoizedProduct);
 
   if (loading) {
     return (

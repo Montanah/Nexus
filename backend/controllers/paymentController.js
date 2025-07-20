@@ -31,20 +31,27 @@ const response = (res, statusCode, data) => {
 // Enhanced processPayment
 exports.processPayment = async (req, res) => {
     try {
-        const { clientId, orderId, productId, amount, paymentMethod } = req.body;
+        const { clientId, orderId, travelerId, productId, amount, paymentMethod } = req.body;
         
         // Calculate amounts
         const productAmount = amount / 1.15; 
         const markupAmount = amount - productAmount;
+        const commission = markupAmount * 0.3;
+        const travelerReward = commission + productAmount;
+        const companyfee = markupAmount * 0.7;
         
         // Create payment record
         const payment = new Payment({
             client: clientId,
+            traveler: travelerId,
             order: orderId,
             product: productId,
             productAmount,
             markupAmount,
             totalAmount: amount,
+            commission,
+            travelerReward,
+            companyfee,
             paymentMethod
         });
 

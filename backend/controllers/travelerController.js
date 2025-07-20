@@ -42,7 +42,7 @@ exports.getTravelerEarnings = async (req, res) => {
         },
         history: [],
       });
-      console.log('Created new traveler:', traveler);
+     // console.log('Created new traveler:', traveler);
     }
     res.json({
       success: true,

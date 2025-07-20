@@ -81,9 +81,9 @@ exports.getUserOrders = async (req, res) => {
             })
             .sort({ createdAt: -1 });
 
-        if (!orders || orders.length === 0) {
-            return response(res, 404, 'No orders found for this user');
-        }
+        // if (!orders || orders.length === 0) {
+        //     return response(res, 404, {"message": 'No orders found for this user', orders: [] });
+        // }
 
         return response(res, 200, {"message": 'Orders retrieved successfully', orders: orders });
 

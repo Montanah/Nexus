@@ -246,7 +246,9 @@ export const deleteCartItem = async (productId) => {
 
 // Fetch orders for a specific client (Protected)
 export const fetchOrders = async () => {
+  console.log("I was called");
   const response = await api.get(`/api/orders/`);
+  console.log(response);
   return response.data; // e.g., [{ id, itemName, photo, quantity, unitPrice, totalPrice, details, ... }]
 };
 

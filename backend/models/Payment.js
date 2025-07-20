@@ -29,7 +29,28 @@ const PaymentSchema = new mongoose.Schema({
         type: String, 
         enum: ["escrow", "released", "disputed", "refunded"], 
         default: "escrow" 
-    }
+    },
+    productAmount: { 
+        type: Number, 
+        required: true 
+    }, // Product Fee
+    markupAmount: { 
+        type: Number, 
+        required: true 
+    }, // 15% Markup
+    paymentMethod: { 
+        type: String, 
+        enum: ["Mpesa", "Airtel", "Stripe", "Paystack"], 
+        required: true 
+    },
+    commission: { 
+        type: Number, 
+        required: true 
+    },
+    companyfee: { 
+        type: Number, 
+        required: true 
+    },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Payment", PaymentSchema);

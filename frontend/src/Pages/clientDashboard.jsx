@@ -38,6 +38,7 @@ const ClientDashboard = () => {
         const fetchedOrders = await fetchOrders(userId);
         console.log('Fetched orders:', fetchedOrders?.data?.orders);
         setOrders(fetchedOrders?.data?.orders || []);
+        console.log(fetchedOrders);
       } catch (err) {
         console.error('Failed to fetch orders:', err);
         setError('Failed to load orders');
