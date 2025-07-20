@@ -10,9 +10,10 @@ export default defineConfig({
     },
     host: '0.0.0.0', 
     port: 5173,      
-    allowedHosts: [
+    allowedHosts: [ 
       'nexusdashboard.onrender.com', 
-      'localhost',                  
+      'localhost',     
+      'https://nexus-backend-5l70.onrender.com',            
     ],
   }
 });
