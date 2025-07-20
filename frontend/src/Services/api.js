@@ -16,7 +16,7 @@ api.interceptors.request.use((config) => {
     '/api/auth/verifyUser',
     '/api/auth/resendVerificationCode',
     '/api/auth/forgotPassword',
-    '/api/auth/resetPassword',,
+    '/api/auth/resetPassword',
     '/api/auth/logout',
     '/api/auth/google/login/initiate',
     '/api/auth/google/callback',
@@ -185,7 +185,7 @@ export const verifySocialUser = async ({ email, code, provider }) => {
       email,
       code,
       provider
-    });s
+    });
     return response.data;
   } catch (error) {
     console.error('Error verifying social user:', error);
