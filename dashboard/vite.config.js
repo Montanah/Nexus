@@ -6,6 +6,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:3001'
-    }
+    },
+    host: '0.0.0.0', 
+    port: 5173,      
+    allowedHosts: [
+      'nexusdashboard.onrender.com', 
+      'localhost',                  
+    ],
   }
 });
