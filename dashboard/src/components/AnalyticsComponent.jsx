@@ -35,7 +35,7 @@ const AnalyticsComponent = () => (
       />
     </div>
 
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+    <div className="rounded-2xl shadow-lg border border-gray-100 p-6">
       <h2 className="text-2xl font-bold text-gray-900 mb-4">Analytics Overview</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
