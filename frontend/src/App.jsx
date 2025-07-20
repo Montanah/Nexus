@@ -3,7 +3,7 @@ import { AuthProvider } from './Context/AuthContext';
 import LandingPage from './Pages/landingPage/';
 import SignUp from './Pages/signUp/';
 import Login from './Pages/login/';
-import ClientDashboard from './Pages/ClientDashboard/';
+import ClientDashboard from './Pages/clientDashboard/';
 import NewOrder from './Pages/newOrder';
 import CartPage from './Pages/cartPage';
 import Checkout from './Pages/checkout';
