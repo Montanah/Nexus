@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://localhost:3001'
+      '/api': 'https://nexus-backend-5l70.onrender.com'||'http://localhost:3001'
     },
     host: '0.0.0.0', 
     port: 5173,      
