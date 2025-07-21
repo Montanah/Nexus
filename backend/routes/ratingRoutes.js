@@ -11,8 +11,8 @@ const { authenticateClient } = require("../middlewares/authMiddleware");
  */
 /**
  * @swagger
- * post:
- *   /api/ratings/client-to-traveler:
+ * /api/ratings/client-to-traveler:
+ *   post:
  *     summary: Rate a traveler
  *     tags: [Ratings]
  *     security:
@@ -36,8 +36,8 @@ router.post('/client-to-traveler', authenticateClient, ratingsController.clientT
 
 /**
  * @swagger
- * post:
- *   /api/ratings/traveler-to-client:
+ * /api/ratings/traveler-to-client:
+ *   post:
  *     summary: Rate a client
  *     tags: [Ratings]
  *     security:
@@ -61,8 +61,8 @@ router.post('/traveler-to-client', authenticateClient, ratingsController.travele
 
 /**
  * @swagger
- * get:
- *   /api/ratings/orders/{orderNumber}:
+ * /api/ratings/orders/{orderNumber}:
+ *   get:
  *     summary: Get ratings for an order
  *     tags: [Ratings]
  *     security:
@@ -81,8 +81,8 @@ router.get('/orders/:orderNumber', authenticateClient, ratingsController.getOrde
 
 /**
  * @swagger
- * get:
- *   /api/ratings/traveler/{userId}:
+ * /api/ratings/traveler/{userId}:
+ *   get:
  *     summary: Get traveler ratings
  *     tags: [Ratings]
  *     security:
@@ -101,8 +101,8 @@ router.get('/traveler/:travelerId', authenticateClient, ratingsController.getTra
 
 /**
  * @swagger
- * get:
- *   /api/ratings/client/{userId}:
+ * /api/ratings/client/{userId}:
+ *   get:
  *     summary: Get client ratings
  *     tags: [Ratings]
  *     security:
