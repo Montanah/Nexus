@@ -1,6 +1,7 @@
 backend/.env
 backend/node_modules
 backend/mailer
+backend/not to upload
 node_modules
 .env
 backend/controllers/passportold.js
