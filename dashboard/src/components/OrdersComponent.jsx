@@ -3,7 +3,7 @@ import { ShoppingCart, UserCheck, BarChart3, DollarSign } from 'lucide-react';
 import StatCard from './StatCard';
 import { processPayment } from '../api'; // Assuming this is in api.js
 
-const OrdersComponent = ({ orders: initialOrders, setOrders, users, isDarkTheme }) => {
+const OrdersComponent = ({ orders: initialOrders, setOrders, users, products, travelers, isDarkTheme }) => {
   const [orders, setLocalOrders] = useState(initialOrders);
   const [filters, setFilters] = useState({
     status: '',
@@ -40,7 +40,39 @@ const OrdersComponent = ({ orders: initialOrders, setOrders, users, isDarkTheme 
   };
 
   const getUserName = (userId) => {
-    return users.find((u) => u._id === userId)?.name || 'Unknown';
+    if (!userId) return 'Unknown';
+  
+    // Firebase IDs are always strings - no need for .toString()
+    const user = travelers.find((u) => u._id === userId);
+
+    const userIdString = user?.userId;
+
+    const traveler = users.find((u) => u._id === userIdString);
+    console.log(orders);
+
+    const travelerName = traveler?.name;
+
+    return travelerName || 'Unknown';
+  };
+
+  const getClientName = (userId) => {
+    const user = users.find((u) => u._id === userId);
+    return user?.name || 'Unknown';
+  };
+
+  const getProductName = (productId) => {
+    console.log(products);
+    console.log(productId);
+    const product = products.find((p) => p._id === productId);
+    console.log(product);
+    return product?.productName || 'Unknown';
+  };
+
+  const getProductAmount = (productId) => {
+    const product = products.find((p) => p._id === productId);
+    console.log(product);
+    const amount = product?.productFee * product?.quantity
+    return amount;
   };
 
   const handleFilterChange = (e) => {
@@ -105,7 +137,7 @@ const OrdersComponent = ({ orders: initialOrders, setOrders, users, isDarkTheme 
         />
         <StatCard
           title="Revenue"
-          value={`$${orders.reduce((sum, o) => sum + o.totalAmount, 0).toLocaleString()}`}
+          value={`KES ${orders.reduce((sum, o) => sum + o.totalAmount, 0).toLocaleString()}`}
           icon={BarChart3}
           color="bg-gradient-to-r from-emerald-500 to-emerald-600"
           change={31}
@@ -168,6 +200,7 @@ const OrdersComponent = ({ orders: initialOrders, setOrders, users, isDarkTheme 
                 <th className={`text-left p-4 font-semibold ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Product</th>
                 <th className={`text-left p-4 font-semibold ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Status</th>
                 <th className={`text-left p-4 font-semibold ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Amount</th>
+                <th className={`text-left p-4 font-semibold ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Product Amount</th>
                 <th className={`text-left p-4 font-semibold ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Actions</th>
               </tr>
             </thead>
@@ -176,16 +209,16 @@ const OrdersComponent = ({ orders: initialOrders, setOrders, users, isDarkTheme 
                 order.items.map((item, index) => (
                   <tr key={`${order._id}-${index}`} className={isDarkTheme ? 'hover:bg-gray-700' : 'hover:bg-gray-50'} transition-colors>
                     <td className={`p-4 font-mono text-sm ${isDarkTheme ? 'text-gray-400' : 'text-gray-600'}`}>
-                      #{order._id}{index > 0 ? ` (Item ${index + 1})` : ''}
+                      #{order.orderNumber}{index > 0 ? ` (Item ${index + 1})` : ''}
                     </td>
                     <td className={`p-4 font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>
-                      {getUserName(order.userId)}
+                      {getClientName(order.userId)}
                     </td>
                     <td className={`p-4 ${isDarkTheme ? 'text-gray-400' : 'text-gray-700'}`}>
                       {item.claimedBy ? getUserName(item.claimedBy) : 'Unassigned'}
                     </td>
                     <td className={`p-4 ${isDarkTheme ? 'text-gray-400' : 'text-gray-700'}`}>
-                      {item.product}
+                      {getProductName(item.product || 'Unknownn')}
                     </td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(item.deliveryStatus)}`}>
@@ -193,7 +226,10 @@ const OrdersComponent = ({ orders: initialOrders, setOrders, users, isDarkTheme 
                       </span>
                     </td>
                     <td className={`p-4 font-semibold ${isDarkTheme ? 'text-green-300' : 'text-green-600'}`}>
-                      ${(order.totalAmount / order.items.length).toFixed(2)}
+                      KES {(order.totalAmount).toFixed(2)}
+                    </td>
+                    <td className={`p-4 font-semibold ${isDarkTheme ? 'text-green-300' : 'text-green-600'}`}>
+                      KES {(getProductAmount(item.product)).toFixed(2)}
                     </td>
                     <td className="p-4">
                       {item.deliveryStatus === 'Complete' && !order.paymentProcessed && (

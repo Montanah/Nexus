@@ -85,7 +85,7 @@ app.all("*", (req, res) => {
 });
 
 app.get("/api", (req, res) => {
-    res.json({ message: "Hello from server!" });
+    res.json({ message: "Welcome to the Nexus API Server" });
   });
 
 

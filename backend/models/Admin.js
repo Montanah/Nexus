@@ -59,7 +59,7 @@ const adminSchema = new mongoose.Schema({
 });
 
 // Index for email lookup
-adminSchema.index({ email: 1 });
+//adminSchema.index({ email: 1 });
 
 // Pre-save hook to set default permissions based on role
 adminSchema.pre('save', function(next) {

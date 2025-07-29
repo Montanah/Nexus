@@ -41,7 +41,7 @@ const Checkout = () => {
         } else {
           items = await fetchCart(userId);
         }
-        console.log('Cart items:', items);
+        // console.log('Cart items:', items);
         setCartItems(items);
         // const items = await fetchCart(userId);
         // console.log('Cart items:', items);

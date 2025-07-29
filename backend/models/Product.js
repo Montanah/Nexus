@@ -88,7 +88,14 @@ const productSchema = new mongoose.Schema({
         enum: ["low", "medium", "high"],
         default: "medium"
     },
-
+    isPaid: {
+        type: Boolean,
+        default: false
+    },
+    orderNumber: {
+        type: String,
+        unique: true
+    },
     // Traveler
     claimedBy: {
         type: mongoose.Schema.Types.ObjectId,

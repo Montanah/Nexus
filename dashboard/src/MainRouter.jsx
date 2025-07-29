@@ -23,7 +23,7 @@ const MainRouter = ({ users, setUsers, products, setProducts, orders, setOrders,
       {/* <Route path="/" element={<Navigate to="/users" />} /> */}
       <Route path="/users" element={<UsersComponent users={users} setUsers={setUsers} isDarkTheme={isDarkTheme} />} />
       <Route path="/products" element={<ProductsComponent products={products} setProducts={setProducts} isDarkTheme={isDarkTheme} />} />
-      <Route path="/orders" element={<OrdersComponent orders={orders} setOrders={setOrders} users={users} isDarkTheme={isDarkTheme} />} />
+      <Route path="/orders" element={<OrdersComponent orders={orders} setOrders={setOrders} users={users} travelers={travelers} products={products} isDarkTheme={isDarkTheme} />} />
       <Route path="/analytics" element={<AnalyticsComponent isDarkTheme={isDarkTheme} />} />
       <Route path="/travelers" element={<TravelersComponent travelers={travelers} setTravelers={setTravelers} users={users} isDarkTheme={isDarkTheme} />} />
       <Route path="/transactions" element={<PaymentComponent orders={orders} setOrders={setOrders} users={users} isDarkTheme={isDarkTheme} />} />

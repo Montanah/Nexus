@@ -44,7 +44,7 @@ const NewOrder = () => {
   const quantityOptions = Array.from({ length: 10 }, (_, i) => i + 1);
 
   const base64Strings = productPhotos.map(photo => photo.base64);
-  console.log(base64Strings); 
+  //console.log(base64Strings); 
 
   useEffect(() => {
     if (!authLoading && !userId) {
@@ -168,7 +168,7 @@ const NewOrder = () => {
       if (persistToBackend) {
         // Single API call that creates product and adds to cart
         const response = await createProduct(newItem);
-        console.log('API Response:', response);
+        // console.log('API Response:', response);
         
         if (response.success && response.data.product) {
           // Update local cart state with the new product
@@ -245,7 +245,7 @@ const NewOrder = () => {
       setError(null);
       const data = await fetchCart();
       // const data = await checkout({ userId, cart });
-      console.log('Checkout response:', data);
+      // console.log('Checkout response:', data);
 
       // const orderNumber = data?.orderNumber; 
       setSuccess('Checkout successful');

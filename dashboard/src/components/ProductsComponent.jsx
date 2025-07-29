@@ -18,16 +18,16 @@ const ProductsComponent = ({ products, setProducts, isDarkTheme }) => {
           isDarkTheme={isDarkTheme}
         />
         <StatCard 
-          title="In Stock" 
-          value={products.filter(p => p.stock > 0).length} 
+          title="Highest Ordered Quantity" 
+          value={products.filter(p => p.quantity > 0).length} 
           icon={ShoppingCart} 
           color="bg-gradient-to-r from-green-500 to-green-600"
           change={-3}
           isDarkTheme={isDarkTheme}
         />
         <StatCard 
-          title="Total Value" 
-          value={`$${products.reduce((sum, p) => sum + (p.price * p.stock), 0).toLocaleString()}`} 
+          title="Total Commissions" 
+          value={`KES ${products.reduce((sum, p) => sum + (p.rewardAmount * p.quantity), 0).toLocaleString()}`} 
           icon={BarChart3} 
           color="bg-gradient-to-r from-yellow-500 to-yellow-600"
           change={22}

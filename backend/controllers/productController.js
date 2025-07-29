@@ -3,6 +3,7 @@ const Users = require("../models/Users");
 const Cart = require("../models/Cart");
 const Category = require("../models/Category");
 const { response } = require("../utils/responses");
+const Order = require("../models/Order");
 
 //create a new product listing
 exports.createProduct = async (req, res) => {
@@ -377,12 +378,23 @@ exports.deleteCategory = async (req, res) => {
 
 exports.avaiableProducts = async (req, res) => {
     try {
-        const products = await Product.find({ 
+        const paidOrders = await Order.find({ 
+            paymentStatus: 'Paid' 
+        }).select('items.product');
+
+        const productIds = paidOrders.flatMap(order => 
+            order.items.map(item => item.product));
+        // console.log(productIds);
+
+         const products = await Product.find({ 
+            _id: { $in: productIds },  
             isDelivered: false, 
-            claimedBy: null });
+            claimedBy: null 
+        }); 
+
             
         if (!products.length) {
-            return response(res, 404, { message: "No available products found" });
+            return response(res, 404, { message: "No available products found", products: [] }, products);
         }
         return response(res, 200, { message: "Products fetched successfully", products });
     } catch (error) {

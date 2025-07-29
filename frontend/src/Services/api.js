@@ -234,7 +234,7 @@ export const updateProduct = async (userId, productId, formData) => {
 // Fetch cart items for a user (Protected)
 export const fetchCart = async () => {
   const response = await api.get(`/api/cart/`);
-  console.log('fetchCart response:', response.data);
+  // console.log('fetchCart response:', response.data);
   return response.data.data.cart || [];
 };
 
@@ -246,9 +246,9 @@ export const deleteCartItem = async (productId) => {
 
 // Fetch orders for a specific client (Protected)
 export const fetchOrders = async () => {
-  console.log("I was called");
+  //console.log("I was called");
   const response = await api.get(`/api/orders/`);
-  console.log(response);
+  //console.log(response);
   return response.data; // e.g., [{ id, itemName, photo, quantity, unitPrice, totalPrice, details, ... }]
 };
 
