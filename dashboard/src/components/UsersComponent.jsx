@@ -1,11 +1,11 @@
 import { Users, Eye, Trash2, UserCheck, Phone, Mail, Shield, Star } from 'lucide-react';
 import StatCard from './StatCard';
 import React from 'react';
-import { useAuth } from '../AuthContext'; // Add this import
+import { useAuth } from '../AuthContext'; 
 import { useNavigate } from 'react-router-dom';
 
 const UsersComponent = ({ users, setUsers, isDarkTheme }) => {
-  const { admin } = useAuth(); // Add this line to get the admin object
+  const { admin } = useAuth(); 
   const navigate = useNavigate();
   
   const canReadUsers = admin?.permissions?.includes('users.read') || admin?.permissions?.includes('all');

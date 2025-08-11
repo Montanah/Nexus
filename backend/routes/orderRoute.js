@@ -188,4 +188,25 @@ router.put('/:orderNumber', authenticateClient, checkoutController.cancelOrder);
  */
 router.put('/:orderNumber/claim', authenticateClient, checkoutController.assignTraveler);
 
+/**
+ * @swagger
+ * /api/orders/:orderId:
+ *   delete:
+ *     summary: Delete an order if payment is pending.
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Order ID
+ *     responses:
+ *       200:
+ *         description: Order canceled successfully
+ *       400:
+ *         description: Bad request
+ */
+router.delete('/:orderId', authenticateClient, checkoutController.deleteOrder);
+
 module.exports = router;

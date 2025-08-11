@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, UserCheck, BarChart3, DollarSign } from 'lucide-react';
+import { ShoppingCart, UserCheck, BarChart3, DollarSign, Eye, Trash2 } from 'lucide-react';
 import StatCard from './StatCard';
-import { processPayment } from '../api'; // Assuming this is in api.js
+import { processPayment } from '../api'; 
+import { useAuth } from '../AuthContext'; 
+import { useNavigate } from 'react-router-dom';
+import { deleteOrder } from '../api';
 
 const OrdersComponent = ({ orders: initialOrders, setOrders, users, products, travelers, isDarkTheme }) => {
+  const { admin } = useAuth(); 
+  const navigate = useNavigate();
   const [orders, setLocalOrders] = useState(initialOrders);
   const [filters, setFilters] = useState({
     status: '',
@@ -12,6 +17,19 @@ const OrdersComponent = ({ orders: initialOrders, setOrders, users, products, tr
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const canReadOrders = admin?.permissions?.includes('orders.read') || admin?.permissions?.includes('all');
+  const canWriteOrders = admin?.permissions?.includes('orders.write') || admin?.permissions?.includes('all');
+
+  if (!canReadOrders) {
+    return (
+      <div className="p-6">
+        <p className={`text-center text-red-500 font-semibold`}>
+          You do not have permission to view users.
+        </p>
+      </div>
+    );
+  }
 
   // Sync local orders with prop changes
   useEffect(() => {
@@ -48,7 +66,6 @@ const OrdersComponent = ({ orders: initialOrders, setOrders, users, products, tr
     const userIdString = user?.userId;
 
     const traveler = users.find((u) => u._id === userIdString);
-    console.log(orders);
 
     const travelerName = traveler?.name;
 
@@ -61,20 +78,38 @@ const OrdersComponent = ({ orders: initialOrders, setOrders, users, products, tr
   };
 
   const getProductName = (productId) => {
-    console.log(products);
-    console.log(productId);
+  
     const product = products.find((p) => p._id === productId);
-    console.log(product);
+   
     return product?.productName || 'Unknown';
   };
 
   const getProductAmount = (productId) => {
     const product = products.find((p) => p._id === productId);
-    console.log(product);
+ 
     const amount = product?.productFee * product?.quantity
     return amount;
   };
 
+  const handleView = (orderId) => {
+    navigate(`/orders/${orderId}`); 
+  };
+
+  const handleDelete = async (orderId) => {
+    if (!canWriteOrders) {
+      alert('You do not have permission to delete orders.');
+      return;
+    }
+    try {
+      await deleteOrder(orderId);
+      setOrders(prev => prev.filter(order => order._id !== orderId)); // Update state
+      setLocalOrders(prev => prev.filter(order => order._id !== orderId)); // Sync local state
+      alert('Order deleted successfully!');
+    } catch (error) {
+      console.error('Delete failed:', error);
+      alert('Failed to delete order. Check console for details.');
+    }
+  };
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
@@ -202,6 +237,7 @@ const OrdersComponent = ({ orders: initialOrders, setOrders, users, products, tr
                 <th className={`text-left p-4 font-semibold ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Amount</th>
                 <th className={`text-left p-4 font-semibold ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Product Amount</th>
                 <th className={`text-left p-4 font-semibold ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Actions</th>
+                <th className={`text-left p-4 font-semibold ${isDarkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Tasks</th>
               </tr>
             </thead>
             <tbody className={`divide-y ${isDarkTheme ? 'divide-gray-700' : 'divide-gray-100'}`}>
@@ -212,10 +248,10 @@ const OrdersComponent = ({ orders: initialOrders, setOrders, users, products, tr
                       #{order.orderNumber}{index > 0 ? ` (Item ${index + 1})` : ''}
                     </td>
                     <td className={`p-4 font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>
-                      {getClientName(order.userId)}
+                      <a href={`/users/${order.userId}`}>{getClientName(order.userId)}</a>
                     </td>
                     <td className={`p-4 ${isDarkTheme ? 'text-gray-400' : 'text-gray-700'}`}>
-                      {item.claimedBy ? getUserName(item.claimedBy) : 'Unassigned'}
+                      <a href={`/travelers/${item.claimedBy}`}>{item.claimedBy ? getUserName(item.claimedBy) : 'Unassigned'} </a>
                     </td>
                     <td className={`p-4 ${isDarkTheme ? 'text-gray-400' : 'text-gray-700'}`}>
                       {getProductName(item.product || 'Unknownn')}
@@ -250,6 +286,24 @@ const OrdersComponent = ({ orders: initialOrders, setOrders, users, products, tr
                         <span className="text-green-500 text-sm">Payment Processed</span>
                       )}
                     </td>
+                    <td className="p-4">
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        onClick={() => handleView(order._id)}
+                        className={`p-2 ${isDarkTheme ? 'text-blue-400 hover:bg-blue-700' : 'text-blue-600 hover:bg-blue-50'} rounded-lg transition-colors`}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      {canWriteOrders && (
+                        <button 
+                          onClick={() => handleDelete(order._id)}
+                          className={`p-2 ${isDarkTheme ? 'text-red-400 hover:bg-red-700' : 'text-red-600 hover:bg-red-50'} rounded-lg transition-colors`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
                   </tr>
                 ))
               )}

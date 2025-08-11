@@ -10,6 +10,7 @@ const {
 } = require("../middlewares/adminMiddleware");
 
 const paymentController = require("../controllers/paymentController");
+const checkoutController = require("../controllers/checkoutController");
 
 /**
  * @swagger
@@ -850,4 +851,5 @@ router.post("/dispute", authenticateAdmin, requireResourceAccess('disputes', 'up
  */
 router.post("/dispute/resolve", requireResourceAccess('disputes', 'update'), authenticateAdmin, paymentController.resolveDispute);
 
+router.delete("/orders/:id", authenticateAdmin, requireResourceAccess('orders', 'write'), checkoutController.deleteOrder);
 module.exports = router;

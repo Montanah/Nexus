@@ -59,6 +59,7 @@ export const getAdminProfile = async () => {
   const response = await api.get('/api/admin/profile');
   return response.data?.data;
 };
+
 export const fetchAdminProfile = async () => {
   try {
     console.log('Fetching admin profile...');
@@ -343,6 +344,17 @@ export const getTravelerDetails = async (travelerId) => {
   }
 };
 
+export const deleteOrder = async (orderId) => {
+  try {
+    console.log(`Deleting order with ID: ${orderId}`);
+    const response = await api.delete(`/api/admin/orders/${orderId}`);
+    console.log(response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    throw error;
+  }
+}
 // Call this when your app starts
 initializeAuth();
 
