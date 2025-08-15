@@ -41,10 +41,10 @@ mongoose.connect(uri)
 
 // Middleware
 app.use(cors({
-    origin: true, 
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"], 
-    allowedHeaders: ['Authorization', 'Content-Type'],
+   // origin: true, 
+    //credentials: true,
+    //methods: ["GET", "POST", "PUT", "DELETE"], 
+    //allowedHeaders: ['Authorization', 'Content-Type'],
   }));
 app.use(bodyParser.json());
 app.use(express.json());
