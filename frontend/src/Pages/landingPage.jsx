@@ -109,13 +109,13 @@ const LandingPage = () => {
                 onClick={() => navigate('/login')}
                 className="px-6 py-3 bg-indigo-600 text-white bg-indigo-600 rounded-full hover:bg-slate-950 transition-all shadow-lg text-base font-medium"
               >
-                Get Started
+                Login
               </button>
              <button 
                 onClick={() => navigate('/signup')}
                 className="px-6 py-3 bg-white border-2 border-purple-600 text-purple-600 hover:bg-slate-950 hover:border-transparent hover:text-white rounded-full transition-all shadow-lg text-base font-medium"
               >
-                Learn More
+                Sign Up
               </button>
             </motion.div>
           </motion.div>

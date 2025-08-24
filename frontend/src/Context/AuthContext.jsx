@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
       } else if (error.response?.status === 401) {
         setError('Session expired or invalid. Please log in.');
       } else {
-        setError(error.response?.data?.message || 'Failed to check authentication. Please try again.');
+        setError(error.response?.data?.message);
       }
     } finally {
       setLoading(false);

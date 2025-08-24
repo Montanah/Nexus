@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_KEY || 'http://localhost:3001',
+  baseURL: import.meta.env.VITE_API_KEY || 'https://nexus-backend-5l70.onrender.com' ||'http://localhost:3001',
   withCredentials: true, 
 });
 
