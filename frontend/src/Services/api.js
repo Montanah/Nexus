@@ -1,9 +1,10 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_KEY || 'https://nexus-backend-5l70.onrender.com' ||'http://localhost:3001',
+  baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true, 
 });
+  
 
 let isRefreshing = false;
 
@@ -78,6 +79,7 @@ api.interceptors.response.use(
 // AUTH ENDPOINTS
 // Fetch user data based on userId (Protected)
 export const fetchUserData = async (userId) => {
+  console.log('fetchUserData called with userId:', userId);
   const response = await api.get(`/api/auth/user/${userId}`);
   return response.data;
 };
@@ -108,6 +110,7 @@ export const loginUser = async (credentials) => {
 
 // Verify OTP (Public-ish, but typically after login initiation)
 export const verifyLoginOTP = async (otpData) => {
+  console.log('verifyLoginOTP called with data:', otpData);
   const response = await api.post('/api/auth/verifyLoginOTP', otpData);
   return response.data;
 };

@@ -131,7 +131,7 @@ const Checkout = () => {
         phoneNumber: selectedPaymentMethod === 'mpesa' || selectedPaymentMethod === 'airtel' ? paymentDetails.phoneNumber : undefined,
         amount: total,
         paymentMethodId: selectedPaymentMethod === 'card' || selectedPaymentMethod === 'paypal' ? paymentDetails.paymentMethodId : undefined,
-        email: selectedPaymentMethod === 'paystack' ? user?.data?.user?.email : undefined,
+        email: selectedPaymentMethod === 'paystack' ? user?.email : undefined,
         cartItems, // Pass cart items to create order on backend
         voucherCode: selectedPaymentMethod === 'card' || selectedPaymentMethod === 'paypal' ? voucherCode : undefined,
       };
