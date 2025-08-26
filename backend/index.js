@@ -64,8 +64,8 @@ app.use(session({
   }));
 
 // Initialize Passport
-app.use(passport.initialize());
-app.use(passport.session());
+// app.use(passport.initialize());
+// app.use(passport.session());
 
 app.get('/health', (req, res) => {
   res.status(200).json({ 
