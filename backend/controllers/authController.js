@@ -642,6 +642,7 @@ exports.restoreSession = async (req, res) => {
 exports.refreshToken = async (req, res) => {
     try {
       const refreshToken = req.cookies.refreshToken;
+      console.log('refreshToken:', refreshToken);
       if (!refreshToken) {
         return res.status(401).json({
           status: 401,

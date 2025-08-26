@@ -55,12 +55,25 @@ app.use(session({
     secret: process.env.JWT_SECRET,
     resave: false,
     saveUninitialized: false, 
-    cookie: { secure: false }, 
+    cookie: { 
+      secure: process.env.NODE_ENV === 'production', // ← true in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // ← crucial for cross-origin
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
   }));
 
 // Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
