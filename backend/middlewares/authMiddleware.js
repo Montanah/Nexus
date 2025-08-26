@@ -4,6 +4,8 @@ const redisClient = require("../middlewares/redisClient");
 
 exports.authenticateClient = async (req, res, next) => {
     let token = req.cookies.accessToken;
+    console.log('Received cookies:', req.cookies); // Log cookies
+    console.log('Authorization header:', req.headers.authorization); // Log header
     if (!token && req.headers.authorization) {
         token = req.headers.authorization.split(' ')[1];
     }

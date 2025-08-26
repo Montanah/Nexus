@@ -62,8 +62,8 @@ app.use(session({
     resave: false,
     saveUninitialized: false, 
     cookie: { 
-      secure: process.env.NODE_ENV === 'production', // ← true in production
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // ← crucial for cross-origin
+      secure: true, // process.env.NODE_ENV === 'production', // ← true in production
+      sameSite: 'none', // process.env.NODE_ENV === 'production' ? 'none' : 'lax', // ← crucial for cross-origin
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
