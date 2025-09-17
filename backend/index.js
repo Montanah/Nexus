@@ -40,42 +40,42 @@ mongoose.connect(uri)
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Middleware
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ['Authorization', 'Content-Type'],
+}));
 // app.use(cors({
-//     origin: 'http://localhost:5173', 
-//     credentials: true,
-//     methods: ["GET", "POST", "PUT", "DELETE"], 
-//     allowedHeaders: ['Authorization', 'Content-Type'],
-//   }));
-  app.use(cors({
-    origin: true, 
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"], 
-    allowedHeaders: ['Authorization', 'Content-Type'],
-  }));
+//   origin: true, 
+//   credentials: true,
+//   methods: ["GET", "POST", "PUT", "DELETE"], 
+//   allowedHeaders: ['Authorization', 'Content-Type'],
+// }));
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(session({
-    secret: process.env.JWT_SECRET,
-    resave: false,
-    saveUninitialized: false, 
-    cookie: { 
-      secure: true, // process.env.NODE_ENV === 'production', // ← true in production
-      sameSite: 'none', // process.env.NODE_ENV === 'production' ? 'none' : 'lax', // ← crucial for cross-origin
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
-  }));
+  secret: process.env.JWT_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: true, // process.env.NODE_ENV === 'production', // ← true in production
+    sameSite: 'none', // process.env.NODE_ENV === 'production' ? 'none' : 'lax', // ← crucial for cross-origin
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
 // Initialize Passport
 // app.use(passport.initialize());
 // app.use(passport.session());
 
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+  res.status(200).json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });
@@ -104,8 +104,8 @@ app.all("*", (req, res) => {
 });
 
 app.get("/api", (req, res) => {
-    res.json({ message: "Welcome to the Nexus API Server" });
-  });
+  res.json({ message: "Welcome to the Nexus API Server" });
+});
 
 
 app.listen(PORT, () => {
