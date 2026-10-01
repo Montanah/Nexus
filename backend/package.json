@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test test/*.test.js",
     "start": "node index.js",
     "dev": "node index.js"
   },
@@ -14,21 +17,23 @@
   "dependencies": {
     "@paystack/inline-js": "^2.22.4",
     "@upstash/redis": "^1.34.6",
-    "bcrypt": "^5.1.1",
+    "axios": "^1.20.0",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
-    "body-parser": "^1.20.3",
+    "body-parser": "^1.20.8",
+    "cookie": "^0.7.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "express-session": "^1.18.1",
+    "express": "^4.22.3",
+    "express-session": "^1.19.0",
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.10.0",
+    "mongoose": "^8.24.4",
     "mongoose-paginate-v2": "^1.9.0",
-    "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.10.0",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.0.13",
     "passport": "^0.7.0",
     "passport-apple": "^2.0.2",
     "passport-facebook": "^3.0.0",
@@ -40,8 +45,7 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "twilio": "^5.4.5",
-    "uuid": "^11.1.0",
-    "nodemon": "^3.1.9"
+    "uuid": "^11.1.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
