@@ -28,6 +28,9 @@ const ClientDashboardPreview = import.meta.env.DEV
 const TravelerDashboardPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/TravelerDashboardPreview'))
   : null;
+const NewOrderPreview = import.meta.env.DEV
+  ? lazy(() => import('./dev/NewOrderPreview'))
+  : null;
 
 const RatingFormWithLocation = () => {
   const location = useLocation();
@@ -67,6 +70,7 @@ const App = () => (
     <Routes>
       {import.meta.env.DEV && <Route path="/preview/client-dashboard" element={<Suspense fallback={<p role="status">Loading dashboard preview…</p>}><ClientDashboardPreview /></Suspense>} />}
       {import.meta.env.DEV && <Route path="/preview/traveler-dashboard" element={<Suspense fallback={<p role="status">Loading dashboard preview…</p>}><TravelerDashboardPreview /></Suspense>} />}
+      {import.meta.env.DEV && <Route path="/preview/new-order" element={<Suspense fallback={<p role="status">Loading order preview…</p>}><NewOrderPreview /></Suspense>} />}
       <Route path="/*" element={<ApplicationRoutes />} />
     </Routes>
   </Router>

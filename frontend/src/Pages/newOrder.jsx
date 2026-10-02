@@ -1,427 +1,99 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
-import { FaShoppingCart, FaPlus, FaMinus, FaBox } from 'react-icons/fa';
-import Sidebar from '../Components/SideBar';
-import UserProfile from '../Components/UserProfile';
-import InputField from '../Components/DashboardInputField';
-import PhotoUpload from '../Components/PhotoUpload';
-import PriceBreakdown from '../Components/PriceBreakdown';
-import ActionButtons from '../Components/ActionButtons';
-import { createCategory, getCategories, createProduct, fetchCart } from '../Services/api';
-import CountryStateCityComponent from '../Components/State';
-
+import { createCategory, createProduct, fetchCart, getCategories, getProductDetails, updateProductDetails } from '../Services/api';
+import NewOrderView from '../Components/NewOrderView';
+import { apiErrorMessage, emptyOrderForm, formFromProduct, orderPayload } from '../Components/newOrderModel';
 
 const NewOrder = () => {
-  const { userId, logout, loading: authLoading } = useAuth();
+  const { user, userId, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-
-  const [productId, setProductId] = useState(null);
-  const [productName, setProductName] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const [productDescription, setProductDescription] = useState('');
-  const [productCategory, setCategory] = useState('');
-  const [customCategory, setCustomCategory] = useState('');
-  const [categoryOptions, setCategoryOptions] = useState([]);
-  const [productPhotos, setProductPhotos] = useState([]);
-  const [weight, setWeight] = useState('');
-  const [dimensions, setDimensions] = useState('');
-  const [country, setCountry] = useState('');
-  const [state, setState] = useState('');
-  const [city, setCity] = useState('');
-  const [deliveryDate, setDeliveryDate] = useState('');
-  const [shippingRestrictions, setShippingRestrictions] = useState('');
-  const [productPrice, setProductPrice] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
-
+  const editId = location.state?.itemToEdit?.productId || '';
+  const editQuantity = location.state?.itemToEdit?.quantity;
+  const [categories, setCategories] = useState([]);
   const [cart, setCart] = useState([]);
+  const [initialForm, setInitialForm] = useState(editId ? null : emptyOrderForm);
+  const [loading, setLoading] = useState({ categories: true, cart: true, edit: Boolean(editId) });
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const [notice, setNotice] = useState('');
+  const lock = useRef(false);
+  const versions = useRef({});
 
-  const quantityOptions = Array.from({ length: 10 }, (_, i) => i + 1);
-
-  const base64Strings = productPhotos.map(photo => photo.base64);
-  //console.log(base64Strings); 
-
-  useEffect(() => {
-    if (!authLoading && !userId) {
-      navigate('/login');
-    }
-  }, [authLoading, userId, navigate]);
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      if (!userId) return;
-      try {
-        setLoading(true);
-        const response = await getCategories();
-        
-        const categories = Array.isArray(response) ? response : [];
-        
-        setCategoryOptions(categories);
-      } catch (err) {
-        console.error('Fetch categories error:', err.response || err);
-        setError('Failed to load categories from server');
-        setCategoryOptions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCategories();
-  }, [userId]);
-
-  useEffect(() => {
-    const { itemToEdit } = location.state || {};
-    if (itemToEdit) {
-      setIsEditing(true);
-      setProductId(itemToEdit.productId || null);
-      setProductName(itemToEdit.productName || '');
-      setQuantity(itemToEdit.quantity || 1);
-      setProductDescription(itemToEdit.productDescription || '');
-      setCategory(itemToEdit.category || '');
-      setProductPhotos(itemToEdit.productPhotos || []);
-      setWeight(itemToEdit.weight || '');
-      setDimensions(itemToEdit.dimensions || '');
-      setCountry(itemToEdit.delivery?.country || '');
-      setState(itemToEdit.delivery?.state || '');
-      setCity(itemToEdit.delivery?.city || '');
-      setDeliveryDate(itemToEdit.delivery?.deliveryDate || '');
-      setShippingRestrictions(itemToEdit.shippingRestrictions || '');
-      setProductPrice(itemToEdit.productPrice || '');
-    }
-  }, [location.state]);
-
-  const calculateFinalCharge = useCallback((price, qty) => {
-    const basePrice = parseFloat(price) || 0;
-    const quantityMultiplier = parseInt(qty) || 0;
-    const markup = 1.15;
-    return basePrice * quantityMultiplier * markup;
-  }, []);
-
-  const handleAddItemToCart = async (persistToBackend = true) => {
-    if (!productName || !productPrice || !country || !state || !city || !deliveryDate) {
-      setError('Please fill all required fields');
-      return;
-    }
-
-    let effectiveCategory = productCategory;
-    let categoryId = productCategory;
-
-    // if (!effectiveCategory && persistToBackend) {
-    //   setError('Please select or enter a category');
-    //   return;
-    // }
-
-    if (customCategory && !productCategory) {
-    if (persistToBackend) {
-        try {
-          setLoading(true);
-          const categoryResponse = await createCategory({ categoryName: customCategory });
-          categoryId = categoryResponse.data.category?._id; 
-          setCategoryOptions(prev => [...prev, { 
-            _id: categoryId, 
-            categoryId: customCategory 
-          }]);
-          effectiveCategory = categoryId; 
-        } catch (err) {
-          console.error('Error creating category:', err.response || err);
-          setError('Failed to create custom category');
-          setLoading(false);
-          return;
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        // For preview mode, just use the custom category name
-        effectiveCategory = customCategory;
-      }
-    } else if (!productCategory && !customCategory && persistToBackend) {
-      setError('Please select or enter a category');
-      return;
-    }
-
-    const newItem = {
-      userId,
-      productName,
-      quantity: Number(quantity),
-      destination: { country, state, city },
-      deliverydate: deliveryDate,
-      productDescription,
-      productCategory: effectiveCategory || categoryId,
-      productPhotos: base64Strings || [],
-      weight: weight || null,
-      dimensions: dimensions || null,
-      shippingRestrictions: shippingRestrictions || '',
-      productFee: Number(productPrice),
-      urgencyLevel: 'medium',
-    };
-
-    console.log('New Item:', newItem);
-
+  const loadResource = useCallback(async key => {
+    if (!userId) return;
+    const version = (versions.current[key] || 0) + 1;
+    versions.current[key] = version;
+    setLoading(previous => ({ ...previous, [key]: true }));
+    setErrors(previous => ({ ...previous, [key]: '' }));
     try {
-      setLoading(true);
-      setError(null);
-
-      if (persistToBackend) {
-        // Single API call that creates product and adds to cart
-        const response = await createProduct(newItem);
-        // console.log('API Response:', response);
-        
-        if (response.success && response.data.product) {
-          // Update local cart state with the new product
-          setCart(prevCart => [...prevCart, { 
-            ...newItem, 
-            productId: response.data.product._id,
-            finalCharge: response.data.product.totalPrice
-          }]);
-          setSuccess('Item added to cart successfully');
-        } else {
-          throw new Error(response.message || 'Failed to add item to cart');
-        }
-      } else {
-        // Just update local cart state for preview
-        setCart(prevCart => [...prevCart, newItem]);
-        setSuccess('Item saved to cart preview');
-      }
-    } catch (err) {
-      console.error('Error:', err);
-      setError(persistToBackend ? 'Failed to add item to cart' : 'Failed to save item');
+      const data = await (key === 'categories' ? getCategories() : key === 'cart' ? fetchCart() : getProductDetails(editId));
+      if (versions.current[key] !== version) return;
+      if (key === 'categories') setCategories(Array.isArray(data) ? data : []);
+      else if (key === 'cart') setCart(Array.isArray(data) ? data : []);
+      else setInitialForm(formFromProduct(data, { quantity: editQuantity }));
+    } catch {
+      if (versions.current[key] === version) setErrors(previous => ({ ...previous, [key]: `We couldn’t load ${key === 'edit' ? 'this item' : `your ${key}`}. Please try again.` }));
     } finally {
-      setLoading(false);
+      if (versions.current[key] === version) setLoading(previous => ({ ...previous, [key]: false }));
     }
+  }, [userId, editId, editQuantity]);
 
-    // Reset form fields
-    setProductName('');
-    setQuantity(1);
-    setProductDescription('');
-    setCategory('');
-    setCustomCategory('');
-    setProductPhotos([]);
-    setWeight('');
-    setDimensions('');
-    setCountry('');
-    setState('');
-    setCity('');
-    setDeliveryDate('');
-    setShippingRestrictions('');
-    setProductPrice('');
-    setIsEditing(false);
-  };
+  useEffect(() => {
+    if (authLoading) return;
+    if (!userId) { navigate('/login', { replace: true }); return; }
+    loadResource('categories'); loadResource('cart');
+    if (editId) loadResource('edit');
+    const requestVersions = versions.current;
+    return () => {
+      for (const key of ['categories', 'cart', 'edit']) requestVersions[key] = (requestVersions[key] || 0) + 1;
+    };
+  }, [userId, authLoading, navigate, loadResource, editId]);
 
-  const handleSaveProduct = (e) => {
-    e.preventDefault();
-    handleAddItemToCart(false);
-  };
-
-  const removeFromCart = (itemId) => {
-    const existingItem = cart.find(cartItem => cartItem.productId === itemId || cartItem.productName === itemId);
-    if (existingItem.quantity > 1) {
-      setCart(cart.map(cartItem =>
-        cartItem.productId === itemId || cartItem.productName === itemId
-          ? { 
-              ...cartItem, 
-              quantity: cartItem.quantity - 1, 
-              finalCharge: (cartItem.productFee * (cartItem.quantity - 1)) * 1.15 // 15% markup
-            }
-          : cartItem
-      ));
-    } else {
-      setCart(cart.filter(cartItem => cartItem.productId !== itemId && cartItem.productName !== itemId));
-    }
-  };
-
-  const total = cart.reduce((sum, item) => sum + parseFloat(item.finalCharge), 0).toFixed(2);
-
-  const handleCheckout = async () => {
-    if (cart.length === 0) {
-      setError('Cart is empty');
-      return;
-    }
+  const save = async form => {
+    if (lock.current) return { ok: false, message: 'Your item is already being saved.' };
+    lock.current = true; setSubmitting(true); setNotice('');
+    let categoryId = form.productCategory;
     try {
-      setLoading(true);
-      setError(null);
-      const data = await fetchCart();
-      // const data = await checkout({ userId, cart });
-      // console.log('Checkout response:', data);
-
-      // const orderNumber = data?.orderNumber; 
-      setSuccess('Checkout successful');
-      setCart([]);
-      navigate('/payment-success', { state: { cart, total, paymentMethod: 'Pending', orderNumber: data.orderNumber } });
-      // console.log('Order number:', orderNumber);
-      // return orderNumber;
-    } catch (err) {
-      console.error('Error during checkout:', err.response || err);
-      setError('Checkout failed: ' + (err.response?.data?.message || err.message));
-      return null;
-    } finally {
-      setLoading(false);
-    }
+      if (categoryId === 'custom') {
+        const existing = categories.find(category => category.categoryName.toLowerCase() === form.customCategory.trim().toLowerCase());
+        if (existing) categoryId = existing._id;
+        else {
+          const response = await createCategory({ categoryName: form.customCategory.trim() });
+          const category = response?.data?.category;
+          if (!category?._id) throw new Error('The category could not be created. Please try again.');
+          categoryId = category._id;
+          setCategories(previous => [...previous.filter(item => item._id !== categoryId), category]);
+        }
+      }
+      const payload = orderPayload(form, categoryId);
+      if (new TextEncoder().encode(JSON.stringify(payload)).length > 95 * 1024) throw new Error('The photos are too large to save together. Remove a photo and try again.');
+      const response = editId ? await updateProductDetails(editId, payload) : await createProduct(payload);
+      if (!response?.data?.product?._id) throw new Error('We couldn’t verify that this item was saved. Check your cart before trying again.');
+      // Refresh is separate from the successful mutation: a refresh failure
+      // must never invite a duplicate product submission.
+      await loadResource('cart');
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: apiErrorMessage(error, 'We couldn’t save this item. Please try again.'), categoryId: categoryId !== 'custom' ? categoryId : undefined };
+    } finally { lock.current = false; setSubmitting(false); }
   };
-
   const handleLogout = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      await logout();
-    } catch (err) {
-      setError('Logout failed');
-      console.error('Logout error:', err);
-    } finally {
-      setLoading(false);
-    }
+    if (logoutLoading || lock.current) return;
+    setLogoutLoading(true); setNotice('');
+    try { await logout(); }
+    catch { setNotice('We couldn’t log you out. Please try again.'); }
+    finally { setLogoutLoading(false); }
+  };
+  const handleNavigate = (path, options) => {
+    if (path.includes('#')) { window.location.assign(path); return; }
+    navigate(path, options); window.scrollTo({ top: 0 });
   };
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-indigo-100 flex items-center justify-center">
-        <p>Loading authentication...</p>
-      </div>
-    );
-  }
-
-  if (!userId) {
-    return null;
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-200 flex flex-col lg:flex-row relative">
-      <Sidebar />
-      <div className="flex-1 p-4 sm:p-6 md:p-8 pb-24 sm:pb-28 md:pb-32 lg:ml-0">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-blue-600">
-            {isEditing ? 'Edit Product Listing' : 'Create New Order'}
-          </h1>
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-            <Link to="/cart" className="flex items-center justify-center bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto">
-              <FaShoppingCart className="mr-2" /> Cart
-            </Link>
-            <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded-md text-sm hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto">
-              Logout
-            </button>
-          </div>
-        </div>
-        {loading && <p className="text-gray-600 text-center">Loading...</p>}
-        {error && <p className="text-red-500 text-center">{error}</p>}
-        {success && <p className="text-green-500 text-center">{success}</p>}
-
-        <form className="space-y-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <InputField label="Product Name" value={productName} onChange={setProductName} placeholder="Enter product name" required className="w-full md:w-60 px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
-            <InputField label="Quantity" value={quantity} onChange={setQuantity} options={quantityOptions} className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
-          </div>
-          <InputField label="Product Description" value={productDescription} onChange={setProductDescription} placeholder="Describe your product" rows={4} className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
-            <div className="w-full md:w-40">
-              <InputField
-                label="Category"
-                value={productCategory}
-                onChange={setCategory}
-                options={categoryOptions.length > 0 ? categoryOptions.map(cat => ({
-                  value: cat._id,
-                  label: cat.categoryName,
-                })) : []}
-                className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-              />
-            </div>
-            <div className="w-full md:w-40">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Custom Category</label>
-              <input
-                type="text"
-                value={customCategory}
-                onChange={(e) => setCustomCategory(e.target.value)}
-                placeholder="Enter new category"
-                className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-              />
-            </div>
-          </div>
-          <PhotoUpload 
-            photos={productPhotos} setPhotos={setProductPhotos} 
-            className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" 
-          />
-          <div className="flex flex-col md:flex-row gap-4">
-            <InputField label="Weight (Optional)" value={weight} onChange={setWeight} placeholder="Enter weight" className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
-            <InputField label="Dimensions (Optional)" value={dimensions} onChange={setDimensions} placeholder="L x W x H" className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
-          </div>
-          <div className="space-y-4">
-            <h2 className="text-lg md:text-xl font-semibold text-blue-600">Delivery Destination</h2>
-            <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
-              <CountryStateCityComponent selectedCountry={country} setSelectedCountry={setCountry} selectedState={state} setSelectedState={setState} selectedCity={city} setSelectedCity={setCity} />
-              <InputField label="Delivery Date" type="date" value={deliveryDate} onChange={setDeliveryDate} required className="w-full md:w-32 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
-            </div>
-          </div>
-          <InputField label="Shipping Restrictions (Optional)" value={shippingRestrictions} onChange={setShippingRestrictions} placeholder="Any special shipping instructions" rows={3} className="w-full md:w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base" />
-          <PriceBreakdown productPrice={productPrice} setProductPrice={setProductPrice} finalCharge={calculateFinalCharge(productPrice, quantity)} cart={cart} />
-          <button
-            type="button"
-            onClick={() => handleAddItemToCart(true)}
-            className="justify-center bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto"
-          >
-            Add to Cart
-          </button>
-        </form>
-
-        <div className="mt-6 bg-cyan-200 rounded-xl shadow-md p-6">
-          <h3 className="text-lg md:text-xl font-semibold text-blue-600 mb-4">Your Cart</h3>
-          {cart.length === 0 ? (
-            <p className="text-gray-600 text-center">Your cart is empty.</p>
-          ) : (
-            <>
-              <ul className="space-y-4">
-                {cart.map((item, index) => (
-                  <li key={index} className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      {item.productPhotos && item.productPhotos.length > 0 ? (
-                        <img src={item.productPhotos[0]} alt={item.productName} className="w-12 h-12 object-cover rounded mr-4" />
-                      ) : (
-                        <FaBox className="text-indigo-600 text-2xl mr-4" />
-                      )}
-                      <div>
-                        <p className="text-gray-900 font-medium">{item.productName}</p>
-                        <p className="text-gray-600 text-sm">
-                          KES {(item.productFee * 1.15).toFixed(2)} x {item.quantity} = KES{item.finalCharge.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button onClick={() => removeFromCart(item.productId || item.productName)} className="p-1 bg-red-500 text-white rounded hover:bg-red-600">
-                        <FaMinus />
-                      </button>
-                      <span className="text-gray-700">{item.quantity}</span>
-                      <button
-                        onClick={() => {
-                          setCart(cart.map(cartItem =>
-                            cartItem.productName === item.productName
-                              ? { 
-                                  ...cartItem, 
-                                  quantity: cartItem.quantity + 1, 
-                                  finalCharge: (cartItem.productFee * (cartItem.quantity + 1)) * 1.15 // 15% markup
-                                }
-                              : cartItem
-                          ));
-                        }}
-                        className="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                      >
-                        <FaPlus />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-6 flex justify-between items-center">
-                <p className="text-lg md:text-xl font-semibold text-blue-600">Total: KES{total}</p>
-                <ActionButtons onCheckout={handleCheckout} onSave={handleSaveProduct} />
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-      <UserProfile userId={userId} />
-    </div>
-  );
+  if (authLoading) return <div className="cd-auth-loading" role="status">Loading your account…</div>;
+  if (!userId) return null;
+  return <NewOrderView user={user?.data?.user || user} categories={categories} categoryLoading={loading.categories} categoryError={errors.categories} cart={cart} cartLoading={loading.cart} cartError={errors.cart} initialForm={initialForm} editing={Boolean(editId)} editError={errors.edit} submitting={submitting} logoutLoading={logoutLoading} onSave={save} onRetry={loadResource} onNavigate={handleNavigate} onLogout={handleLogout} notice={notice} />;
 };
-
 export default NewOrder;
