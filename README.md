@@ -64,6 +64,19 @@ both `Server listening on 3001` and `MongoDB connected successfully` in the
 backend terminal. `http://localhost:3001/health` checks that HTTP is running;
 it does not check MongoDB, Redis, email delivery, or authentication.
 
+To review the Client dashboard while backend configuration is unavailable, run
+`npm --prefix frontend run dev` and open
+`http://localhost:5173/preview/client-dashboard`. This development-only page uses
+clearly labeled sample orders and does not mount the authentication provider or
+call the API. Use the Preview state menu to inspect populated, empty, loading, and error
+states. Search, filters, sorting, order details, and a simulated receipt
+confirmation work locally; Reset preview restores the sample orders. Other
+account actions explain their destination without sending requests.
+
+The preview route and sample data are excluded from production builds. The
+normal `/client-dashboard` page still requires authentication and loads orders
+from the existing API.
+
 Run security audits separately:
 
 ```sh
@@ -77,6 +90,7 @@ Validate dependency compatibility and production builds:
 
 ```sh
 npm --prefix backend test
+node --test frontend/test/client-dashboard.test.mjs
 npm --prefix frontend run build
 npm --prefix dashboard run build
 ```
