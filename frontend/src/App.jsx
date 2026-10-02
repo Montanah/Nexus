@@ -25,6 +25,9 @@ import PaystackVerify from './Components/PaystackVerify';
 const ClientDashboardPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/ClientDashboardPreview'))
   : null;
+const TravelerDashboardPreview = import.meta.env.DEV
+  ? lazy(() => import('./dev/TravelerDashboardPreview'))
+  : null;
 
 const RatingFormWithLocation = () => {
   const location = useLocation();
@@ -63,6 +66,7 @@ const App = () => (
   <Router>
     <Routes>
       {import.meta.env.DEV && <Route path="/preview/client-dashboard" element={<Suspense fallback={<p role="status">Loading dashboard preview…</p>}><ClientDashboardPreview /></Suspense>} />}
+      {import.meta.env.DEV && <Route path="/preview/traveler-dashboard" element={<Suspense fallback={<p role="status">Loading dashboard preview…</p>}><TravelerDashboardPreview /></Suspense>} />}
       <Route path="/*" element={<ApplicationRoutes />} />
     </Routes>
   </Router>

@@ -77,6 +77,20 @@ The preview route and sample data are excluded from production builds. The
 normal `/client-dashboard` page still requires authentication and loads orders
 from the existing API.
 
+The Traveler dashboard is also available at
+`http://localhost:5173/preview/traveler-dashboard`. Its sample deliveries support
+search, destination/category/urgency/price filters, sorting, acceptance, shipping,
+and handover. Use **Simulate client receipt** in the preview bar to unlock the
+proof step. Selecting a file exercises validation, but the preview never uploads
+or stores the file. **Reset preview** restores the sample deliveries. Empty,
+loading, and error states are available in the Preview state menu.
+
+The Traveler preview and fixtures are also excluded from production builds.
+The authenticated `/traveler-dashboard` uses the existing API. Proof submission
+checks the upload result before completing a delivery and offers a status-only
+retry if the proof succeeds but the subsequent status update fails. Live
+authentication, delivery persistence, and payments still require backend setup.
+
 Run security audits separately:
 
 ```sh
@@ -91,6 +105,7 @@ Validate dependency compatibility and production builds:
 ```sh
 npm --prefix backend test
 node --test frontend/test/client-dashboard.test.mjs
+node --test frontend/test/traveler-dashboard.test.mjs
 npm --prefix frontend run build
 npm --prefix dashboard run build
 ```
