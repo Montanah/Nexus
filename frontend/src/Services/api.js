@@ -158,11 +158,9 @@ export const initiateSocialLogin = async (provider, role) => {
 
 export const initiateSocialSignup = async (provider) => {
   try {
-    console.log('initiating social signup...', provider);
     const response = await api.get(`/api/auth/${provider}/signup/initiate`);
-    console.log('initiateSocialSignup response:', response);
     if (response.data && response.data.url) {
-      window.location.href = response.data.url;
+      return response.data;
     } else {
       throw new Error('Failed to get social signup URL');
     }

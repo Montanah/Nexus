@@ -1,30 +1,19 @@
+import PropTypes from 'prop-types';
 import SocialButton from './SocialButton';
 
-const SocialLogin = ({ onSocialSignup, loading, error }) => (
-  <div className="mt-6 space-y-4">
-    <div className="flex items-center justify-center">
-      <div className="border-t border-gray-300 grow mr-3"></div>
-      <span className="text-gray-500">or continue with</span>
-      <div className="border-t border-gray-300 grow ml-3"></div>
+const SocialLogin = ({ onSocialSignup, loading, error, disabled = false }) => (
+  <div className="auth-social">
+    <div className="auth-divider"><span>or continue with</span></div>
+    <div className="auth-social-buttons">
+      <SocialButton platform="google" label="Google" onClick={onSocialSignup} loading={loading.google} disabled={disabled || loading.google || loading.apple} />
+      <SocialButton platform="apple" label="Apple" onClick={onSocialSignup} loading={loading.apple} disabled={disabled || loading.google || loading.apple} />
     </div>
-    {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-    <div className="flex space-x-4 justify-center">
-      <SocialButton
-        platform="google"
-        onClick={() => onSocialSignup('google')}
-        loading={loading.google} 
-        iconSrc="https://www.svgrepo.com/show/303108/google-icon-logo.svg"
-        label="Google"
-      />
-      <SocialButton
-        platform="apple"
-        onClick={() => onSocialSignup('apple')}
-        loading={loading.apple} 
-        iconSrc="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
-        label="Apple"
-      />
-    </div>
+    {error && <p className="auth-error" role="alert">{error}</p>}
   </div>
 );
-
+SocialLogin.propTypes = {
+  onSocialSignup: PropTypes.func.isRequired,
+  loading: PropTypes.shape({ google: PropTypes.bool, apple: PropTypes.bool }).isRequired,
+  error: PropTypes.string, disabled: PropTypes.bool,
+};
 export default SocialLogin;

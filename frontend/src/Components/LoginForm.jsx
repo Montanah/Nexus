@@ -1,185 +1,99 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { FiPackage, FiSend } from 'react-icons/fi';
+import PropTypes from 'prop-types';
 import { useAuth } from '../Context/AuthContext';
 import InputField from './InputField';
-import propTypes from 'prop-types';
+import AuthSubmit from './AuthSubmit';
+import AuthVerification from './AuthVerification';
 
-const LoginForm = ({ navigate, setStep, step, loginRole, setLoginRole }) => {
-  const { login, error: authError, loading: authLoading, clearError} = useAuth();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    role: 'loginRole',
-    token: '',
-  });
+const LoginForm = ({ navigate, setStep, step, loginRole, setLoginRole, loading, setLoading, socialBusy }) => {
+  const { login, clearError } = useAuth();
+  const [formData, setFormData] = useState({ email: '', password: '', token: '' });
   const [localError, setLocalError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [roleError, setRoleError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const busy = loading || socialBusy;
 
-  const handleChange = (e) => {
-  //   setFormData({ ...formData, [e.target.name]: e.target.value });
-  // };
-    const { name, value } = e.target;
-      setFormData({ ...formData, [name]: value });
-      if (name === 'role') {
-        setLoginRole(value); 
-      }
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData(previous => ({ ...previous, [name]: value }));
+    setLocalError('');
+    setRoleError(false);
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  // In LoginForm component, update the handleCredentialSubmit:
-  const handleCredentialSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleCredentialSubmit = async (event) => {
+    event.preventDefault();
+    if (busy) return;
     setLocalError('');
     clearError();
-
-    if (!formData.email || !formData.password || !formData.role) {
-      setLocalError('Email, password, and role are required');
-      setLoading(false);
+    if (!['client', 'traveler'].includes(loginRole)) {
+      setRoleError(true);
+      setLocalError('Choose Client or Traveler to continue.');
+      event.currentTarget.querySelector('input[name="role"]')?.focus();
       return;
     }
-
+    setLoading(true);
     try {
-      const response = await login(formData.email, formData.password);
-      // console.log('Login response:', response);
-      if (response.success && response.step === 'otp') {
-        setStep('otp'); // Update the step in parent component
-      }
-    } catch (err) {
-      const errorMessage = err.response?.data?.data || err.message || 'An error occurred';
-      setLocalError(errorMessage);
-      // setError(err.message || 'An error occurred');
+      const response = await login(formData.email.trim(), formData.password);
+      if (response.success && response.step === 'otp') setStep('otp');
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data?.data;
+      setLocalError(typeof message === 'string' ? message : 'We couldn’t log you in. Check your details and try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handle2FASubmit = async (e) => {
-    e.preventDefault();
+  const handleVerification = async (event) => {
+    event.preventDefault();
+    if (busy) return;
+    if (!/^\d{6}$/.test(formData.token)) {
+      setLocalError('Enter the 6-digit code from your email.');
+      return;
+    }
     setLoading(true);
     setLocalError('');
     clearError();
-
-    if (!formData.token) {
-      setLocalError('Please enter your 2FA code');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const response = await login(formData.email, formData.password, formData.token);
-      console.log('OTP verification response:', response);
-      if (response.success && response.step === 'complete') {
-        navigate(formData.role === 'client' ? '/client-dashboard' : '/traveler-dashboard');
-      }
-    } catch (err) {
-      setLocalError(err.message || 'An error occurred');
+      const response = await login(formData.email.trim(), formData.password, formData.token);
+      if (response.success && response.step === 'complete') navigate(loginRole === 'client' ? '/client-dashboard' : '/traveler-dashboard');
+    } catch {
+      setLocalError('We couldn’t verify that code. Check the code and try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (step === 'otp') {
+    return <AuthVerification email={formData.email.trim()} code={formData.token} onChange={token => { setFormData(previous => ({ ...previous, token })); setLocalError(''); }} onSubmit={handleVerification} loading={loading} error={localError} onBack={() => { setStep('credentials'); setLocalError(''); clearError(); setFormData(previous => ({ ...previous, token: '' })); }} backLabel="Back to login" />;
+  }
 
   return (
-    <form onSubmit={step === 'credentials' ? handleCredentialSubmit : handle2FASubmit} className="space-y-4">
-      {/* Step-Based Heading */}
-      <h2 className="text-gray-600 text-sm text-center">
-        {step === 'credentials' ? 'Enter your email and password' : 'Enter the 6-digit code received via your email/phone'}
-      </h2>
-
-      {step === 'credentials' ? (
-        <>
-          <InputField
-            type="email"
-            name="email"
-            placeholder="Email Address"
-            value={formData.email}
-            onChange={handleChange}
-          />
-          <div className="relative">
-            <InputField
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-            />
-            <button
-              type="button"
-              onClick={togglePasswordVisibility}
-              className="absolute inset-y-0 right-3 flex items-center text-gray-600"
-            >
-              {showPassword ? '🙈' : '👁️'}
-            </button>
-          </div>
-          <div>
-            <button
-              onClick={() => navigate('/forgot-password')}
-              className="text-indigo-700 text-sm hover:text-red-500 transition-colors"
-            >
-              Forgot your password?
-            </button>
-          </div>
-          <div className="space-y-2">
-            <p className="text-gray-700">Login as:</p>
-            <div className="flex space-x-4">
-              {['client', 'traveler'].map((role) => (
-                <label key={role} className="flex items-center">
-                  <input
-                    type="radio"
-                    name="role"
-                    value={role}
-                    checked={formData.role === role}
-                    onChange={handleChange}
-                    className="mr-2"
-                  />
-                  {role.charAt(0).toUpperCase() + role.slice(1)}
-                </label>
-              ))}
-            </div>
-          </div>
-        </>
-      ) : (
-        <InputField
-          type="text"
-          name="token"
-          placeholder="Enter 6-digit code"
-          value={formData.token}
-          onChange={handleChange}
-        />
-      )}
-      {(localError || authError) && (
-        <p className="text-red-500 text-sm">{localError || authError}</p>
-      )}
-      <button
-        type="submit"
-        className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={loading}
-      >
-        {loading ? (
-          <div className="flex items-center justify-center">
-            <svg className="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-            Processing...
-          </div>
-        ) : (
-          'Continue'
-        )}
-      </button>
+    <form onSubmit={handleCredentialSubmit} className="auth-form" aria-busy={loading}>
+      <InputField label="Email address" type="email" name="email" placeholder="you@example.com" value={formData.email} onChange={handleChange} autoComplete="username" required disabled={busy} />
+      <InputField label="Password" type="password" name="password" placeholder="Enter your password" value={formData.password} onChange={handleChange} autoComplete="current-password" required disabled={busy} showToggle showPassword={showPassword} toggleVisibility={() => setShowPassword(previous => !previous)} />
+      <Link to="/forgot-password" className="auth-forgot">Forgot password?</Link>
+      <fieldset className="auth-roles" disabled={busy} aria-invalid={roleError} aria-describedby={roleError ? 'login-form-error' : undefined}>
+        <legend>How are you using Nexus?</legend>
+        <div className="auth-role-options">
+          {['client', 'traveler'].map(role => (
+            <label key={role} className={`auth-role ${loginRole === role ? 'is-selected' : ''}`}>
+              {role === 'client' ? <FiPackage aria-hidden="true" /> : <FiSend aria-hidden="true" />}
+              <span><strong>{role === 'client' ? 'Client' : 'Traveler'}</strong><small>{role === 'client' ? 'Find & receive' : 'Carry & deliver'}</small></span>
+              <input type="radio" name="role" value={role} checked={loginRole === role} onChange={() => { setLoginRole(role); setRoleError(false); setLocalError(''); }} />
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      {localError && <p className="auth-error" id="login-form-error" role="alert">{localError}</p>}
+      <AuthSubmit loading={loading} disabled={socialBusy} loadingLabel="Logging in…">Log in</AuthSubmit>
     </form>
   );
 };
-
 LoginForm.propTypes = {
-  navigate: propTypes.func.isRequired,
-  setStep: propTypes.func.isRequired,
-  step: propTypes.string.isRequired,
-  loginRole: propTypes.string.isRequired,
-  setLoginRole: propTypes.func.isRequired,
+  navigate: PropTypes.func.isRequired, setStep: PropTypes.func.isRequired, step: PropTypes.string.isRequired,
+  loginRole: PropTypes.string.isRequired, setLoginRole: PropTypes.func.isRequired,
+  loading: PropTypes.bool.isRequired, setLoading: PropTypes.func.isRequired, socialBusy: PropTypes.bool.isRequired,
 };
-
 export default LoginForm;
