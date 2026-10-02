@@ -532,9 +532,7 @@ export const createCheckoutSession = async (userId, cartItems, total, voucherCod
 // TRAVELER DASHBOARD ENDPOINTS
 // Get traveler orders (Protected)
 export const getTravelerOrders = async (userId) => {
-  console.log('getTravelerOrders called with userId:', userId);
   const response = await api.get(`/api/travelers/products/claimed/${userId}`);
-  console.log('getTravelerOrders response:', response.data.data.products);
   return response.data.data.products;
 };
 
@@ -542,7 +540,6 @@ export const getTravelerOrders = async (userId) => {
 export const getTravelerEarnings = async () => {
   try {
     const response = await api.get(`/api/travelers/earnings`);
-    console.l
     return response.data;
   } catch (error) {
     console.error('getTravelerEarnings error:', error.response?.data || error.message);
@@ -568,7 +565,6 @@ export const getTravelerHistory = async (userId) => {
 // api.js
 export const assignFulfillment = async (productId) => {
   const response = await api.post('/api/travelers/products/claim', { productId });
-  console.log('assignFulfillment response:', response.data);
   return response.data;
 };
 
@@ -603,7 +599,6 @@ export const updateProductDeliveryStatus = async (productId, deliveryStatus) => 
 };
 
 export const uploadDeliveryProof = async (productId, photo) => {
-  console.log('uploadDeliveryProof called with productId:', productId, 'and photo:', photo);
   try {
     if (!productId || !photo) {
       throw new Error('Missing product ID or photo data');
@@ -627,7 +622,6 @@ export const uploadDeliveryProof = async (productId, photo) => {
     const cleanBase64 = base64String.includes(',') 
       ? base64String.split(',')[1] 
       : base64String;
-    console.log('cleanBase64:', cleanBase64, productId);
     const response = await api.put(`/api/travelers/proof/${productId}`, {
       deliveryProof: cleanBase64,
       mimeType: photo.type,
@@ -636,13 +630,13 @@ export const uploadDeliveryProof = async (productId, photo) => {
     return {
       success: true,
       productId,
-      proofUrl: response.data.proofUrl,
+      proofUrl: response.data.data?.proofUrl || response.data.proofUrl,
     };
   } catch (error) {
     console.error('Upload error:', error.response?.data || error.message);
     return {
       success: false,
-      message: error.response?.data?.message || 'Failed to upload proof',
+      message: error.response?.data?.data?.message || error.response?.data?.message || error.message || 'Failed to upload proof',
       error: error.message,
     };
   }
