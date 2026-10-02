@@ -1,36 +1,25 @@
-const InputField = ({
-    type,
-    name,
-    placeholder,
-    value,
-    onChange,
-    error,
-    showToggle,
-    toggleVisibility,
-    showPassword,
-  }) => (
-    <div className="relative">
-      <input
-        type={showToggle ? (showPassword ? 'text' : 'password') : type}
-        name={name}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-          error ? 'border-red-500' : ''
-        }`}
-      />
-      {showToggle && (
-        <button
-          type="button"
-          onClick={toggleVisibility}
-          className="absolute right-3 top-3 text-gray-500"
-        >
-          {showPassword ? '🙈' : '👁️'}
-        </button>
-      )}
-      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+import { useId } from 'react';
+import PropTypes from 'prop-types';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
+
+const InputField = ({ label, type = 'text', name, error, hint, showToggle = false, toggleVisibility, showPassword = false, disabled = false, ...inputProps }) => {
+  const id = useId();
+  const descriptionIds = [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
+  return (
+    <div className="auth-field">
+      <label htmlFor={id}>{label}</label>
+      <div className={`auth-input-wrap ${showToggle ? 'auth-input-password' : ''}`}>
+        <input {...inputProps} id={id} name={name} disabled={disabled} type={showToggle ? (showPassword ? 'text' : 'password') : type} aria-invalid={Boolean(error)} aria-describedby={descriptionIds} />
+        {showToggle && <button type="button" className="auth-password-toggle" onClick={toggleVisibility} aria-label={`${showPassword ? 'Hide' : 'Show'} ${label.toLowerCase()}`} aria-pressed={showPassword} aria-controls={id} disabled={disabled}>{showPassword ? <FiEyeOff aria-hidden="true" /> : <FiEye aria-hidden="true" />}</button>}
+      </div>
+      {hint && <p id={`${id}-hint`} className="auth-field-hint">{hint}</p>}
+      {error && <p id={`${id}-error`} className="auth-field-error">{error}</p>}
     </div>
   );
-  
-  export default InputField;
+};
+InputField.propTypes = {
+  label: PropTypes.string.isRequired, type: PropTypes.string, name: PropTypes.string.isRequired,
+  error: PropTypes.string, hint: PropTypes.string, showToggle: PropTypes.bool,
+  toggleVisibility: PropTypes.func, showPassword: PropTypes.bool, disabled: PropTypes.bool,
+};
+export default InputField;
