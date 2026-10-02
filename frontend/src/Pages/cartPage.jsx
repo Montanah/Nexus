@@ -5,7 +5,7 @@ import { fetchCart, deleteCartItem } from '../Services/api';
 import Header from '../Components/Header';
 
 const CartPage = () => {
-  const { userId } = useAuth();
+  const { userId, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [cartItems, setCartItems] = useState([]);
@@ -15,6 +15,7 @@ const CartPage = () => {
   // Fetch cart items on mount
   useEffect(() => {
     const fetchCartData = async () => {
+      if (authLoading) return;
       if (!userId) {
         setError('User not authenticated');
         navigate('/login');
@@ -26,9 +27,6 @@ const CartPage = () => {
         const items = await fetchCart(userId);
         setCartItems(items);
 
-        if (items.length === 0) {
-          navigate('/client-dashboard');
-        }
       } catch (err) {
         setError('Failed to load cart');
         console.error('Error fetching cart:', err);
@@ -38,20 +36,17 @@ const CartPage = () => {
     };
 
     fetchCartData();
-  }, [userId, navigate]);
+  }, [userId, authLoading, navigate]);
 
   // Handle deleting a cart item
   const handleDeleteItem = async (productId) => {
     try {
       setLoading(true);
       setError(null);
-      await deleteCartItem(userId, productId);
+      await deleteCartItem(productId);
       const updatedItems = await fetchCart(userId); // Refresh cart after deletion
       setCartItems(updatedItems);
 
-      if (updatedItems.length === 0) {
-        navigate('/client-dashboard');
-      }
     } catch (err) {
       setError('Failed to remove item from cart');
       console.error('Error deleting cart item:', err);
@@ -61,7 +56,7 @@ const CartPage = () => {
   };
 
   // Calculate total price
-  const totalPrice = cartItems.reduce((sum, item) => sum + (item.finalCharge || 0), 0).toFixed(2);
+  const totalPrice = cartItems.reduce((sum, item) => sum + (Number(item.finalCharge) || 0), 0).toFixed(2);
 
   if (loading) {
     return (
@@ -98,7 +93,7 @@ const CartPage = () => {
           </div>
           <div className="bg-white rounded-xl shadow-lg p-6">
             {cartItems.length === 0 ? (
-              <p className="text-purple-700 text-center">Your cart is empty.</p>
+              <div className="text-purple-700 text-center"><p>Your cart is empty.</p><Link to="/new-order" className="inline-block mt-4 underline">Create an order</Link></div>
             ) : (
               <>
                 <ul className="space-y-4">
@@ -107,9 +102,9 @@ const CartPage = () => {
                       <div>
                         <h2 className="text-lg font-semibold text-indigo-900">{item.productName}</h2>
                         <p className="text-sm text-gray-700">Quantity: {item.quantity}</p>
-                        <p className="text-sm text-gray-700">
+                        {item.delivery && <p className="text-sm text-gray-700">
                           Delivery: {item.delivery.country}, {item.delivery.state}, {item.delivery.city} - {item.delivery.deliveryDate}
-                        </p>
+                        </p>}
                         {item.productDescription && (
                           <p className="text-sm text-gray-700">Description: {item.productDescription}</p>
                         )}
@@ -118,7 +113,7 @@ const CartPage = () => {
                         )}
                       </div>
                       <div className="flex items-center space-x-4">
-                        <p className="text-lg font-semibold text-purple-700">KES {item.finalCharge.toFixed(2)}</p>
+                        <p className="text-lg font-semibold text-purple-700">KES {(Number(item.finalCharge) || 0).toFixed(2)}</p>
                         <button
                           onClick={() => handleDeleteItem(item.productId)}
                           className="bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"

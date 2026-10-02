@@ -91,6 +91,19 @@ checks the upload result before completing a delivery and offers a status-only
 retry if the proof succeeds but the subsequent status update fails. Live
 authentication, delivery persistence, and payments still require backend setup.
 
+Preview **Create an order** at `http://localhost:5173/preview/new-order`, or use
+Create an order from the Client dashboard preview. It includes sample, empty,
+loading, error, failed-save, and edit states. Product photos are processed in
+browser memory; the preview sends no API requests and creates no orders or
+payments. Its route and sample data are excluded from production builds.
+
+The real `/new-order` page requires authentication. It shows a quantity-aware
+price summary with the existing 15% fee, preserves entered details after a
+failed save, and opens the real cart for review. Editing loads full product
+details; quantity, category, and photos remain fixed because the existing update
+endpoint does not fully support changing them. Existing optional details may be
+replaced but cannot be cleared. Saving never reports a successful payment.
+
 Run security audits separately:
 
 ```sh
@@ -106,6 +119,7 @@ Validate dependency compatibility and production builds:
 npm --prefix backend test
 node --test frontend/test/client-dashboard.test.mjs
 node --test frontend/test/traveler-dashboard.test.mjs
+node --test frontend/test/new-order.test.mjs
 npm --prefix frontend run build
 npm --prefix dashboard run build
 ```

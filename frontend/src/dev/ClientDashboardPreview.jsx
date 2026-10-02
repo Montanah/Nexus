@@ -21,6 +21,7 @@ const ClientDashboardPreview = () => {
     setConfirmingId('');
   };
   const navigatePreview = path => {
+    if (path === '/new-order') { navigate('/preview/new-order'); return; }
     if (path === '/' || path === '/#how-it-works') { window.location.assign(path); return; }
     const destinations = { '/new-order': 'Creating an order', '/cart': 'Your cart', '/settings': 'Account settings' };
     setNotice(`Preview only: ${destinations[path] || 'Traveler ratings'} opens after signing in to the connected app. No data has been submitted.`);

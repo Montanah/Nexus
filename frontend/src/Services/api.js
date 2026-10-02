@@ -203,13 +203,8 @@ export const getCategories = async () => {
 
 // Create product and add to cart (Protected)
 export const createProduct = async (formData) => {
-  try {
-    const response = await api.post('/api/products/', formData);
-    return response.data;
-  } catch (error) {
-    console.error('createProduct error:', error.response?.data || error);
-    throw new Error(error.response?.data?.message || 'Failed to create product');
-  }
+  const response = await api.post('/api/products/', formData);
+  return response.data;
 };
 
 // Create a new category (Protected)
@@ -322,7 +317,7 @@ export const saveProduct = async (formData) => {
 
 // Update a product/order (Protected)
 export const updateProductDetails = async (productId, formData) => {
-  const response = await api.put(`/products/${productId}`, formData);
+  const response = await api.put(`/api/products/${productId}`, formData);
   return response.data;
 };
 
