@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './Context/AuthContext';
 import LandingPage from './Pages/landingPage/';
@@ -20,15 +21,19 @@ import PaystackVerify from './Components/PaystackVerify';
 // import Help from './Pages/help';
 // import Notifications from './Pages/notifications';
 
+// Vite removes this import and the preview route from production builds.
+const ClientDashboardPreview = import.meta.env.DEV
+  ? lazy(() => import('./dev/ClientDashboardPreview'))
+  : null;
+
 const RatingFormWithLocation = () => {
   const location = useLocation();
   return <RatingForm isTraveler={location.state?.isTraveler} />;
 };
 
-const App = () => {
+const ApplicationRoutes = () => {
   return (
     <AuthProvider>
-      <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/signup" element={<SignUp />} />
@@ -50,9 +55,17 @@ const App = () => {
           {/* <Route path="/help" element={<Help />} />
           <Route path="/notifications" element={<Notifications/>} /> */}
         </Routes>
-      </Router>
     </AuthProvider>
   );
 };
+
+const App = () => (
+  <Router>
+    <Routes>
+      {import.meta.env.DEV && <Route path="/preview/client-dashboard" element={<Suspense fallback={<p role="status">Loading dashboard preview…</p>}><ClientDashboardPreview /></Suspense>} />}
+      <Route path="/*" element={<ApplicationRoutes />} />
+    </Routes>
+  </Router>
+);
 
 export default App;
