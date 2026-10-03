@@ -249,9 +249,7 @@ export const fetchOrders = async () => {
 };
 
 export const fetchOneOrder = async (orderNumber) => {
-  console.log('fetchOneOrder called with orderNumber:', orderNumber);
-  const response = await api.get(`/api/orders/${orderNumber}`);
-  console.log('fetchOneOrder response:', response.data);
+  const response = await api.get(`/api/orders/${encodeURIComponent(orderNumber)}`);
   return response.data.data.order; // e.g., [{ id, itemName, photo, quantity, unitPrice, totalPrice, details, ... }]
 };
 
@@ -473,7 +471,7 @@ export const initiatePaystackPayment = async (userId, orderNumber, email, amount
 // Verify Paystack Payment
 export const verifyPaystackPayment = async (reference) => {
   try {
-    const response = await api.get(`/api/payments/paystackverify/${reference}`);
+    const response = await api.get(`/api/payments/paystackverify/${encodeURIComponent(reference)}`);
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.error || error.message || 'Failed to verify payment');
