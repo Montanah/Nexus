@@ -39,10 +39,11 @@ const CartPreview = () => {
     });
   };
   const navigatePreview = (path, options) => {
+    if (path === '/checkout') { navigate('/preview/checkout', { state: { previewCart: items } }); return; }
     if (path === '/client-dashboard') { navigate('/preview/client-dashboard'); return; }
     if (path === '/new-order') { navigate('/preview/new-order', { state: { previewCart: items, previewEditItem: options?.state?.itemToEdit } }); return; }
     if (path === '/' || path.includes('#')) { window.location.assign(path); return; }
-    setNotice(`Preview only: ${path === '/checkout' ? 'Checkout' : 'Account settings'} opens after signing in to the connected app. No payment or order was submitted.`);
+    setNotice('Preview only: account settings opens after signing in to the connected app. No payment or order was submitted.');
     window.scrollTo({ top: 0 });
   };
   return <CartView user={{ name: 'Alex Morgan' }} items={items} loading={scenario === 'loading'} error={scenario === 'error' ? 'We couldn’t load your cart. Please try again.' : ''} removingId={removingId} actionError={actionError} notice={notice} onRetry={() => reset()} onRemove={remove} onNavigate={navigatePreview} onLogout={() => navigate('/login')} previewControls={

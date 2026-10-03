@@ -346,16 +346,6 @@ export const createCheckoutSessionCombined = async ({
     voucherCode,
   }) => {
     try {
-      console.log('createCheckoutSessionCombined called with:', {
-        userId,
-        paymentMethod,
-        phoneNumber,
-        amount,
-        paymentMethodId,
-        email,
-        cartItems,
-        voucherCode,
-      })
       if (!userId || !paymentMethod || !amount || !cartItems || !Array.isArray(cartItems)) {
         throw new Error('Missing or invalid required parameters');
       }
@@ -378,12 +368,6 @@ export const createCheckoutSessionCombined = async ({
       const response = await api.post('/api/payments/combined', payload);
       return response.data;
     } catch (error) {
-      console.error('Payment Initiation Error:', {
-        userId,
-        paymentMethod,
-        error: error.response?.data || error.message,
-      });
-
       const errorMessage =
         error.response?.data?.error ||
         error.response?.data?.message ||

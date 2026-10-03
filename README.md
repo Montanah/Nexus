@@ -121,6 +121,27 @@ The existing shared authentication interceptor also needs follow-up: if both the
 session check and token-refresh endpoint return `401`, refresh can wait on itself
 and leave authentication loading. This is separate from the cart refresh.
 
+Preview checkout at `http://localhost:5173/preview/checkout`, or choose Continue
+to checkout in the cart preview. Cart items carry across both pages. The preview
+includes loading, empty, unavailable-item, request-error, and whole-shilling cart
+states. Phone approval and hosted checkout are simulations: no API calls, orders,
+payment requests, or provider redirects occur. Preview code stays out of builds.
+
+The real `/checkout` reloads the authenticated cart, validates the selected
+method and contact details, and prevents repeated submissions while a request is
+running or has been initiated. M-Pesa and Airtel initiation show a pending state
+with the returned order reference, never a payment-success receipt. Paystack uses
+the returned HTTPS authorization URL. Direct card and PayPal options are marked
+unavailable because the existing integration does not collect a payment-method
+token; placeholder card fields, the hard-coded Stripe key, and the inactive
+voucher control have been removed. Item changes are available through Edit cart.
+
+Backend payment work remains necessary before live verification: the combined
+endpoint marks orders Paid at initiation, creates an order before contacting the
+provider, and has no idempotency protection. Its M-Pesa requests round up to whole
+shillings (shown in the form); Paystack truncates fractional amounts (blocked in
+checkout until fixed). Frontend checks do not replace server-side validation.
+
 Run security audits separately:
 
 ```sh
@@ -138,6 +159,7 @@ node --test frontend/test/client-dashboard.test.mjs
 node --test frontend/test/traveler-dashboard.test.mjs
 node --test frontend/test/new-order.test.mjs
 node --test frontend/test/cart.test.mjs
+node --test frontend/test/checkout.test.mjs
 npm --prefix frontend run build
 npm --prefix dashboard run build
 ```
