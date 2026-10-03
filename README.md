@@ -104,6 +104,23 @@ details; quantity, category, and photos remain fixed because the existing update
 endpoint does not fully support changing them. Existing optional details may be
 replaced but cannot be cleared. Saving never reports a successful payment.
 
+Preview the refreshed cart at `http://localhost:5173/preview/cart`. The Client
+dashboard and Create an order previews link to it. Sample items can be added,
+edited, and removed across the form and cart previews using browser route state;
+no API or payment request is sent. Reset preview restores the sample cart. Empty,
+loading, loading-error, removal-error, and unavailable-item states are included.
+The cart preview and fixtures are excluded from production builds.
+
+The real cart uses the API's item totals, which already include the service fee.
+Removal updates only the confirmed item and preserves the rest of the cart on
+failure. Missing item IDs or prices prevent checkout until the cart is corrected.
+The current API omits IDs for deleted products, so those entries can be refreshed
+but cannot be removed through the frontend. Continue to checkout opens the
+existing checkout page; payment processing still needs live backend verification.
+The existing shared authentication interceptor also needs follow-up: if both the
+session check and token-refresh endpoint return `401`, refresh can wait on itself
+and leave authentication loading. This is separate from the cart refresh.
+
 Run security audits separately:
 
 ```sh
@@ -120,6 +137,7 @@ npm --prefix backend test
 node --test frontend/test/client-dashboard.test.mjs
 node --test frontend/test/traveler-dashboard.test.mjs
 node --test frontend/test/new-order.test.mjs
+node --test frontend/test/cart.test.mjs
 npm --prefix frontend run build
 npm --prefix dashboard run build
 ```
