@@ -13,6 +13,7 @@ import ResetPassword from './Pages/resetPassword';
 import EmailSentConfirmation from './Pages/emailSentConfirmation';  
 import PaymentSuccess from './Pages/paymentSuccess';
 import PaymentFailure from './Pages/paymentFailure';
+import OrderDetails from './Pages/orderDetails';
 import TravelerDashboard from './Pages/travelerDashboard';
 import Settings from './Pages/settings';
 import RatingForm from './Pages/ratingsForm';
@@ -40,6 +41,9 @@ const CheckoutPreview = import.meta.env.DEV
 const PaymentResultPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/PaymentResultPreview'))
   : null;
+const OrderDetailsPreview = import.meta.env.DEV
+  ? lazy(() => import('./dev/OrderDetailsPreview'))
+  : null;
 
 const RatingFormWithLocation = () => {
   const location = useLocation();
@@ -62,6 +66,7 @@ const ApplicationRoutes = () => {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-failure" element={<PaymentFailure />} />
+          <Route path="/orders/:orderNumber" element={<OrderDetails />} />
           <Route path="/traveler-dashboard" element={<TravelerDashboard />} />
           <Route path="/product-details/:productId" element={<ProductDetails />} />
           <Route path="/rate-product/:productId" element={<RatingFormWithLocation />} />
@@ -84,6 +89,7 @@ const App = () => (
       {import.meta.env.DEV && <Route path="/preview/checkout" element={<Suspense fallback={<p role="status">Loading checkout preview…</p>}><CheckoutPreview /></Suspense>} />}
       {import.meta.env.DEV && <Route path="/preview/payment-success" element={<Suspense fallback={<p role="status">Loading payment preview…</p>}><PaymentResultPreview key="success" initialStatus="success" /></Suspense>} />}
       {import.meta.env.DEV && <Route path="/preview/payment-failure" element={<Suspense fallback={<p role="status">Loading payment preview…</p>}><PaymentResultPreview key="failed" initialStatus="failed" /></Suspense>} />}
+      {import.meta.env.DEV && <Route path="/preview/order-details" element={<Suspense fallback={<p role="status">Loading order preview…</p>}><OrderDetailsPreview /></Suspense>} />}
       <Route path="/*" element={<ApplicationRoutes />} />
     </Routes>
   </Router>

@@ -268,3 +268,4 @@
   .cd-preview-controls label { font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) { .nexus-client-dashboard *, .nexus-client-dashboard *::before, .nexus-client-dashboard *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+.cd-order-details-link { margin: 8px 22px 22px; width: calc(100% - 44px); }

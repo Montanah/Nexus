@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import ClientDashboardView from '../Components/ClientDashboardView';
 import { applyDeliveryConfirmation } from '../Components/clientDashboardModel';
 import { previewOrders, previewUser } from './clientDashboardFixtures';
 
 const ClientDashboardPreview = () => {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState(() => structuredClone(previewOrders));
+  const location = useLocation();
+  const [orders, setOrders] = useState(() => structuredClone(location.state?.previewOrders || previewOrders));
   const [scenario, setScenario] = useState('ready');
   const [notice, setNotice] = useState('');
   const [confirmingId, setConfirmingId] = useState('');
@@ -21,6 +22,10 @@ const ClientDashboardPreview = () => {
     setConfirmingId('');
   };
   const navigatePreview = path => {
+    if (path.startsWith('/orders/')) {
+      const orderNumber = decodeURIComponent(path.slice('/orders/'.length));
+      navigate('/preview/order-details', { state: { previewOrder: orders.find(order => order.orderNumber === orderNumber), previewOrders: orders } }); return;
+    }
     if (path === '/cart') { navigate('/preview/cart'); return; }
     if (path === '/new-order') { navigate('/preview/new-order'); return; }
     if (path === '/' || path === '/#how-it-works') { window.location.assign(path); return; }
