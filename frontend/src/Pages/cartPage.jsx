@@ -1,148 +1,71 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
 import { fetchCart, deleteCartItem } from '../Services/api';
-import Header from '../Components/Header';
+import CartView from '../Components/CartView';
+import { cartTotals, normalizeCart, removeCartItem } from '../Components/cartModel';
 
 const CartPage = () => {
-  const { userId, loading: authLoading } = useAuth();
+  const { user, userId, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-
-  const [cartItems, setCartItems] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
+  const [actionError, setActionError] = useState(null);
+  const [notice, setNotice] = useState('');
+  const [removingId, setRemovingId] = useState('');
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const [reload, setReload] = useState(0);
+  const mutationLock = useRef(false);
 
-  // Fetch cart items on mount
   useEffect(() => {
-    const fetchCartData = async () => {
-      if (authLoading) return;
-      if (!userId) {
-        setError('User not authenticated');
-        navigate('/login');
-        return;
-      }
-
+    if (authLoading) return;
+    if (!userId) { navigate('/login', { replace: true }); return; }
+    let cancelled = false;
+    setLoading(true); setError(''); setActionError(null); setNotice('');
+    const load = async () => {
       try {
-        setLoading(true);
-        const items = await fetchCart(userId);
-        setCartItems(items);
-
-      } catch (err) {
-        setError('Failed to load cart');
-        console.error('Error fetching cart:', err);
-      } finally {
-        setLoading(false);
-      }
+        const data = await fetchCart();
+        if (!cancelled) setItems(normalizeCart(data));
+      } catch {
+        if (!cancelled) setError('We couldn’t load your cart. Please try again.');
+      } finally { if (!cancelled) setLoading(false); }
     };
+    load();
+    return () => { cancelled = true; };
+  }, [authLoading, userId, navigate, reload]);
 
-    fetchCartData();
-  }, [userId, authLoading, navigate]);
-
-  // Handle deleting a cart item
-  const handleDeleteItem = async (productId) => {
+  const remove = async id => {
+    const item = items.find(candidate => candidate.productId === id);
+    if (!id || !item || mutationLock.current || loading) return false;
+    mutationLock.current = true; setRemovingId(id); setActionError(null); setNotice('');
     try {
-      setLoading(true);
-      setError(null);
-      await deleteCartItem(productId);
-      const updatedItems = await fetchCart(userId); // Refresh cart after deletion
-      setCartItems(updatedItems);
-
-    } catch (err) {
-      setError('Failed to remove item from cart');
-      console.error('Error deleting cart item:', err);
-    } finally {
-      setLoading(false);
-    }
+      await deleteCartItem(id);
+      // The DELETE response has a different cart shape. Update only the
+      // confirmed removal; keep other rows and their server-provided prices.
+      setItems(previous => removeCartItem(previous, id));
+      setNotice(`${item.productName} was removed from your cart.`);
+      return true;
+    } catch {
+      setActionError({ id, message: 'We couldn’t confirm removal. Refresh your cart or try again.' });
+      return false;
+    } finally { mutationLock.current = false; setRemovingId(''); }
+  };
+  const handleLogout = async () => {
+    if (logoutLoading || mutationLock.current) return;
+    setLogoutLoading(true); setActionError(null);
+    try { await logout(); }
+    catch { setActionError({ message: 'We couldn’t log you out. Please try again.' }); }
+    finally { setLogoutLoading(false); }
+  };
+  const handleNavigate = (path, options) => {
+    if (path === '/checkout' && (loading || error || mutationLock.current || !cartTotals(items).canCheckout)) return;
+    if (path.includes('#')) { window.location.assign(path); return; }
+    navigate(path, options); window.scrollTo({ top: 0 });
   };
 
-  // Calculate total price
-  const totalPrice = cartItems.reduce((sum, item) => sum + (Number(item.finalCharge) || 0), 0).toFixed(2);
-
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-100">
-        <p className="text-gray-600">Loading cart...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-100">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-indigo-50 to-purple-100">
-      {/* Header */}
-      <Header />
-
-      {/* Main Content */}
-      <div className="flex-grow p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-indigo-900">Your Cart</h1>
-            <Link
-              to="/client-dashboard"
-              className="bg-purple-600 text-white px-3 py-1 rounded-md text-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400"
-            >
-              Back to Dashboard
-            </Link>
-          </div>
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            {cartItems.length === 0 ? (
-              <div className="text-purple-700 text-center"><p>Your cart is empty.</p><Link to="/new-order" className="inline-block mt-4 underline">Create an order</Link></div>
-            ) : (
-              <>
-                <ul className="space-y-4">
-                  {cartItems.map((item) => (
-                    <li key={item.productId} className="flex justify-between items-center border-b pb-4">
-                      <div>
-                        <h2 className="text-lg font-semibold text-indigo-900">{item.productName}</h2>
-                        <p className="text-sm text-gray-700">Quantity: {item.quantity}</p>
-                        {item.delivery && <p className="text-sm text-gray-700">
-                          Delivery: {item.delivery.country}, {item.delivery.state}, {item.delivery.city} - {item.delivery.deliveryDate}
-                        </p>}
-                        {item.productDescription && (
-                          <p className="text-sm text-gray-700">Description: {item.productDescription}</p>
-                        )}
-                        {item.category && (
-                          <p className="text-sm text-gray-700">Category: {item.category}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <p className="text-lg font-semibold text-purple-700">KES {(Number(item.finalCharge) || 0).toFixed(2)}</p>
-                        <button
-                          onClick={() => handleDeleteItem(item.productId)}
-                          className="bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-6 flex justify-between items-center">
-                  <p className="text-xl font-semibold text-indigo-900">Total:</p>
-                  <p className="text-xl font-semibold text-purple-700">KES {totalPrice}</p>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <button
-                    onClick={() => navigate('/checkout')}
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                  >
-                    Proceed to Checkout
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  if (authLoading) return <div className="cd-auth-loading" role="status">Loading your account…</div>;
+  if (!userId) return null;
+  return <CartView user={user?.data?.user || user} items={items} loading={loading} error={error} removingId={removingId} actionError={actionError} notice={notice} logoutLoading={logoutLoading} onRetry={() => { if (!mutationLock.current) setReload(value => value + 1); }} onRemove={remove} onNavigate={handleNavigate} onLogout={handleLogout} />;
 };
-
 export default CartPage;

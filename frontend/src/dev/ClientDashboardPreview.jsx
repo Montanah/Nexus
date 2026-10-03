@@ -21,6 +21,7 @@ const ClientDashboardPreview = () => {
     setConfirmingId('');
   };
   const navigatePreview = path => {
+    if (path === '/cart') { navigate('/preview/cart'); return; }
     if (path === '/new-order') { navigate('/preview/new-order'); return; }
     if (path === '/' || path === '/#how-it-works') { window.location.assign(path); return; }
     const destinations = { '/new-order': 'Creating an order', '/cart': 'Your cart', '/settings': 'Account settings' };
