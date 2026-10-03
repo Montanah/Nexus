@@ -157,6 +157,7 @@ const ClientDashboardView = ({ user, orders, loading, error, actionError, notice
                   </section>;
                 })}
                 {!getItems(selectedOrder).length && <p className="cd-item-note">No product details are available for this order.</p>}
+                {selectedOrder.orderNumber && <button className="cd-button cd-secondary cd-order-details-link" onClick={() => navigate(`/orders/${encodeURIComponent(selectedOrder.orderNumber)}`)}>View full order <FiArrowRight aria-hidden="true" /></button>}
               </>}
               <div className="cd-details-footer"><FiShield aria-hidden="true" /><span>Keep your delivery details together,<br />from order to arrival.</span></div>
             </aside>

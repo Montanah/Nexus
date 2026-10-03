@@ -163,6 +163,28 @@ create a receipt. Email-delivery and escrow claims have been removed because
 this flow provides no evidence for them. Live provider callbacks and existing
 backend payment/authentication limitations still need backend verification.
 
+Preview order details at `http://localhost:5173/preview/order-details`. Choose
+View full order in the Client dashboard preview or View order details after a
+sample successful payment to carry that order into the page. Each item has its
+own delivery progress, requested arrival, destination, traveler details, and
+receipt-confirmation action. Returning through Your dashboard or Back to all
+your orders retains sample confirmations. Reset preview restores the original
+sample. The preview includes mixed, pending, completed, cancelled, confirmation
+error, missing-product, empty, loading, refresh-error, and not-found states. No
+API calls are made, and the route and sample data are excluded from production.
+
+The authenticated `/orders/:orderNumber` page loads the selected order from the
+API. It uses recorded totals and payment status; this page does not independently
+verify payment. Requested arrival dates are not guaranteed delivery dates, and
+an unpopulated traveler ID displays as Traveler assigned. Receipt confirmation
+updates only the matching item after the API acknowledges its ID and status;
+delivery remains active until the traveler finishes the delivery proof. Failed
+refreshes preserve details but disable item actions until a successful reload.
+Live persistence still requires backend setup. The existing single-order endpoint
+also populates `travelerId`, which is absent from the Order schema; that backend
+query and actual receipt/rating behavior need verification when backend work
+resumes. The frontend exposes recoverable loading errors in the meantime.
+
 Run security audits separately:
 
 ```sh
@@ -182,6 +204,7 @@ node --test frontend/test/new-order.test.mjs
 node --test frontend/test/cart.test.mjs
 node --test frontend/test/checkout.test.mjs
 node --test frontend/test/payment-result.test.mjs
+node --test frontend/test/order-details.test.mjs
 npm --prefix frontend run build
 npm --prefix dashboard run build
 ```
