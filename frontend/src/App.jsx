@@ -37,6 +37,9 @@ const CartPreview = import.meta.env.DEV
 const CheckoutPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/CheckoutPreview'))
   : null;
+const PaymentResultPreview = import.meta.env.DEV
+  ? lazy(() => import('./dev/PaymentResultPreview'))
+  : null;
 
 const RatingFormWithLocation = () => {
   const location = useLocation();
@@ -79,6 +82,8 @@ const App = () => (
       {import.meta.env.DEV && <Route path="/preview/new-order" element={<Suspense fallback={<p role="status">Loading order preview…</p>}><NewOrderPreview /></Suspense>} />}
       {import.meta.env.DEV && <Route path="/preview/cart" element={<Suspense fallback={<p role="status">Loading cart preview…</p>}><CartPreview /></Suspense>} />}
       {import.meta.env.DEV && <Route path="/preview/checkout" element={<Suspense fallback={<p role="status">Loading checkout preview…</p>}><CheckoutPreview /></Suspense>} />}
+      {import.meta.env.DEV && <Route path="/preview/payment-success" element={<Suspense fallback={<p role="status">Loading payment preview…</p>}><PaymentResultPreview key="success" initialStatus="success" /></Suspense>} />}
+      {import.meta.env.DEV && <Route path="/preview/payment-failure" element={<Suspense fallback={<p role="status">Loading payment preview…</p>}><PaymentResultPreview key="failed" initialStatus="failed" /></Suspense>} />}
       <Route path="/*" element={<ApplicationRoutes />} />
     </Routes>
   </Router>

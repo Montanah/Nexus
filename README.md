@@ -142,6 +142,27 @@ provider, and has no idempotency protection. Its M-Pesa requests round up to who
 shillings (shown in the form); Paystack truncates fractional amounts (blocked in
 checkout until fixed). Frontend checks do not replace server-side validation.
 
+Payment outcome previews are available at
+`http://localhost:5173/preview/payment-success` and
+`http://localhost:5173/preview/payment-failure`, also linked from the checkout
+preview as Payment outcomes. They include confirmed, failed, pending, verifying,
+verification-error, missing-detail, item-detail-error, and sign-in states.
+These use synthetic references and make no API or payment requests; preview
+routes and fixtures are excluded from production builds.
+
+The real payment result routes and `/verify-paystack` use the authenticated
+Paystack verification endpoint. They read the nested provider status, preserve
+the callback reference in the URL for reloads, and show confirmation only for
+`data.status: success`. A successful HTTP response or an order marked Paid is
+not treated as payment confirmation. Amounts come from verification in minor
+units; missing amounts and dates remain unavailable. Order details load
+separately, and retrying item details never repeats payment verification.
+Opening a result URL without a payment reference (including the unsupported
+Stripe session link) shows an unconfirmed state. Navigation state alone cannot
+create a receipt. Email-delivery and escrow claims have been removed because
+this flow provides no evidence for them. Live provider callbacks and existing
+backend payment/authentication limitations still need backend verification.
+
 Run security audits separately:
 
 ```sh
@@ -160,6 +181,7 @@ node --test frontend/test/traveler-dashboard.test.mjs
 node --test frontend/test/new-order.test.mjs
 node --test frontend/test/cart.test.mjs
 node --test frontend/test/checkout.test.mjs
+node --test frontend/test/payment-result.test.mjs
 npm --prefix frontend run build
 npm --prefix dashboard run build
 ```
