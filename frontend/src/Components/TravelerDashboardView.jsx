@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   FiArrowUpRight, FiCheck, FiCheckCircle, FiClock, FiCompass, FiDollarSign,
-  FiFile, FiFilter, FiLogOut, FiMapPin, FiMenu, FiPackage, FiRefreshCw,
-  FiSearch, FiSend, FiSettings, FiShield, FiStar, FiUpload, FiX,
+  FiFilter, FiLogOut, FiMapPin, FiMenu, FiPackage, FiRefreshCw,
+  FiSearch, FiSend, FiSettings, FiShield, FiStar, FiX,
 } from 'react-icons/fi';
 import Logo from '../assets/NexusLogo.png';
+import ProofForm from './DeliveryProofForm';
 import { formatDate, formatMoney } from './clientDashboardModel';
-import { emptyFilters, filterProducts, isActive, matchesDelivery, nextStatus, statusLabels, validateProofFile } from './travelerDashboardModel';
+import { emptyFilters, filterProducts, isActive, matchesDelivery, nextStatus, statusLabels } from './travelerDashboardModel';
 import './clientDashboard.css';
 import './travelerDashboard.css';
 
@@ -30,38 +31,14 @@ const DeliveryProgress = ({ status }) => {
 };
 DeliveryProgress.propTypes = { status: PropTypes.string.isRequired };
 
-const ProofForm = ({ busy, onUpload }) => {
-  const [file, setFile] = useState(null);
-  const [error, setError] = useState('');
-  const input = useRef(null);
-  return <form className="td-proof" onSubmit={event => {
-    event.preventDefault();
-    const validation = validateProofFile(file);
-    setError(validation);
-    if (validation) { input.current?.focus(); return; }
-    onUpload(file);
-  }}>
-    <label htmlFor="delivery-proof"><FiUpload aria-hidden="true" /><strong>Delivery proof</strong><span>JPG, PNG, or PDF · Up to 5 MB</span></label>
-    <input id="delivery-proof" ref={input} type="file" accept="image/jpeg,image/png,application/pdf" disabled={busy} aria-invalid={Boolean(error)} aria-describedby={error ? 'proof-file-error' : undefined} onChange={event => {
-      const chosen = event.target.files?.[0];
-      setFile(chosen || null);
-      setError(chosen ? validateProofFile(chosen) : '');
-    }} />
-    {file && !error && <p className="td-file-name"><FiFile aria-hidden="true" />{file.name}</p>}
-    {error && <p className="td-inline-error" id="proof-file-error" role="alert">{error}</p>}
-    <button className="cd-button cd-primary" disabled={busy}>{busy ? <><span className="cd-spinner" />Uploading…</> : <><FiUpload aria-hidden="true" />Submit delivery proof</>}</button>
-  </form>;
-};
-ProofForm.propTypes = { busy: PropTypes.bool, onUpload: PropTypes.func.isRequired };
-
-const TravelerDashboardView = ({ user, products, deliveries, earnings, loading = {}, errors = {}, busy, actionError, notice, logoutLoading, onRetry, onNavigate, onClaim, onAdvance, onUpload, onLogout, previewControls }) => {
-  const [section, setSection] = useState('discover');
+const TravelerDashboardView = ({ user, products, deliveries, earnings, loading = {}, errors = {}, busy, actionError, notice, logoutLoading, onRetry, onNavigate, onClaim, onAdvance, onUpload, onLogout, previewControls, initialSection = 'discover', initialProductId = '' }) => {
+  const [section, setSection] = useState(initialSection);
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState(emptyFilters);
   const [deliveryFilter, setDeliveryFilter] = useState('all');
   const [sort, setSort] = useState('soonest');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState('');
+  const [selectedId, setSelectedId] = useState(initialProductId);
   const [menuOpen, setMenuOpen] = useState(false);
   const menu = useRef(null);
   const menuButton = useRef(null);
@@ -182,6 +159,7 @@ const TravelerDashboardView = ({ user, products, deliveries, earnings, loading =
             {loading[resource] || errors[resource] || !selected ? <div className="cd-details-placeholder"><FiMapPin aria-hidden="true" /><h3>Your next connection.</h3><p>Select a delivery to see its destination, reward, and next steps.</p></div> : <div className="td-detail-body" key={selected.productId}>
               <div className="td-detail-title"><ProductImage product={selected} /><div><span className="td-category">{selected.categoryName}</span><h3>{selected.productName}</h3></div></div>
               <Status value={selected.deliveryStatus} />
+              <button className="cd-text-link" disabled={pending} onClick={() => navigate(`/product-details/${encodeURIComponent(selected.productId)}`)}>Open full details <FiArrowUpRight aria-hidden="true" /></button>
               <p className="td-description">{selected.productDescription || 'No additional description provided.'}</p>
               <div className="td-detail-destination"><span><FiMapPin aria-hidden="true" /></span><div><small>Deliver to</small><strong>{[selected.destination.city, selected.destination.state, selected.destination.country].filter(Boolean).filter((value, index, list) => list.indexOf(value) === index).join(', ') || 'Destination unavailable'}</strong><p>Arrive by {formatDate(selected.deliverydate)}</p></div></div>
               <dl className="td-detail-facts"><div><dt>Your reward</dt><dd className="td-reward">{formatMoney(selected.rewardAmount)}</dd></div><div><dt>Product price</dt><dd>{formatMoney(selected.productPrice)}</dd></div><div><dt>Quantity</dt><dd>{selected.quantity ?? 'Not provided'}</dd></div><div><dt>Weight</dt><dd>{selected.productWeight ?? 'Not provided'}</dd></div><div><dt>Dimensions</dt><dd>{selected.productDimensions || 'Not provided'}</dd></div><div><dt>Urgency</dt><dd className="td-capitalize">{selected.urgencyLevel}</dd></div></dl>
@@ -202,6 +180,7 @@ const TravelerDashboardView = ({ user, products, deliveries, earnings, loading =
 };
 
 TravelerDashboardView.propTypes = {
+  initialSection: PropTypes.string, initialProductId: PropTypes.string,
   user: PropTypes.object, products: PropTypes.arrayOf(PropTypes.object).isRequired,
   deliveries: PropTypes.arrayOf(PropTypes.object).isRequired, earnings: PropTypes.object,
   loading: PropTypes.object, errors: PropTypes.object, busy: PropTypes.object,

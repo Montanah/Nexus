@@ -1,0 +1,89 @@
+.dd-breadcrumb { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; color: #775c88; font-size: 10px; }
+.dd-breadcrumb button { display: flex; align-items: center; gap: 7px; color: #795390; background: none; border: 0; padding: 5px 0; min-height: 34px; }
+.nexus-delivery-details #delivery-heading:focus { outline: none; }
+.dd-header-actions { display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
+.dd-header-actions .dd-next-shortcut { display: none; }
+.nexus-delivery-details #delivery-next-heading { scroll-margin-top: 24px; }
+.dd-feedback { margin-bottom: 22px !important; }
+.dd-destination { display: flex; align-items: center; gap: 19px; border: 1px solid #e6d6f3; border-radius: 17px; background: radial-gradient(ellipse at 100% 0%, #e1caf4, transparent 70%), linear-gradient(120deg, #f5edfd, #eee2fa); padding: 24px 28px; margin-bottom: 25px; }
+.dd-destination > div { min-width: 0; }
+.dd-destination-icon { display: grid; place-items: center; width: 56px; height: 59px; color: #9356b9; background: #fdf9ff; border: 1px solid #fff; border-radius: 17px; flex-shrink: 0; box-shadow: 0 8px 20px #66319a08; }
+.dd-destination-icon svg { width: 26px; height: 26px; stroke-width: 1.5; }
+.dd-destination h2 { font-size: clamp(20px, 2vw, 27px); font-weight: 550; letter-spacing: -.8px; line-height: 1.4; margin-top: 4px; overflow-wrap: anywhere; }
+.dd-destination p { display: flex; align-items: center; gap: 7px; color: #72547f; font-size: 10px; line-height: 1.8; margin-top: 7px; }
+.dd-destination p svg { flex-shrink: 0; }
+.dd-status { display: inline-flex; align-items: center; gap: 7px; margin-left: auto; flex-shrink: 0; color: #73518a; background: #fcf8ff; border: 1px solid #ddc6ed; border-radius: 100px; padding: 7px 11px; font-size: 10px; }
+.dd-status > span { width: 5px; height: 5px; border-radius: 50%; background: #a369c2; }
+.dd-grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 25px; align-items: start; }
+.dd-main-column { display: grid; gap: 23px; min-width: 0; }
+.dd-gallery { overflow: hidden; padding: 10px; }
+.dd-gallery-image { min-height: 290px; height: 310px; position: relative; display: grid; place-items: center; background: #f9f5fc; border: 1px solid #eee4f5; border-radius: 12px; overflow: hidden; }
+.dd-gallery-image > img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
+.dd-gallery-label { position: absolute; left: 16px; top: 15px; display: flex; align-items: center; gap: 6px; font-size: 8px; letter-spacing: 1.2px; color: #74528b; background: #fffffff2; padding: 6px 10px; border-radius: 7px; border: 1px solid #eadff1; }
+.dd-photo-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; position: relative; background: radial-gradient(ellipse at 50% 45%, #e9d9f66b, transparent 65%); }
+.dd-photo-placeholder > span:not(.dd-photo-orbit) { display: grid; place-items: center; width: 88px; height: 91px; border: 1px solid #fff; background: linear-gradient(135deg, #fdfaff, #ede0f9); border-radius: 25px; color: #aa7aca; transform: rotate(-9deg); margin-bottom: 24px; box-shadow: 0 15px 30px #6a33990c; }
+.dd-photo-placeholder > span > svg { width: 39px; height: 39px; stroke-width: 1.3; }
+.dd-photo-orbit { position: absolute; top: 54px; left: 50%; width: 210px; height: 135px; border: 1px dashed #c2a2d956; border-radius: 50%; transform: translateX(-50%) rotate(-20deg); }
+.dd-photo-placeholder p { font-size: 12px; color: #795b8b; }
+.dd-photo-placeholder small { font-size: 10px; color: #7c688b; margin-top: 6px; }
+.dd-thumbnails { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 4px 3px; }
+.dd-thumbnails button { display: grid; place-items: center; width: 55px; height: 55px; border: 1px solid #e3d5ed; background: #f8f2fc; border-radius: 8px; padding: 3px; color: #9068aa; }
+.dd-thumbnails button[aria-pressed='true'] { border: 2px solid #9553b9; }
+.dd-thumbnails img { width: 100%; height: 100%; object-fit: cover; border-radius: 5px; }
+.dd-item, .dd-progress { padding: 25px; }
+.dd-section-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.dd-section-heading > span { display: grid; place-items: center; width: 35px; height: 37px; background: #f5edfB; border: 1px solid #eaddf3; color: #9664b7; border-radius: 11px; flex-shrink: 0; }
+.dd-section-heading .cd-eyebrow { font-size: 7px; }
+.dd-section-heading h2 { font-size: 22px; letter-spacing: -.7px; font-weight: 550; margin-top: 4px; }
+.dd-description { font-size: 12px; line-height: 1.95; color: #756082; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dd-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px 20px; margin: 22px 0; padding-block: 21px; border-block: 1px solid #eee5f4; }
+.dd-facts dt { color: #80688f; font-size: 10px; }
+.dd-facts dd { margin: 6px 0 0; font-size: 12px; line-height: 1.7; font-weight: 550; color: #644078; overflow-wrap: anywhere; }
+.dd-capitalize { text-transform: capitalize; }
+.dd-restrictions { display: flex; align-items: flex-start; gap: 10px; }
+.dd-restrictions > svg { color: #ac8754; margin-top: 3px; flex-shrink: 0; }
+.dd-restrictions h3 { font-size: 12px; font-weight: 600; color: #735239; }
+.dd-restrictions p { font-size: 11px; line-height: 1.9; color: #786682; margin-top: 7px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dd-progress ol { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; list-style: none; padding: 5px 0 0; margin: 21px 0; }
+.dd-progress li { position: relative; }
+.dd-progress li::after { content: ''; width: calc(100% - 19px); position: absolute; left: 31px; top: 13px; height: 1px; background: #e8dcf0; }
+.dd-progress li:last-child::after { display: none; }
+.dd-progress li > span { display: grid; place-items: center; width: 27px; height: 27px; border: 1px solid #e2d3ec; border-radius: 50%; color: #846891; font-size: 10px; }
+.dd-progress strong { display: block; font-size: 9px; font-weight: 450; color: #7e648c; line-height: 1.7; margin-top: 9px; }
+.dd-progress li.is-reached > span { background: #f0e5fa; color: #8e52b2; }
+.dd-progress li[aria-current='step'] > span { background: #8940b3; border-color: #8940b3; color: #fff; }
+.dd-progress li[aria-current='step'] strong { color: #793f98; font-weight: 650; }
+.dd-progress-note { font-size: 11px; line-height: 1.9; color: #7b6386; padding-top: 16px; border-top: 1px solid #eee5f4; }
+.dd-aside { min-width: 0; position: sticky; top: 22px; }
+.dd-reward-card { overflow: hidden; }
+.dd-reward-heading { padding: 27px 23px; position: relative; background: radial-gradient(ellipse at 100% 0%, #e8cff8, transparent 85%), #f7f0fc; border-bottom: 1px solid #e6d7f1; }
+.dd-reward-heading .cd-eyebrow { font-size: 7px; max-width: 210px; }
+.dd-reward-heading h2 { font-size: 19px; letter-spacing: -.6px; font-weight: 550; margin-top: 10px; }
+.dd-reward-heading > strong { display: block; font-size: 33px; font-weight: 550; letter-spacing: -1.3px; color: #8035ae; line-height: 1.4; margin-top: 9px; overflow-wrap: anywhere; }
+.dd-reward-heading p { font-size: 10px; color: #7d608a; margin-top: 7px; }
+.dd-reward-art { position: absolute; right: 20px; top: 22px; color: #b88ccf; }
+.dd-reward-art svg { width: 24px; height: 24px; stroke-width: 1.4; }
+.dd-reward-card > dl { margin: 0; padding: 23px; display: grid; gap: 18px; }
+.dd-reward-card > dl > div { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 12px; font-size: 10px; line-height: 1.8; }
+.dd-reward-card dt { color: #7a6488; }
+.dd-reward-card dd { margin: 0; text-align: right; overflow-wrap: anywhere; color: #68457b; font-weight: 550; }
+.dd-next { padding: 23px; border-top: 1px solid #eee4f4; }
+.dd-next .cd-eyebrow { font-size: 8px; }
+.dd-next h2 { font-size: 20px; letter-spacing: -.6px; line-height: 1.4; font-weight: 550; margin-top: 8px; }
+.dd-next > p { font-size: 11px; line-height: 1.9; color: #7b6289; margin-top: 10px; }
+.dd-next > .cd-button { width: 100%; margin-top: 19px; }
+.dd-next .td-proof { margin-top: 19px; }
+.dd-next .td-proof .cd-button { width: 100%; margin-top: 12px; }
+.dd-next .dd-rated { display: flex; align-items: center; gap: 8px; color: #775c8a; padding: 12px 0 0; }
+.dd-note { background: linear-gradient(145deg, #f5edfc, #f0e8f8); border: 1px solid #e6d9ef; border-radius: 14px; padding: 24px; margin-top: 22px; }
+.dd-note > span { display: grid; place-items: center; width: 33px; height: 34px; background: #fdfaff; border: 1px solid #ece0f3; border-radius: 10px; color: #9970b8; }
+.dd-note h2 { margin-top: 15px; font-size: 21px; font-weight: 550; letter-spacing: -.7px; line-height: 1.3; }
+.dd-note p { font-size: 11px; line-height: 1.95; color: #796087; margin-top: 11px; }
+.dd-note > div { display: flex; gap: 8px; font-size: 10px; line-height: 1.8; color: #796087; border-top: 1px solid #e4d5ee; padding-top: 14px; margin-top: 16px; }
+.dd-note > div svg { flex-shrink: 0; margin-top: 3px; }
+.dd-back { display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; background: none; color: #78518d; padding: 18px 0; font-size: 10px !important; width: 100%; }
+.dd-page-state { min-height: 470px; }
+.dd-page-state > div { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+@media (max-width: 1180px) and (min-width: 961px) { .dd-grid { grid-template-columns: minmax(0, 1fr) 290px; gap: 18px; } .dd-item, .dd-progress { padding: 20px; } .dd-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .dd-header-actions .dd-next-shortcut { display: inline-flex; } .dd-grid { grid-template-columns: minmax(0, 1fr); } .dd-aside { position: static; } .dd-destination { padding: 21px; } .dd-status { align-self: flex-start; } .dd-reward-art { right: 24px; } }
+@media (max-width: 580px) { .dd-destination { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 13px; } .dd-destination-icon { width: 42px; height: 46px; border-radius: 13px; } .dd-destination > div { flex: 1; } .dd-status { grid-column: 2; margin-left: 0; justify-self: start; } .dd-destination h2 { font-size: 21px; } .dd-destination p { align-items: flex-start; font-size: 10px; } .dd-destination p svg { margin-top: 3px; } .dd-item, .dd-progress { padding: 22px 19px; } .dd-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dd-gallery-image { height: 265px; min-height: 265px; } .dd-photo-orbit { top: 34px; } .dd-progress ol { grid-template-columns: 1fr; gap: 0; margin-bottom: 13px; } .dd-progress li { display: flex; align-items: center; gap: 12px; padding-bottom: 22px; } .dd-progress li:last-child { padding-bottom: 0; } .dd-progress li::after { width: 1px; height: 18px; top: 29px; left: 13px; } .dd-progress strong { margin-top: 0; font-size: 11px; } .dd-reward-card > dl > div { grid-template-columns: 110px minmax(0, 1fr); font-size: 11px; } .dd-next > p { font-size: 12px; } }

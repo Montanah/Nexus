@@ -1,257 +1,106 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../Context/AuthContext';
+import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
-import PhotoUpload from '../Components/PhotoUpload';
-import { getProductDetails, assignFulfillment, updateDeliveryStatus, uploadDeliveryProof } from '../Services/api';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../Context/AuthContext';
+import { assignFulfillment, getAvailableProducts, getTravelerEarnings, getTravelerOrders, updateDeliveryStatus, uploadDeliveryProof } from '../Services/api';
+import DeliveryDetailsView from '../Components/DeliveryDetailsView';
+import { claimAcknowledged, deliveryAction, deliveryContext, readDeliveryProof, statusAcknowledged } from '../Components/deliveryDetailsModel';
+import { validateProofFile } from '../Components/travelerDashboardModel';
 
-const DELIVERY_STATUS = {
-  ASSIGNED: 'Assigned',
-  SHIPPED: 'Shipped',
-  TRAVELER_CONFIRMED: 'Traveler Confirmed',
-  CLIENT_CONFIRMED: 'Client Confirmed',
-  COMPLETE: 'Complete',
-  DELIVERED: 'Delivered',
-};
-
-const ProductDetails = ({ productId, onClose, travelerId }) => {
-  const { userId } = useAuth();
+const DeliverySession = ({ productId, userId, user, logout }) => {
   const navigate = useNavigate();
-  const [product, setProduct] = useState(null);
-  const [productPhotos, setProductPhotos] = useState([]);
-  const [uploadError, setUploadError] = useState(null);
-  const [isAccepted, setIsAccepted] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [accepting, setAccepting] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [uploading, setUploading] = useState(false);
-
-  const fetchProduct = async () => {
-    try {
-      setLoading(true);
-      const productData = await getProductDetails(productId);
-      if (!productData) throw new Error('Product not found');
-      return productData;
-    } catch (err) {
-      setError(err.message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const [resource, setResource] = useState({ phase: 'loading', context: null });
+  const [reload, setReload] = useState(0), [busy, setBusy] = useState('');
+  const [error, setError] = useState(''), [notice, setNotice] = useState('');
+  const lock = useRef(false), mounted = useRef(true), proofSaved = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
-    fetchProduct().then(productData => {
-      if (productData) {
-        setProduct(productData);
-        setIsAccepted(productData.assignedTraveler === userId);
-      }
-    });
-  }, [productId, userId]);
+    let cancelled = false;
+    setResource(previous => ({ ...previous, phase: 'loading' })); setError(''); setNotice('');
+    Promise.all([
+      getAvailableProducts().catch(failure => { if (failure.response?.status === 404) return []; throw failure; }),
+      getTravelerOrders(userId).catch(failure => {
+        if (failure.response?.status === 404 && failure.response?.data?.data?.message === 'Traveler not found') return [];
+        throw failure;
+      }),
+    ]).then(([available, claimed]) => {
+      if (cancelled) return;
+      const context = deliveryContext(available, claimed, productId);
+      if (context?.owned && context.product.deliveryStatus === 'Client Confirmed' && proofSaved.current) context.product.proofUploaded = true;
+      setResource({ context, phase: context ? 'ready' : 'missing' });
+    }).catch(() => { if (!cancelled) setResource({ phase: 'error', context: null }); });
+    return () => { cancelled = true; };
+  }, [productId, userId, reload]);
 
-  const handleAcceptFulfillment = async () => {
-    if (accepting) return;
-    setAccepting(true);
+  const begin = type => {
+    if (lock.current || resource.phase !== 'ready') return false;
+    lock.current = true; setBusy(type); setError(''); setNotice(''); return true;
+  };
+  const end = () => { lock.current = false; if (mounted.current) setBusy(''); };
+  const patch = changes => { if (mounted.current) setResource(previous => ({ ...previous, context: { ...previous.context, owned: true, available: false, product: { ...previous.context.product, ...changes } } })); };
+  const claim = async () => {
+    if (deliveryAction(resource.context) !== 'claim' || !begin('claim')) return;
     try {
-      const updatedProduct = await assignFulfillment(productId);
-      setIsAccepted(true);
-      setProduct({ ...updatedProduct, deliveryStatus: DELIVERY_STATUS.ASSIGNED });
-    } catch (err) {
-      setError(`Failed to accept fulfillment: ${err.message}`);
-      console.error('Acceptance error:', err);
-    } finally {
-      setAccepting(false);
-    }
+      // The existing API initializes first-time traveler profiles on this endpoint.
+      await getTravelerEarnings();
+      if (!mounted.current) return;
+      const response = await assignFulfillment(productId);
+      if (!claimAcknowledged(response, productId)) throw new Error('Claim was not acknowledged.');
+      patch({ deliveryStatus: 'Assigned', claimedBy: response.data.travelerId });
+      if (mounted.current) setNotice('Delivery accepted. You can now follow the next steps here or in My deliveries.');
+    } catch { if (mounted.current) setError('We couldn’t confirm this delivery was accepted. Refresh the details before trying again; it may already have been claimed.'); }
+    finally { end(); }
   };
-
-  const handleUpdateStatus = async () => {
-    if (confirming) return;
-    setConfirming(true);
+  const advance = async () => {
+    const action = deliveryAction(resource.context);
+    const status = { ship: 'Shipped', handover: 'Traveler Confirmed', finish: 'Complete' }[action];
+    if (!status || !begin('status')) return;
     try {
-      const currentStatus = product.deliveryStatus;
-      let newStatus;
-      switch (currentStatus) {
-        case DELIVERY_STATUS.ASSIGNED:
-          newStatus = DELIVERY_STATUS.SHIPPED;
-          break;
-        case DELIVERY_STATUS.SHIPPED:
-          newStatus = DELIVERY_STATUS.TRAVELER_CONFIRMED;
-          break;
-        case DELIVERY_STATUS.CLIENT_CONFIRMED:
-          newStatus = DELIVERY_STATUS.COMPLETE;
-          break;
-        default:
-          throw new Error('Invalid status transition');
-      }
-      const response = await updateDeliveryStatus(productId, newStatus);
-      setProduct({ ...product, deliveryStatus: newStatus, isDelivered: newStatus === DELIVERY_STATUS.COMPLETE });
-      console.log(`Traveler ${userId} updated status to ${newStatus} for ${productId}`, response);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setConfirming(false);
-    }
+      const response = await updateDeliveryStatus(productId, status);
+      if (!statusAcknowledged(response, productId, status)) throw new Error('Status was not acknowledged.');
+      patch({ deliveryStatus: status, ...(status === 'Complete' ? { isDelivered: true, proofUploaded: false } : {}) });
+      if (mounted.current) setNotice(status === 'Shipped' ? 'Delivery marked as shipped.' : status === 'Traveler Confirmed' ? 'Handover recorded. The client can now confirm receipt.' : 'Delivery completed. Your proof has been saved.');
+    } catch { if (mounted.current) setError('We couldn’t confirm the status update. Refresh the details or try again.'); }
+    finally { end(); }
   };
-
-  const handleUploadProof = async () => {
-    if (uploading || productPhotos.length === 0) {
-      if (productPhotos.length === 0) setUploadError('No photos selected.');
-      return;
-    }
-    setUploading(true);
+  const upload = async file => {
+    if (deliveryAction(resource.context) !== 'proof') return;
+    const validation = validateProofFile(file); if (validation) { setError(validation); return; }
+    if (!begin('proof')) return;
+    let saved = false;
     try {
-      const response = await uploadDeliveryProof(productId, productPhotos[0].file);
-      setUploadError(null);
-      alert('Proof uploaded successfully!');
-      setProductPhotos([]);
-      if (product.deliveryStatus === DELIVERY_STATUS.CLIENT_CONFIRMED) {
-        await updateDeliveryStatus(productId, DELIVERY_STATUS.COMPLETE);
-        setProduct({ ...product, deliveryStatus: DELIVERY_STATUS.COMPLETE, isDelivered: true });
-      }
-    } catch (err) {
-      setUploadError(err.message);
-    } finally {
-      setUploading(false);
-    }
+      const photo = await readDeliveryProof(file);
+      if (!mounted.current) return;
+      const result = await uploadDeliveryProof(productId, photo);
+      if (!result.success) throw new Error('Proof was not acknowledged.');
+      saved = true; proofSaved.current = true; patch({ proofUploaded: true });
+      if (!mounted.current) return;
+      // The proof endpoint completes the order item; synchronize Product separately.
+      const response = await updateDeliveryStatus(productId, 'Complete');
+      if (!statusAcknowledged(response, productId, 'Complete')) throw new Error('Status was not acknowledged.');
+      patch({ deliveryStatus: 'Complete', proofUploaded: false, isDelivered: true });
+      if (mounted.current) setNotice('Delivery proof saved. This journey is complete.');
+    } catch { if (mounted.current) setError(saved ? 'Your proof was saved, but the delivery status could not be updated. Select Finish delivery to retry.' : 'We couldn’t confirm your proof was saved. Your selected file is still here. Refresh the details or try again.'); }
+    finally { end(); }
   };
-
-  const handleRateClient = () => {
-    navigate(`/rate-product/${productId}`, { state: { isTraveler: true } });
-    onClose();
+  const signOut = async () => {
+    if (lock.current) return;
+    lock.current = true; setBusy('logout'); setError(''); setNotice('');
+    try { await logout(); }
+    catch { if (mounted.current) setError('We couldn’t sign you out. Please try again.'); }
+    finally { end(); }
   };
-
-  useEffect(() => {
-    return () => {
-      productPhotos.forEach(photo => URL.revokeObjectURL(photo.preview));
-    };
-  }, [productPhotos]);
-
-  const memoizedProduct = useMemo(() => product, [product]);
-  console.log(memoizedProduct);
-
-  if (loading) {
-    return (
-      <div className="w-full sm:w-96 max-w-md bg-white rounded-xl shadow-md p-6 text-gray-600 text-center">
-        Loading...
-      </div>
-    );
-  }
-
-  if (error || !memoizedProduct) {
-    return (
-      <div className="w-full sm:w-96 max-w-md bg-white rounded-xl shadow-md p-6 text-red-600 text-center">
-        {error || 'Product not found.'}
-      </div>
-    );
-  }
-
-  const canUploadAndRate = memoizedProduct.deliveryStatus === DELIVERY_STATUS.COMPLETE ||
-    memoizedProduct.deliveryStatus === DELIVERY_STATUS.DELIVERED;
-
-  return (
-    <div className="w-full sm:w-96 max-w-md bg-white rounded-xl shadow-md p-6 relative max-h-[80vh] overflow-y-auto">
-      <button
-        onClick={onClose}
-        className="absolute top-2 right-2 text-gray-600 hover:text-gray-800 text-sm sm:text-lg"
-      >
-        ✕
-      </button>
-      <h1 className="text-2xl text-sm sm:text-2xl font-bold text-blue-600 mb-4 text-center">Product Details</h1>
-      {memoizedProduct.productPhotos && memoizedProduct.productPhotos.length > 0 && (
-        <img
-          src={memoizedProduct.productPhotos[0]}
-          alt={memoizedProduct.productName}
-          className="w-full h-48 object-cover rounded-md mb-4"
-        />
-      )}
-      <div className="space-y-2">
-        <p className="text-lg text-sm sm:text-lg font-medium text-gray-700">{memoizedProduct.productName}</p>
-        {memoizedProduct.productDescription && (
-          <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Description:</span> {memoizedProduct.productDescription}</p>
-        )}
-        <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Quantity:</span> {memoizedProduct.quantity}</p>
-        {memoizedProduct.dimensions && (
-          <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Dimensions:</span> {memoizedProduct.dimensions}</p>
-        )}
-        {memoizedProduct.shippingRestrictions && (
-          <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Shipping Restrictions:</span> {memoizedProduct.shippingRestrictions}</p>
-        )}
-        <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Destination:</span> {`${memoizedProduct.destination.country}, ${memoizedProduct.destination.city}`}</p>
-        <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Reward:</span> KES {memoizedProduct.rewardAmount}</p>
-        <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Urgency:</span> {memoizedProduct.urgencyLevel}</p>
-        <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Price:</span> KES {memoizedProduct.productPrice}</p>
-        <p className="text-gray-600 text-sm sm:text-base"><span className="font-medium">Delivery Status:</span> {memoizedProduct.isDelivered ? 'Complete' : memoizedProduct.deliveryStatus}</p>
-      </div>
-
-      {!isAccepted && memoizedProduct.claimedBy === null && (
-        <button
-          onClick={handleAcceptFulfillment}
-          className="mt-4 w-full bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 text-sm sm:text-base"
-          disabled={accepting}
-        >
-          {accepting ? 'Accepting...' : 'Deliver Product'}
-        </button>
-      )}
-
-      {isAccepted && [DELIVERY_STATUS.ASSIGNED, DELIVERY_STATUS.SHIPPED].includes(memoizedProduct.deliveryStatus) && (
-        <button
-          onClick={handleUpdateStatus}
-          className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm sm:text-base"
-          disabled={confirming}
-        >
-          {confirming ? 'Updating...' : memoizedProduct.deliveryStatus === DELIVERY_STATUS.ASSIGNED ? 'Mark as Shipped' : 'Mark as Traveler Confirmed'}
-        </button>
-      )}
-
-      {isAccepted && memoizedProduct.deliveryStatus === DELIVERY_STATUS.TRAVELER_CONFIRMED && (
-        <button
-          disabled
-          className="mt-4 w-full bg-gray-400 text-white px-4 py-2 rounded cursor-not-allowed text-sm sm:text-base"
-        >
-          Awaiting Client Confirmation
-        </button>
-      )}
-
-      {canUploadAndRate && memoizedProduct.deliveryStatus === DELIVERY_STATUS.CLIENT_CONFIRMED  (
-        <>
-          <PhotoUpload
-            photos={productPhotos}
-            setPhotos={setProductPhotos}
-            className="w-full mt-4 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-sm"
-          />
-          {uploadError && <p className="text-red-600 mt-2 text-sm sm:text-sm">{uploadError}</p>}
-          <button
-            onClick={handleUploadProof}
-            className="mt-4 w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm sm:text-base"
-            disabled={uploading || productPhotos.length === 0}
-          >
-            {uploading ? 'Uploading...' : 'Upload Proof'}
-          </button>
-          <button
-            onClick={handleRateClient}
-            className="mt-2 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm sm:text-base"
-          >
-            Rate Client
-          </button>
-        </>
-      )}
-
-      {memoizedProduct.assignedTraveler && !isAccepted && (
-        <p className="mt-4 text-gray-600 text-center text-sm sm:text-sm">Already assigned to another traveler.</p>
-      )}
-      {isAccepted && memoizedProduct.deliveryStatus === DELIVERY_STATUS.COMPLETE && (
-        <p className="mt-4 text-green-600 text-center text-sm sm:text-sm">🎉 Delivery Fully Confirmed</p>
-      )}
-      {error && <p className="mt-4 text-red-600 text-center text-sm sm:text-sm">{error}</p>}
-    </div>
-  );
+  const navigateTo = path => { if (!lock.current) { navigate(path); window.scrollTo({ top: 0 }); } };
+  return <DeliveryDetailsView user={user} context={resource.context} phase={resource.phase} busy={busy} error={error} notice={notice} onClaim={claim} onAdvance={advance} onUpload={upload} onRetry={() => { if (!lock.current) setReload(value => value + 1); }} onNavigate={navigateTo} onLogout={signOut} />;
 };
+DeliverySession.propTypes = { productId: PropTypes.string.isRequired, userId: PropTypes.string.isRequired, user: PropTypes.object, logout: PropTypes.func.isRequired };
 
-ProductDetails.propTypes = {
-  productId: PropTypes.string.isRequired,
-  onClose: PropTypes.func.isRequired,
-  travelerId: PropTypes.string.isRequired,
+const ProductDetails = () => {
+  const { userId, user, loading, logout } = useAuth();
+  const { productId } = useParams(), navigate = useNavigate();
+  useEffect(() => { if (!loading && !userId) navigate('/login', { replace: true }); }, [loading, userId, navigate]);
+  if (loading && !userId) return <div className="cd-auth-loading" role="status">Loading your account…</div>;
+  if (!userId) return null;
+  return <DeliverySession key={`${userId}:${productId}`} productId={productId} userId={userId} user={user?.data?.user || user} logout={logout} />;
 };
-
 export default ProductDetails;

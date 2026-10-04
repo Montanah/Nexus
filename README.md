@@ -262,6 +262,40 @@ and its request contract differs from the existing frontend service. Backend
 recovery work remains deferred; verify code expiry, single-use behavior, password
 persistence, and email delivery before connecting the new UI to live actions.
 
+Preview the traveler’s full delivery page at
+`http://localhost:5173/preview/delivery-details`. The Traveler dashboard’s
+“Open full details” button opens the selected item. Try accepting, shipping,
+handover, simulated client receipt, delivery proof, and rating. The preview
+includes action failures, a saved-proof/status-update failure, missing details,
+unavailable photos, loading, and unavailable-delivery states. Returning to the
+dashboard carries the updated sample delivery and selects the appropriate tab.
+Selected proof files are validated but never read, uploaded, or stored in this
+preview. Its route, controls, and fixtures are excluded from production builds.
+
+The real `/product-details/:productId` now reads the route ID, waits for sign-in,
+and resolves the item from available paid listings or the signed-in traveler’s
+claimed products. It does not infer ownership by comparing a traveler profile ID
+to a user ID. Unavailable items and failed loads provide retry/navigation options.
+The full page shows product photos, item facts, destination, requested arrival,
+the traveler reward, delivery progress, and stage-appropriate actions. Accepting
+initializes a traveler profile through the existing earnings endpoint if needed.
+Claim and status responses must acknowledge the same product and expected stage.
+The shared proof service now also requires the matching product and saved proof;
+generic HTTP success cannot trigger completion. If proof succeeds but status
+synchronization fails, “Finish delivery” retries only the status update. That
+acknowledgement survives an in-page refresh, but not a full browser reload.
+
+Backend delivery work remains deferred: the proof endpoint does not enforce
+ownership, and claim/status/proof writes are not transactional. The frontend only
+exposes owned-delivery actions, but this does not replace server-side checks.
+The claimed-products API does not return saved order-item proof or client ratings;
+partial saves and duplicate ratings still need reconciliation on the backend.
+JSON proof requests also pass through the server’s default 100 KB body limit,
+despite the proof validator accepting files up to 5 MB; larger uploads can fail
+until that backend limit is reconciled. Preview validation does not test transport.
+Actual delivery persistence, uploaded-proof storage, and earnings need live
+backend verification.
+
 Run security audits separately:
 
 ```sh
@@ -285,6 +319,7 @@ node --test frontend/test/order-details.test.mjs
 node --test frontend/test/rating.test.mjs
 node --test frontend/test/settings.test.mjs
 node --test frontend/test/password-recovery.test.mjs
+node --test frontend/test/delivery-details.test.mjs
 npm --prefix frontend run build
 npm --prefix dashboard run build
 ```
