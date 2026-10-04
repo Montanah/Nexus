@@ -296,6 +296,17 @@ until that backend limit is reconciled. Preview validation does not test transpo
 Actual delivery persistence, uploaded-proof storage, and earnings need live
 backend verification.
 
+Unknown frontend URLs now show a branded “Page not found” screen instead of a
+blank page. Open `http://localhost:5173/page-not-found` to review it locally;
+no backend or separate preview route is needed. The page links to home, the
+existing “How it works” section, login, and both dashboards. Dashboard links keep
+their normal authentication requirements. The fallback sits outside the auth
+provider and makes no API requests, including for unavailable development-preview
+URLs in a production build. A page title and temporary `noindex` metadata identify
+the missing page; both are restored when navigating away. It does not display the
+requested URL or query parameters. This is an SPA fallback screen; the hosting
+server still controls the HTTP response status and history fallback configuration.
+
 Run security audits separately:
 
 ```sh
