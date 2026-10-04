@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { AuthProvider } from './Context/AuthContext';
 import LandingPage from './Pages/landingPage/';
 import SignUp from './Pages/signUp/';
@@ -19,6 +19,7 @@ import Settings from './Pages/settings';
 import RatingForm from './Pages/ratingsForm';
 import ProductDetails from './Pages/productDetails';
 import PaystackVerify from './Components/PaystackVerify';
+import NotFound from './Pages/notFound';
 // import Help from './Pages/help';
 // import Notifications from './Pages/notifications';
 
@@ -61,31 +62,8 @@ const DeliveryDetailsPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/DeliveryDetailsPreview'))
   : null;
 
-const ApplicationRoutes = () => {
-  return (
-    <AuthProvider>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/client-dashboard" element={<ClientDashboard />} />
-          <Route path="/new-order" element={<NewOrder />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/payment-failure" element={<PaymentFailure />} />
-          <Route path="/orders/:orderNumber" element={<OrderDetails />} />
-          <Route path="/traveler-dashboard" element={<TravelerDashboard />} />
-          <Route path="/product-details/:productId" element={<ProductDetails />} />
-          <Route path="/rate-product/:productId" element={<RatingForm />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/verify-paystack" element={<PaystackVerify />} />
-          {/* <Route path="/help" element={<Help />} />
-          <Route path="/notifications" element={<Notifications/>} /> */}
-        </Routes>
-    </AuthProvider>
-  );
-};
+// Keep authenticated page context shared while public fallbacks stay backend-independent.
+const ApplicationLayout = () => <AuthProvider><Outlet /></AuthProvider>;
 
 const App = () => (
   <Router>
@@ -106,7 +84,26 @@ const App = () => (
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/email-sent" element={<EmailSentConfirmation />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/*" element={<ApplicationRoutes />} />
+      <Route element={<ApplicationLayout />}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/client-dashboard" element={<ClientDashboard />} />
+          <Route path="/new-order" element={<NewOrder />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/payment-failure" element={<PaymentFailure />} />
+          <Route path="/orders/:orderNumber" element={<OrderDetails />} />
+          <Route path="/traveler-dashboard" element={<TravelerDashboard />} />
+          <Route path="/product-details/:productId" element={<ProductDetails />} />
+          <Route path="/rate-product/:productId" element={<RatingForm />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/verify-paystack" element={<PaystackVerify />} />
+          {/* <Route path="/help" element={<Help />} />
+          <Route path="/notifications" element={<Notifications/>} /> */}
+      </Route>
+      <Route path="*" element={<NotFound />} />
     </Routes>
   </Router>
 );
