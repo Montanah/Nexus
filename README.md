@@ -241,6 +241,27 @@ ownership enforcement and an email-change verification flow before wider rollout
 this UI targets only the authenticated user and excludes email from its payload.
 Live profile persistence and sign-out require the backend setup.
 
+Preview the password recovery flow at
+`http://localhost:5173/preview/password-recovery`. It shares the login/signup
+design and includes email entry, an email-code confirmation, a new-password form,
+and a clearly labeled preview completion. Use sample details and the six-digit
+code shown in the preview bar. Send, resend, reset-error, and expired-code states
+support retries. Passwords have independent visibility controls and matching-field
+validation. Resending starts a 30-second local cooldown; simulated codes expire
+after 10 minutes. Changing email, restarting, completing, or leaving the preview
+clears password fields. Nothing is sent to an API or stored in browser storage or
+URLs. Preview controls and sample credentials are excluded from production builds.
+
+The real `/forgot-password`, `/email-sent`, and `/reset-password` pages show a
+styled unavailable state with a login link. They are public routes that work
+without loading the authentication provider or contacting the backend. Direct
+URLs and old token links cannot display a false email-sent or password-reset
+success. The old live forms have been disabled because the backend reset endpoint
+does not verify the code or change the password, uses the wrong expiry field,
+and its request contract differs from the existing frontend service. Backend
+recovery work remains deferred; verify code expiry, single-use behavior, password
+persistence, and email delivery before connecting the new UI to live actions.
+
 Run security audits separately:
 
 ```sh
@@ -263,6 +284,7 @@ node --test frontend/test/payment-result.test.mjs
 node --test frontend/test/order-details.test.mjs
 node --test frontend/test/rating.test.mjs
 node --test frontend/test/settings.test.mjs
+node --test frontend/test/password-recovery.test.mjs
 npm --prefix frontend run build
 npm --prefix dashboard run build
 ```

@@ -53,6 +53,10 @@ const SettingsPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/SettingsPreview'))
   : null;
 
+const PasswordRecoveryPreview = import.meta.env.DEV
+  ? lazy(() => import('./dev/PasswordRecoveryPreview'))
+  : null;
+
 const ApplicationRoutes = () => {
   return (
     <AuthProvider>
@@ -60,9 +64,6 @@ const ApplicationRoutes = () => {
           <Route path="/" element={<LandingPage />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/email-sent" element={<EmailSentConfirmation />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/client-dashboard" element={<ClientDashboard />} />
           <Route path="/new-order" element={<NewOrder />} />
           <Route path="/cart" element={<CartPage />} />
@@ -95,6 +96,11 @@ const App = () => (
       {import.meta.env.DEV && <Route path="/preview/order-details" element={<Suspense fallback={<p role="status">Loading order preview…</p>}><OrderDetailsPreview /></Suspense>} />}
       {import.meta.env.DEV && <Route path="/preview/rating" element={<Suspense fallback={<p role="status">Loading feedback preview…</p>}><RatingPreview /></Suspense>} />}
       {import.meta.env.DEV && <Route path="/preview/settings" element={<Suspense fallback={<p role="status">Loading settings preview…</p>}><SettingsPreview /></Suspense>} />}
+      {import.meta.env.DEV && <Route path="/preview/password-recovery" element={<Suspense fallback={<p role="status">Loading recovery preview…</p>}><PasswordRecoveryPreview /></Suspense>} />}
+      {/* Public recovery pages must remain accessible without an auth/backend request. */}
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/email-sent" element={<EmailSentConfirmation />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/*" element={<ApplicationRoutes />} />
     </Routes>
   </Router>
