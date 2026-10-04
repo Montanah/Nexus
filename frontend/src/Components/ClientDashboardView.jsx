@@ -103,7 +103,7 @@ const ClientDashboardView = ({ user, orders, loading, error, actionError, notice
               <button className="is-current" onClick={() => { setFilter('all'); setQuery(''); showOrders(); }} aria-current="page"><FiGrid aria-hidden="true" />Overview<span className="cd-nav-dot" /></button>
               <button onClick={showOrders}><FiPackage aria-hidden="true" />My orders<span className="cd-nav-count">{loading || error ? '—' : orders.length}</span></button>
               <button onClick={() => navigate('/cart')}><FiShoppingBag aria-hidden="true" />My cart<FiChevronRight className="cd-nav-arrow" aria-hidden="true" /></button>
-              <button onClick={() => navigate('/settings', { state: { role: 'client' } })}><FiSettings aria-hidden="true" />Settings</button>
+              <button onClick={() => navigate('/settings?as=client', { state: { role: 'client' } })}><FiSettings aria-hidden="true" />Settings</button>
             </nav>
             <div className="cd-sidebar-guide"><span><FiCompass aria-hidden="true" /></span><h2>A little guidance?</h2><p>See how your order becomes someone’s next delivery.</p><button onClick={() => navigate('/#how-it-works')}>How Nexus works <FiArrowUpRight aria-hidden="true" /></button></div>
             <div className="cd-account"><span className="cd-avatar" aria-hidden="true">{initials}</span><div><strong>{user?.name || 'Your account'}</strong><span>Client account</span></div><button onClick={onLogout} disabled={logoutLoading} aria-label={logoutLoading ? 'Logging out' : 'Log out'}>{logoutLoading ? <span className="cd-spinner" /> : <FiLogOut aria-hidden="true" />}</button></div>

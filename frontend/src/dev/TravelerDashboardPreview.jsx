@@ -48,6 +48,7 @@ const TravelerDashboardPreview = () => {
     setNotice('Sample proof submission completed. Your file was not uploaded or stored.');
   });
   const navigatePreview = path => {
+    if (path.startsWith('/settings')) { navigate('/preview/settings?as=traveler', { state: { previewProducts: products, previewDeliveries: deliveries, previewUser: location.state?.previewUser || previewTraveler } }); window.scrollTo({ top: 0 }); return; }
     if (path.startsWith('/rate-product/')) {
       const productId = decodeURIComponent(path.split('?')[0].split('/').at(-1));
       navigate('/preview/rating?as=traveler', { state: { productId, previewProduct: deliveries.find(product => product.productId === productId), previewDeliveries: deliveries, previewProducts: products } }); window.scrollTo({ top: 0 }); return;
@@ -59,7 +60,7 @@ const TravelerDashboardPreview = () => {
   const states = Object.fromEntries(['products', 'deliveries', 'earnings'].map(key => [key, scenario === 'loading']));
   const errors = scenario === 'error' ? { products: 'We couldn’t load available deliveries. Please try again.', deliveries: 'We couldn’t load your deliveries. Please try again.', earnings: 'Earnings are unavailable.' } : {};
 
-  return <TravelerDashboardView user={previewTraveler} products={scenario === 'empty' ? [] : products} deliveries={scenario === 'empty' ? [] : deliveries} earnings={scenario === 'empty' ? { totalEarnings: 0, pendingPayments: 0, rating: { average: 0, count: 0 } } : previewEarnings} loading={states} errors={errors} busy={busy} notice={notice} onRetry={reset} onNavigate={navigatePreview} onClaim={claim} onAdvance={advance} onUpload={upload} onLogout={() => navigate('/login')} previewControls={
+  return <TravelerDashboardView user={location.state?.previewUser || previewTraveler} products={scenario === 'empty' ? [] : products} deliveries={scenario === 'empty' ? [] : deliveries} earnings={scenario === 'empty' ? { totalEarnings: 0, pendingPayments: 0, rating: { average: 0, count: 0 } } : previewEarnings} loading={states} errors={errors} busy={busy} notice={notice} onRetry={reset} onNavigate={navigatePreview} onClaim={claim} onAdvance={advance} onUpload={upload} onLogout={() => navigate('/login')} previewControls={
     <div className="cd-preview-bar"><div><strong>Local preview · Sample data</strong><small>Explore the Traveler dashboard without signing in.</small></div><div className="cd-preview-controls">
       <label htmlFor="traveler-preview-state">Preview state</label><select id="traveler-preview-state" value={scenario} onChange={event => { cancelSimulation(); setBusy(null); setScenario(event.target.value); setNotice(''); }}><option value="ready">Sample deliveries</option><option value="empty">Empty account</option><option value="loading">Loading</option><option value="error">Error</option></select>
       <button disabled={Boolean(busy) || scenario !== 'ready' || !deliveries.some(product => product.deliveryStatus === 'Traveler Confirmed')} onClick={() => {

@@ -84,6 +84,15 @@ export const fetchUserData = async (userId) => {
   return response.data;
 };
 
+// Settings changes are limited to the authenticated account's name and phone.
+export const updateUserProfile = async (userId, changes) => {
+  const payload = {};
+  if (typeof changes.name === 'string') payload.name = changes.name;
+  if (typeof changes.phone_number === 'string') payload.phone_number = changes.phone_number;
+  const response = await api.put(`/api/auth/user/${encodeURIComponent(userId)}`, payload);
+  return response.data;
+};
+
 // Signup (Public)
 export const signup = async (userData) => {
   const response = await api.post('/api/auth/register', userData);

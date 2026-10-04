@@ -22,6 +22,7 @@ const ClientDashboardPreview = () => {
     setConfirmingId('');
   };
   const navigatePreview = path => {
+    if (path.startsWith('/settings')) { navigate('/preview/settings?as=client', { state: { previewOrders: orders, previewUser: location.state?.previewUser || previewUser } }); window.scrollTo({ top: 0 }); return; }
     if (path.startsWith('/rate-product/')) {
       const productId = decodeURIComponent(path.split('?')[0].split('/').at(-1));
       navigate('/preview/rating?as=client', { state: { productId, previewOrder: orders.find(order => getItems(order).some(item => getProductId(item) === productId)), previewOrders: orders } }); window.scrollTo({ top: 0 }); return;
@@ -47,7 +48,7 @@ const ClientDashboardPreview = () => {
     }, 500);
   };
 
-  return <ClientDashboardView user={previewUser} orders={scenario === 'empty' ? [] : orders} loading={scenario === 'loading'} error={scenario === 'error' ? 'We couldn’t load your orders. Please try again.' : ''} notice={notice} confirmingId={confirmingId} onRetry={reset} onNavigate={navigatePreview} onConfirm={confirm} onLogout={() => navigate('/login')} previewControls={
+  return <ClientDashboardView user={location.state?.previewUser || previewUser} orders={scenario === 'empty' ? [] : orders} loading={scenario === 'loading'} error={scenario === 'error' ? 'We couldn’t load your orders. Please try again.' : ''} notice={notice} confirmingId={confirmingId} onRetry={reset} onNavigate={navigatePreview} onConfirm={confirm} onLogout={() => navigate('/login')} previewControls={
     <div className="cd-preview-bar">
       <div><strong>Local preview · Sample data</strong><small>Explore the Client dashboard without signing in.</small></div>
       <div className="cd-preview-controls"><label htmlFor="client-preview-state">Preview state</label><select id="client-preview-state" value={scenario} onChange={event => { setScenario(event.target.value); setNotice(''); }}><option value="ready">Sample orders</option><option value="empty">Empty account</option><option value="loading">Loading</option><option value="error">Error</option></select><button onClick={reset}>Reset preview</button><Link to="/login">Back to login</Link></div>
