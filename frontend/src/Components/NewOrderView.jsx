@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import Country from 'country-state-city/lib/country';
-import State from 'country-state-city/lib/state';
+import { countries, statesByCountry, cityDataBase } from 'virtual:nexus-locations';
+import { createCityLoader } from '../Services/citySuggestions';
 import { FiArrowLeft, FiArrowRight, FiArrowUpRight, FiCheck, FiCheckCircle, FiCompass, FiGrid, FiLogOut, FiMapPin, FiMenu, FiPackage, FiPlus, FiRefreshCw, FiSend, FiSettings, FiShield, FiShoppingBag, FiX } from 'react-icons/fi';
 import Logo from '../assets/NexusLogo.png';
 import OrderPhotos from './OrderPhotos';
@@ -9,6 +9,8 @@ import { emptyOrderForm, estimateOrder, localDate, validateOrder } from './newOr
 import { formatDate, formatMoney } from './clientDashboardModel';
 import './clientDashboard.css';
 import './newOrder.css';
+
+const loadCities = createCityLoader(cityDataBase);
 
 const Field = ({ name, label, optional, hint, error, children }) => <div className={`no-field ${error ? 'has-error' : ''}`}><label htmlFor={`order-${name}`}>{label}{optional && <span> (optional)</span>}</label>{children}{hint && <p className="no-field-hint" id={`order-${name}-hint`}>{hint}</p>}{error && <p className="no-field-error" id={`order-${name}-error`}>{error}</p>}</div>;
 Field.propTypes = { name: PropTypes.string.isRequired, label: PropTypes.string.isRequired, optional: PropTypes.bool, hint: PropTypes.string, error: PropTypes.string, children: PropTypes.node.isRequired };
@@ -27,10 +29,9 @@ const NewOrderView = ({ user, categories, categoryLoading, categoryError, cart, 
   const confirmation = useRef(null);
   const errorSummary = useRef(null);
   const saveLock = useRef(false);
-  const countries = useMemo(() => Country.getAllCountries(), []);
-  const states = useMemo(() => State.getStatesOfCountry(form.country), [form.country]);
-  const countryName = Country.getCountryByCode(form.country)?.name || form.country;
-  const stateName = State.getStateByCodeAndCountry(form.state, form.country)?.name || form.state;
+  const states = useMemo(() => Array.isArray(statesByCountry[form.country]) ? statesByCountry[form.country] : [], [form.country]);
+  const countryName = countries.find(country => country.isoCode === form.country)?.name || form.country;
+  const stateName = states.find(state => state.isoCode === form.state)?.name || form.state;
   const estimate = estimateOrder(form.productPrice, form.quantity);
   const name = user?.name || 'Your account';
   const busy = submitting || processingPhotos;
@@ -47,15 +48,15 @@ const NewOrderView = ({ user, categories, categoryLoading, categoryError, cart, 
   }, [editing]);
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     setCities([]);
-    if (form.country && form.state) {
-      // City suggestions are optional; the large dataset is loaded only when needed.
-      import('country-state-city/lib/city').then(({ default: City }) => {
-        if (!cancelled) setCities(City.getCitiesOfState(form.country, form.state));
+    if (states.some(state => state.isoCode === form.state)) {
+      loadCities(form.country, form.state, controller.signal).then(names => {
+        if (!cancelled) setCities(names);
       }).catch(() => { /* A city can always be entered manually. */ });
     }
-    return () => { cancelled = true; };
-  }, [form.country, form.state]);
+    return () => { cancelled = true; controller.abort(); };
+  }, [form.country, form.state, states]);
   useEffect(() => {
     if (!menuOpen) return;
     menu.current?.querySelector('button')?.focus();
@@ -136,7 +137,7 @@ const NewOrderView = ({ user, categories, categoryLoading, categoryError, cart, 
               </div></section>
               <section className="cd-surface no-form-section" aria-labelledby="destination-section-heading"><div className="no-section-heading"><span><FiMapPin aria-hidden="true" /></span><div><h2 id="destination-section-heading">Where should it find you?</h2><p>Choose the destination and when you’d like it to arrive.</p></div><small>02</small></div><div className="no-section-body">
                 <div className="no-row"><Field name="country" label="Country" error={fieldErrors.country}><select {...inputProps('country')} required autoComplete="country"><option value="">Choose a country</option>{countries.map(country => <option value={country.isoCode} key={country.isoCode}>{country.name}</option>)}{form.country && !countries.some(country => country.isoCode === form.country) && <option value={form.country}>{form.country}</option>}</select></Field><Field name="state" label="State / region" error={fieldErrors.state}>{states.length ? <select {...inputProps('state')} required autoComplete="address-level1"><option value="">Choose a region</option>{states.map(state => <option value={state.isoCode} key={state.isoCode}>{state.name}</option>)}{form.state && !states.some(state => state.isoCode === form.state) && <option value={form.state}>{form.state}</option>}</select> : <input {...inputProps('state')} required disabled={!form.country} autoComplete="address-level1" maxLength={120} placeholder={form.country ? 'Enter your state or region' : 'Choose a country first'} />}</Field></div>
-                <div className="no-row"><Field name="city" label="City" error={fieldErrors.city}><input {...inputProps('city')} required list="order-city-suggestions" disabled={!form.state} autoComplete="address-level2" maxLength={120} placeholder={form.state ? 'Enter or choose a city' : 'Choose a region first'} /><datalist id="order-city-suggestions">{cities.map(city => <option value={city.name} key={`${city.name}-${city.latitude}-${city.longitude}`} />)}</datalist></Field><Field name="deliveryDate" label="Arrive by" error={fieldErrors.deliveryDate}><input {...inputProps('deliveryDate')} type="date" min={editing && initialForm?.deliveryDate < localDate() ? initialForm.deliveryDate : localDate()} required /></Field></div>
+                <div className="no-row"><Field name="city" label="City" error={fieldErrors.city}><input {...inputProps('city')} required list="order-city-suggestions" disabled={!form.state} autoComplete="address-level2" maxLength={120} placeholder={form.state ? 'Enter or choose a city' : 'Choose a region first'} /><datalist id="order-city-suggestions">{cities.map(city => <option value={city} key={city} />)}</datalist></Field><Field name="deliveryDate" label="Arrive by" error={fieldErrors.deliveryDate}><input {...inputProps('deliveryDate')} type="date" min={editing && initialForm?.deliveryDate < localDate() ? initialForm.deliveryDate : localDate()} required /></Field></div>
                 <Field name="urgencyLevel" label="Delivery priority" hint="Let travelers know how time-sensitive your request is." error={fieldErrors.urgencyLevel}><select {...inputProps('urgencyLevel', true)} required><option value="low">Low — I’m flexible</option><option value="medium">Medium — Within my chosen date</option><option value="high">High — Time-sensitive</option></select></Field>
                 <Field name="shippingRestrictions" label="Shipping notes or restrictions" optional error={fieldErrors.shippingRestrictions}><textarea {...inputProps('shippingRestrictions')} rows={2} maxLength={1000} placeholder="e.g. Fragile item. Keep in its original packaging." /></Field>
               </div></section>
