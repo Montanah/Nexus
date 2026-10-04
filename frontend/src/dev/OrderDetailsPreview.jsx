@@ -40,6 +40,9 @@ const OrderDetailsPreview = () => {
     });
   };
   const navigatePreview = path => {
+    if (path.startsWith('/rate-product/')) {
+      navigate('/preview/rating?as=client', { state: { productId: decodeURIComponent(path.split('?')[0].split('/').at(-1)), previewOrder: order, previewOrders: updatedOrders } }); window.scrollTo({ top: 0 }); return;
+    }
     if (path === '/client-dashboard') {
       navigate('/preview/client-dashboard', { state: { previewOrders: updatedOrders } }); window.scrollTo({ top: 0 }); return;
     }

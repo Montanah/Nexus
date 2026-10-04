@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import TravelerDashboardView from '../Components/TravelerDashboardView';
 import { nextStatus, normalizeProducts } from '../Components/travelerDashboardModel';
 import { previewAvailable, previewDeliveries, previewEarnings, previewTraveler } from './travelerDashboardFixtures';
 
 const TravelerDashboardPreview = () => {
-  const navigate = useNavigate();
-  const [products, setProducts] = useState(() => normalizeProducts(previewAvailable));
-  const [deliveries, setDeliveries] = useState(() => normalizeProducts(previewDeliveries));
+  const navigate = useNavigate(), location = useLocation();
+  const [products, setProducts] = useState(() => normalizeProducts(location.state?.previewProducts || previewAvailable));
+  const [deliveries, setDeliveries] = useState(() => normalizeProducts(location.state?.previewDeliveries || previewDeliveries));
   const [scenario, setScenario] = useState('ready');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(null);
@@ -48,6 +48,10 @@ const TravelerDashboardPreview = () => {
     setNotice('Sample proof submission completed. Your file was not uploaded or stored.');
   });
   const navigatePreview = path => {
+    if (path.startsWith('/rate-product/')) {
+      const productId = decodeURIComponent(path.split('?')[0].split('/').at(-1));
+      navigate('/preview/rating?as=traveler', { state: { productId, previewProduct: deliveries.find(product => product.productId === productId), previewDeliveries: deliveries, previewProducts: products } }); window.scrollTo({ top: 0 }); return;
+    }
     if (path === '/' || path.includes('#')) { window.location.assign(path); return; }
     setNotice(`Preview only: ${path === '/settings' ? 'Account settings' : 'Client ratings'} opens after signing in to the connected app. No data has been submitted.`);
     window.scrollTo({ top: 0 });
