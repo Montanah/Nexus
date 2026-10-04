@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
 import { assignFulfillment, getAvailableProducts, getTravelerEarnings, getTravelerOrders, updateDeliveryStatus, uploadDeliveryProof } from '../Services/api';
 import TravelerDashboardView from '../Components/TravelerDashboardView';
@@ -15,6 +15,8 @@ const readProof = file => new Promise((resolve, reject) => {
 
 const TravelerDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const query = new URLSearchParams(location.search);
   const { user, userId, logout, loading: authLoading } = useAuth();
   const [products, setProducts] = useState([]);
   const [deliveries, setDeliveries] = useState([]);
@@ -140,6 +142,6 @@ const TravelerDashboard = () => {
 
   if (authLoading) return <div className="cd-auth-loading" role="status">Loading your account…</div>;
   if (!userId) return null;
-  return <TravelerDashboardView user={user?.data?.user || user} products={products} deliveries={deliveries} earnings={earnings} loading={loading} errors={errors} busy={busy} actionError={actionError} notice={notice} logoutLoading={logoutLoading} onRetry={() => { if (!actionLock.current) setReload(value => value + 1); }} onNavigate={handleNavigate} onClaim={handleClaim} onAdvance={handleAdvance} onUpload={handleUpload} onLogout={handleLogout} />;
+  return <TravelerDashboardView initialSection={query.get('view') === 'deliveries' ? 'deliveries' : 'discover'} initialProductId={query.get('product') || ''} user={user?.data?.user || user} products={products} deliveries={deliveries} earnings={earnings} loading={loading} errors={errors} busy={busy} actionError={actionError} notice={notice} logoutLoading={logoutLoading} onRetry={() => { if (!actionLock.current) setReload(value => value + 1); }} onNavigate={handleNavigate} onClaim={handleClaim} onAdvance={handleAdvance} onUpload={handleUpload} onLogout={handleLogout} />;
 };
 export default TravelerDashboard;

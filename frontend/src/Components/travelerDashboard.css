@@ -143,3 +143,7 @@
   .td-next-step h4 { font-size: 14px; }
   .td-progress li { font-size: 12px; }
 }
+
+.dd-proof-file { display: flex; align-items: center; gap: 8px; }
+.dd-proof-file .td-file-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.dd-proof-file .cd-icon-button { flex-shrink: 0; }

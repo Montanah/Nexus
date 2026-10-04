@@ -57,6 +57,10 @@ const PasswordRecoveryPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/PasswordRecoveryPreview'))
   : null;
 
+const DeliveryDetailsPreview = import.meta.env.DEV
+  ? lazy(() => import('./dev/DeliveryDetailsPreview'))
+  : null;
+
 const ApplicationRoutes = () => {
   return (
     <AuthProvider>
@@ -97,6 +101,7 @@ const App = () => (
       {import.meta.env.DEV && <Route path="/preview/rating" element={<Suspense fallback={<p role="status">Loading feedback preview…</p>}><RatingPreview /></Suspense>} />}
       {import.meta.env.DEV && <Route path="/preview/settings" element={<Suspense fallback={<p role="status">Loading settings preview…</p>}><SettingsPreview /></Suspense>} />}
       {import.meta.env.DEV && <Route path="/preview/password-recovery" element={<Suspense fallback={<p role="status">Loading recovery preview…</p>}><PasswordRecoveryPreview /></Suspense>} />}
+      {import.meta.env.DEV && <Route path="/preview/delivery-details" element={<Suspense fallback={<p role="status">Loading delivery preview…</p>}><DeliveryDetailsPreview /></Suspense>} />}
       {/* Public recovery pages must remain accessible without an auth/backend request. */}
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/email-sent" element={<EmailSentConfirmation />} />

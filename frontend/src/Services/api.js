@@ -613,10 +613,15 @@ export const uploadDeliveryProof = async (productId, photo) => {
       mimeType: photo.type,
     });
 
+    const result = response.data?.data;
+    if (response.data?.success !== true || result?.order !== productId
+      || result?.proofUrl !== `data:${photo.type};base64,${cleanBase64}`) {
+      throw new Error('We couldn’t confirm that your proof was saved. Refresh the delivery before trying again.');
+    }
     return {
       success: true,
       productId,
-      proofUrl: response.data.data?.proofUrl || response.data.proofUrl,
+      proofUrl: result.proofUrl,
     };
   } catch (error) {
     console.error('Upload error:', error.response?.data || error.message);
