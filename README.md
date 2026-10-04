@@ -64,6 +64,19 @@ both `Server listening on 3001` and `MongoDB connected successfully` in the
 backend terminal. `http://localhost:3001/health` checks that HTTP is running;
 it does not check MongoDB, Redis, email delivery, or authentication.
 
+The frontend loads account pages and their styles on demand. If a page download
+fails, the recovery screen can reload the current URL, keeping its query
+parameters. Navigating between account pages preserves the shared session.
+
+The order form uses the existing `country-state-city` package as its data source.
+The Vite plugin in `frontend/build/locationData.mjs` strips unused metadata and
+generates a small JSON file of city names for each region. The form downloads
+only the selected region, caches successful suggestions, and keeps manual city
+entry available if that download fails. The same files are served locally in
+development. Builds generate these files automatically; deploy the complete
+`frontend/dist` directory, including `assets/cities-*`, with the rest of the app.
+No additional location service, credentials, or backend endpoint is needed.
+
 To review the Client dashboard while backend configuration is unavailable, run
 `npm --prefix frontend run dev` and open
 `http://localhost:5173/preview/client-dashboard`. This development-only page uses

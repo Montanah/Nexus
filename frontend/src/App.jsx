@@ -1,28 +1,26 @@
-import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
-import { AuthProvider } from './Context/AuthContext';
+import { lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import PageBoundary from './Components/PageBoundary';
 import LandingPage from './Pages/landingPage/';
-import SignUp from './Pages/signUp/';
-import Login from './Pages/login/';
-import ClientDashboard from './Pages/clientDashboard/';
-import NewOrder from './Pages/newOrder';
-import CartPage from './Pages/cartPage';
-import Checkout from './Pages/checkout';
-import ForgotPassword from './Pages/forgotPassword';
-import ResetPassword from './Pages/resetPassword';
-import EmailSentConfirmation from './Pages/emailSentConfirmation';  
-import PaymentSuccess from './Pages/paymentSuccess';
-import PaymentFailure from './Pages/paymentFailure';
-import OrderDetails from './Pages/orderDetails';
-import TravelerDashboard from './Pages/travelerDashboard';
-import Settings from './Pages/settings';
-import RatingForm from './Pages/ratingsForm';
-import ProductDetails from './Pages/productDetails';
-import PaystackVerify from './Components/PaystackVerify';
-import NotFound from './Pages/notFound';
-import SessionGuard from './Components/SessionGuard';
-// import Help from './Pages/help';
-// import Notifications from './Pages/notifications';
+const SignUp = lazy(() => import('./Pages/signUp'));
+const Login = lazy(() => import('./Pages/login'));
+const ClientDashboard = lazy(() => import('./Pages/clientDashboard'));
+const NewOrder = lazy(() => import('./Pages/newOrder'));
+const CartPage = lazy(() => import('./Pages/cartPage'));
+const Checkout = lazy(() => import('./Pages/checkout'));
+const ForgotPassword = lazy(() => import('./Pages/forgotPassword'));
+const ResetPassword = lazy(() => import('./Pages/resetPassword'));
+const EmailSentConfirmation = lazy(() => import('./Pages/emailSentConfirmation'));
+const PaymentSuccess = lazy(() => import('./Pages/paymentSuccess'));
+const PaymentFailure = lazy(() => import('./Pages/paymentFailure'));
+const OrderDetails = lazy(() => import('./Pages/orderDetails'));
+const TravelerDashboard = lazy(() => import('./Pages/travelerDashboard'));
+const Settings = lazy(() => import('./Pages/settings'));
+const RatingForm = lazy(() => import('./Pages/ratingsForm'));
+const ProductDetails = lazy(() => import('./Pages/productDetails'));
+const PaystackVerify = lazy(() => import('./Components/PaystackVerify'));
+const NotFound = lazy(() => import('./Pages/notFound'));
+const SessionGuard = lazy(() => import('./Components/SessionGuard'));
 
 // Vite removes this import and the preview route from production builds.
 const ClientDashboardPreview = import.meta.env.DEV
@@ -63,50 +61,49 @@ const DeliveryDetailsPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/DeliveryDetailsPreview'))
   : null;
 
-// Keep authenticated page context shared while public fallbacks stay backend-independent.
-const ApplicationLayout = () => <AuthProvider><Outlet /></AuthProvider>;
+// Load account code only when entering an account route; keep context shared thereafter.
+const AccountLayout = lazy(() => import('./Components/AccountLayout'));
+const page = element => <PageBoundary>{element}</PageBoundary>;
 
 const App = () => (
   <Router>
     <Routes>
-      {import.meta.env.DEV && <Route path="/preview/client-dashboard" element={<Suspense fallback={<p role="status">Loading dashboard preview…</p>}><ClientDashboardPreview /></Suspense>} />}
-      {import.meta.env.DEV && <Route path="/preview/traveler-dashboard" element={<Suspense fallback={<p role="status">Loading dashboard preview…</p>}><TravelerDashboardPreview /></Suspense>} />}
-      {import.meta.env.DEV && <Route path="/preview/new-order" element={<Suspense fallback={<p role="status">Loading order preview…</p>}><NewOrderPreview /></Suspense>} />}
-      {import.meta.env.DEV && <Route path="/preview/cart" element={<Suspense fallback={<p role="status">Loading cart preview…</p>}><CartPreview /></Suspense>} />}
-      {import.meta.env.DEV && <Route path="/preview/checkout" element={<Suspense fallback={<p role="status">Loading checkout preview…</p>}><CheckoutPreview /></Suspense>} />}
-      {import.meta.env.DEV && <Route path="/preview/payment-success" element={<Suspense fallback={<p role="status">Loading payment preview…</p>}><PaymentResultPreview key="success" initialStatus="success" /></Suspense>} />}
-      {import.meta.env.DEV && <Route path="/preview/payment-failure" element={<Suspense fallback={<p role="status">Loading payment preview…</p>}><PaymentResultPreview key="failed" initialStatus="failed" /></Suspense>} />}
-      {import.meta.env.DEV && <Route path="/preview/order-details" element={<Suspense fallback={<p role="status">Loading order preview…</p>}><OrderDetailsPreview /></Suspense>} />}
-      {import.meta.env.DEV && <Route path="/preview/rating" element={<Suspense fallback={<p role="status">Loading feedback preview…</p>}><RatingPreview /></Suspense>} />}
-      {import.meta.env.DEV && <Route path="/preview/settings" element={<Suspense fallback={<p role="status">Loading settings preview…</p>}><SettingsPreview /></Suspense>} />}
-      {import.meta.env.DEV && <Route path="/preview/password-recovery" element={<Suspense fallback={<p role="status">Loading recovery preview…</p>}><PasswordRecoveryPreview /></Suspense>} />}
-      {import.meta.env.DEV && <Route path="/preview/delivery-details" element={<Suspense fallback={<p role="status">Loading delivery preview…</p>}><DeliveryDetailsPreview /></Suspense>} />}
+      <Route path="/" element={<LandingPage />} />
+      {import.meta.env.DEV && <Route path="/preview/client-dashboard" element={page(<ClientDashboardPreview />)} />}
+      {import.meta.env.DEV && <Route path="/preview/traveler-dashboard" element={page(<TravelerDashboardPreview />)} />}
+      {import.meta.env.DEV && <Route path="/preview/new-order" element={page(<NewOrderPreview />)} />}
+      {import.meta.env.DEV && <Route path="/preview/cart" element={page(<CartPreview />)} />}
+      {import.meta.env.DEV && <Route path="/preview/checkout" element={page(<CheckoutPreview />)} />}
+      {import.meta.env.DEV && <Route path="/preview/payment-success" element={page(<PaymentResultPreview key="success" initialStatus="success" />)} />}
+      {import.meta.env.DEV && <Route path="/preview/payment-failure" element={page(<PaymentResultPreview key="failed" initialStatus="failed" />)} />}
+      {import.meta.env.DEV && <Route path="/preview/order-details" element={page(<OrderDetailsPreview />)} />}
+      {import.meta.env.DEV && <Route path="/preview/rating" element={page(<RatingPreview />)} />}
+      {import.meta.env.DEV && <Route path="/preview/settings" element={page(<SettingsPreview />)} />}
+      {import.meta.env.DEV && <Route path="/preview/password-recovery" element={page(<PasswordRecoveryPreview />)} />}
+      {import.meta.env.DEV && <Route path="/preview/delivery-details" element={page(<DeliveryDetailsPreview />)} />}
       {/* Public recovery pages must remain accessible without an auth/backend request. */}
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/email-sent" element={<EmailSentConfirmation />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route element={<ApplicationLayout />}>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/login" element={<Login />} />
-          <Route element={<SessionGuard />}>
-            <Route path="/client-dashboard" element={<ClientDashboard />} />
-            <Route path="/new-order" element={<NewOrder />} />
-            <Route path="/cart" element={<CartPage />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/payment-success" element={<PaymentSuccess />} />
-            <Route path="/payment-failure" element={<PaymentFailure />} />
-            <Route path="/orders/:orderNumber" element={<OrderDetails />} />
-            <Route path="/traveler-dashboard" element={<TravelerDashboard />} />
-            <Route path="/product-details/:productId" element={<ProductDetails />} />
-            <Route path="/rate-product/:productId" element={<RatingForm />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/verify-paystack" element={<PaystackVerify />} />
+      <Route path="/forgot-password" element={page(<ForgotPassword />)} />
+      <Route path="/email-sent" element={page(<EmailSentConfirmation />)} />
+      <Route path="/reset-password" element={page(<ResetPassword />)} />
+      <Route element={page(<AccountLayout />)}>
+          <Route path="/signup" element={page(<SignUp />)} />
+          <Route path="/login" element={page(<Login />)} />
+          <Route element={page(<SessionGuard />)}>
+            <Route path="/client-dashboard" element={page(<ClientDashboard />)} />
+            <Route path="/new-order" element={page(<NewOrder />)} />
+            <Route path="/cart" element={page(<CartPage />)} />
+            <Route path="/checkout" element={page(<Checkout />)} />
+            <Route path="/payment-success" element={page(<PaymentSuccess />)} />
+            <Route path="/payment-failure" element={page(<PaymentFailure />)} />
+            <Route path="/orders/:orderNumber" element={page(<OrderDetails />)} />
+            <Route path="/traveler-dashboard" element={page(<TravelerDashboard />)} />
+            <Route path="/product-details/:productId" element={page(<ProductDetails />)} />
+            <Route path="/rate-product/:productId" element={page(<RatingForm />)} />
+            <Route path="/settings" element={page(<Settings />)} />
+            <Route path="/verify-paystack" element={page(<PaystackVerify />)} />
           </Route>
-          {/* <Route path="/help" element={<Help />} />
-          <Route path="/notifications" element={<Notifications/>} /> */}
       </Route>
-      <Route path="*" element={<NotFound />} />
+      <Route path="*" element={page(<NotFound />)} />
     </Routes>
   </Router>
 );
