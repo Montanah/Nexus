@@ -20,6 +20,7 @@ import RatingForm from './Pages/ratingsForm';
 import ProductDetails from './Pages/productDetails';
 import PaystackVerify from './Components/PaystackVerify';
 import NotFound from './Pages/notFound';
+import SessionGuard from './Components/SessionGuard';
 // import Help from './Pages/help';
 // import Notifications from './Pages/notifications';
 
@@ -88,18 +89,20 @@ const App = () => (
           <Route path="/" element={<LandingPage />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/client-dashboard" element={<ClientDashboard />} />
-          <Route path="/new-order" element={<NewOrder />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/payment-failure" element={<PaymentFailure />} />
-          <Route path="/orders/:orderNumber" element={<OrderDetails />} />
-          <Route path="/traveler-dashboard" element={<TravelerDashboard />} />
-          <Route path="/product-details/:productId" element={<ProductDetails />} />
-          <Route path="/rate-product/:productId" element={<RatingForm />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/verify-paystack" element={<PaystackVerify />} />
+          <Route element={<SessionGuard />}>
+            <Route path="/client-dashboard" element={<ClientDashboard />} />
+            <Route path="/new-order" element={<NewOrder />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/payment-failure" element={<PaymentFailure />} />
+            <Route path="/orders/:orderNumber" element={<OrderDetails />} />
+            <Route path="/traveler-dashboard" element={<TravelerDashboard />} />
+            <Route path="/product-details/:productId" element={<ProductDetails />} />
+            <Route path="/rate-product/:productId" element={<RatingForm />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/verify-paystack" element={<PaystackVerify />} />
+          </Route>
           {/* <Route path="/help" element={<Help />} />
           <Route path="/notifications" element={<Notifications/>} /> */}
       </Route>

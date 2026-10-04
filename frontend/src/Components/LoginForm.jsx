@@ -7,7 +7,7 @@ import InputField from './InputField';
 import AuthSubmit from './AuthSubmit';
 import AuthVerification from './AuthVerification';
 
-const LoginForm = ({ navigate, setStep, step, loginRole, setLoginRole, loading, setLoading, socialBusy }) => {
+const LoginForm = ({ navigate, destination, setStep, step, loginRole, setLoginRole, loading, setLoading, socialBusy }) => {
   const { login, clearError } = useAuth();
   const [formData, setFormData] = useState({ email: '', password: '', token: '' });
   const [localError, setLocalError] = useState('');
@@ -57,9 +57,11 @@ const LoginForm = ({ navigate, setStep, step, loginRole, setLoginRole, loading, 
     clearError();
     try {
       const response = await login(formData.email.trim(), formData.password, formData.token);
-      if (response.success && response.step === 'complete') navigate(loginRole === 'client' ? '/client-dashboard' : '/traveler-dashboard');
-    } catch {
-      setLocalError('We couldn’t verify that code. Check the code and try again.');
+      if (response.success && response.step === 'complete') navigate(destination || (loginRole === 'client' ? '/client-dashboard' : '/traveler-dashboard'), { replace: true });
+    } catch (error) {
+      setLocalError(error.sessionConfirmationPending
+        ? 'Your code was accepted, but we couldn’t load your account. Please try again.'
+        : 'We couldn’t verify that code. Check the code and try again.');
     } finally {
       setLoading(false);
     }
@@ -93,6 +95,7 @@ const LoginForm = ({ navigate, setStep, step, loginRole, setLoginRole, loading, 
 };
 LoginForm.propTypes = {
   navigate: PropTypes.func.isRequired, setStep: PropTypes.func.isRequired, step: PropTypes.string.isRequired,
+  destination: PropTypes.string,
   loginRole: PropTypes.string.isRequired, setLoginRole: PropTypes.func.isRequired,
   loading: PropTypes.bool.isRequired, setLoading: PropTypes.func.isRequired, socialBusy: PropTypes.bool.isRequired,
 };

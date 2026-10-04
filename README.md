@@ -117,9 +117,27 @@ failure. Missing item IDs or prices prevent checkout until the cart is corrected
 The current API omits IDs for deleted products, so those entries can be refreshed
 but cannot be removed through the frontend. Continue to checkout opens the
 existing checkout page; payment processing still needs live backend verification.
-The existing shared authentication interceptor also needs follow-up: if both the
-session check and token-refresh endpoint return `401`, refresh can wait on itself
-and leave authentication loading. This is separate from the cart refresh.
+
+Session handling shares one cookie-refresh request across concurrent protected
+requests and retries each failed request at most once. A rejected refresh clears
+the frontend account and returns protected pages to login with a session-ended
+message. Login, OTP, signup, recovery, and social-auth errors stay in their forms;
+they never trigger refresh. Refresh and authentication requests time out after
+15 seconds. Connection failures and server errors preserve the current session;
+an initial session-check failure offers **Try again** at the original URL.
+Public pages and development previews do not check authentication on entry.
+After email-and-code sign-in, users return to the requested account page,
+including its payment reference or other query parameters.
+
+Sign-out waits for an active refresh before clearing the server session. Failed
+sign-out keeps the page and unsaved form values available for retry. Social login
+must confirm the account through server cookies; callback tokens are not stored
+in local storage. Run the frontend regression checks with
+`node --test frontend/test/*.test.mjs` from the repository root. These checks use
+simulated API responses; real cookie, Redis, email/OTP, and social-provider flows
+still require the configured backend. The current backend reports all refresh
+exceptions as `401`, so it must distinguish service outages from invalid tokens
+before the frontend can distinguish those server-side cases.
 
 Preview checkout at `http://localhost:5173/preview/checkout`, or choose Continue
 to checkout in the cart preview. Cart items carry across both pages. The preview

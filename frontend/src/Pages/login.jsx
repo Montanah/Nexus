@@ -6,12 +6,14 @@ import AuthVerification from '../Components/AuthVerification';
 import LoginForm from '../Components/LoginForm';
 import SocialLogin from '../Components/SocialLogin';
 import { initiateSocialLogin, verifySocialUser } from '../Services/api';
+import { sessionDestination } from '../Services/sessionNavigation';
 
 const Login = () => {
   const [step, setStep] = useState('credentials');
   const { socialLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const destination = sessionDestination(location.state?.from);
   const processedCallback = useRef('');
   const [loginRole, setLoginRole] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,7 +49,7 @@ const Login = () => {
           setStep('social-verify');
         } else if (query.get('token')) {
           await socialLogin({ token: query.get('token'), user: { email, isVerified: true } });
-          navigate(role === 'client' ? '/client-dashboard' : '/traveler-dashboard');
+          navigate(destination || (role === 'client' ? '/client-dashboard' : '/traveler-dashboard'), { replace: true });
         } else {
           throw new Error('This sign-in link is incomplete. Please start again.');
         }
@@ -59,7 +61,7 @@ const Login = () => {
       }
     };
     handleCallback();
-  }, [location.search, navigate, socialLogin]);
+  }, [location.search, navigate, socialLogin, destination]);
 
   const handleSocialLogin = async (platform) => {
     if (loading || socialLoading.google || socialLoading.apple) return;
@@ -93,7 +95,7 @@ const Login = () => {
       const response = await verifySocialUser({ email: socialEmail, code: verificationCode, provider: socialProvider });
       if (!response.success && response.status !== 200) throw new Error('Verification failed');
       await socialLogin(response.data);
-      navigate(loginRole === 'client' ? '/client-dashboard' : '/traveler-dashboard');
+      navigate(destination || (loginRole === 'client' ? '/client-dashboard' : '/traveler-dashboard'), { replace: true });
     } catch {
       setSocialError('We couldn’t verify that code. Check the code and try again.');
     } finally {
@@ -108,8 +110,9 @@ const Login = () => {
         <AuthVerification email={socialEmail} code={verificationCode} onChange={value => { setVerificationCode(value); setSocialError(''); }} onSubmit={handleSocialVerifySubmit} loading={verifying} error={socialError} onBack={() => { setStep('credentials'); setSocialError(''); setVerificationCode(''); navigate('/login', { replace: true }); }} backLabel="Back to login" />
       ) : (
         <>
+          {location.state?.sessionExpired && step === 'credentials' && <p className="auth-error" role="status">Your session has ended. Log in again to continue.</p>}
           {location.state?.verified && step === 'credentials' && <p className="auth-success" role="status">Your email is verified. Log in to get started.</p>}
-          <LoginForm navigate={navigate} setStep={setStep} step={step} loginRole={loginRole} setLoginRole={role => { setLoginRole(role); setSocialError(''); }} loading={loading} setLoading={setLoading} socialBusy={socialLoading.google || socialLoading.apple} />
+          <LoginForm navigate={navigate} destination={destination} setStep={setStep} step={step} loginRole={loginRole} setLoginRole={role => { setLoginRole(role); setSocialError(''); }} loading={loading} setLoading={setLoading} socialBusy={socialLoading.google || socialLoading.apple} />
           {step === 'credentials' && <SocialLogin onSocialSignup={handleSocialLogin} loading={socialLoading} error={socialError} disabled={loading} />}
         </>
       )}
