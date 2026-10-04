@@ -1,164 +1,153 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import api, { loginUser, verifyLoginOTP, logoutUser, fetchUserData } from '../Services/api';
+import api, { authSession, loginUser, verifyLoginOTP, logoutUser, fetchUserData } from '../Services/api';
 
 const AuthContext = createContext();
+const readProfile = async userId => {
+  const response = await fetchUserData(userId);
+  const profile = response?.data?.user;
+  if (!profile || profile._id !== userId) throw new Error('Account details could not be confirmed.');
+  return profile;
+};
+const readSession = async () => {
+  const response = await api.get('/api/auth/get-user-id', { timeout: 15000 });
+  const userId = response.data?.data;
+  if (typeof userId !== 'string' || !userId) throw new Error('Account details could not be confirmed.');
+  return readProfile(userId);
+};
 
 export const AuthProvider = ({ children }) => {
-  const [userId, setUserId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState(null);
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sessionError, setSessionError] = useState(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const currentUserId = useRef(null);
+  const verifiedUserId = useRef(null);
+  const operation = useRef(0);
+  const mounted = useRef(true);
+  const userId = user?._id || null;
 
   const clearError = () => setError(null);
-  // Apply the confirmed settings response without restarting authentication.
-  const updateProfile = profile => setUser(previous => previous?.data?.user
-    ? { ...previous, data: { ...previous.data, user: { ...previous.data.user, ...profile } } }
-    : { ...previous, ...profile });
-  // Check auth status by calling /api/auth/me
-  const checkAuth = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get('/api/auth/get-user-id', { withCredentials: true });
-      const fetchedUserId = response.data.data;
-      console.log('checkAuth userId:', fetchedUserId);
-      setUserId(fetchedUserId);
-
-      // Fetch user data
-      const userData = await fetchUserData(fetchedUserId);
-      console.log('checkAuth userData:', userData);
-      setUser(userData);
-    } catch (error) {
-      console.error('checkAuth failed:', error.response?.data || error.message);
-      setUserId(null);
-      setUser(null);
-      if (error.response?.status === 404) {
-        setError('Authentication service unavailable. Please try again later.');
-      } else if (error.response?.status === 401) {
-        setError('Session expired or invalid. Please log in.');
-      } else {
-        setError(error.response?.data?.message);
-      }
-    } finally {
-      setLoading(false);
-    }
+  const updateProfile = profile => setUser(previous => previous ? { ...previous, ...profile } : previous);
+  const applySession = profile => {
+    setUser(profile);
+    setSessionError(null);
+    setSessionExpired(false);
+    currentUserId.current = null;
+    verifiedUserId.current = null;
   };
 
-  useEffect(() => {
-    checkAuth();
+  const checkAuth = useCallback(async () => {
+    const version = ++operation.current;
+    setLoading(true);
+    setSessionError(null);
+    try {
+      const profile = await readSession();
+      if (mounted.current && version === operation.current) applySession(profile);
+    } catch (failure) {
+      if (mounted.current && version === operation.current && !failure.isSessionExpired) {
+        setSessionError('We couldn’t check your session. Check your connection and try again.');
+      }
+    } finally {
+      if (mounted.current && version === operation.current) setLoading(false);
+    }
   }, []);
 
-  const login = async (email, password, verificationCode = null, userId = null) => {
-    try {
-      setLoading(true);
+  useEffect(() => {
+    mounted.current = true;
+    const unsubscribe = authSession.subscribe(() => {
+      operation.current += 1;
+      setUser(null);
+      currentUserId.current = null;
+      verifiedUserId.current = null;
+      setSessionExpired(true);
+      setSessionError(null);
       setError(null);
-      if (!verificationCode) {
-        // First step - initiate login
-        const response = await loginUser({ email, password });
-    
-        setCurrentUserId(response.data.userId);
-        return { 
-          success: true, 
-          step: 'otp', 
-          userId: response.data.userId 
-        };
-      } else {
-        // Second step - verify OTP
-        const userIdToVerify =  currentUserId || userId;
-        console.log('User ID to verify:', userIdToVerify);
-        if (!userIdToVerify) {
-          throw new Error('User ID is required for OTP verification');
-        }
-        await verifyLoginOTP({ userId: userIdToVerify, verificationCode });
-        // await checkAuth(); 
-
-        const userData = await fetchUserData(userIdToVerify);
-        console.log('Fetched user data now:', userData.data.user);
-        setUser(userData.data.user);
-        setUserId(userIdToVerify);
-        // console.log(document.cookie);
-        setCurrentUserId(null);
-        return { success: true, step: 'complete' };
-      }
-    } catch (error) {
-        console.error('Login error:', error.response?.data || error.message);
-        if (error.response?.status === 404) {
-        setError('Login service unavailable. Please try again later.');
-      } else if (error.response?.status === 401) {
-        setError('Invalid email, password, or OTP. Please try again.');
-      } else if (error.response?.status === 400) {
-        setError('Not registered. Please sign up.');
-      } else {
-        setError(error.response?.data?.message || 'Login failed. Please try again.');
-      }
-      throw error;
-    } finally {
       setLoading(false);
+    });
+    return () => {
+      mounted.current = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const login = async (email, password, verificationCode = null, pendingUserId = null) => {
+    const version = ++operation.current;
+    setLoading(true);
+    setError(null);
+    try {
+      if (!verificationCode) {
+        verifiedUserId.current = null;
+        const response = await loginUser({ email, password });
+        const id = response?.data?.userId;
+        if (!id) throw new Error('Login could not be confirmed.');
+        if (!mounted.current || version !== operation.current) throw new Error('Please try signing in again.');
+        currentUserId.current = id;
+        return { success: true, step: 'otp', userId: id };
+      }
+      const id = currentUserId.current || pendingUserId;
+      if (!id) throw new Error('Please enter your email and password again.');
+      if (verifiedUserId.current !== id) {
+        await verifyLoginOTP({ userId: id, verificationCode });
+        if (!mounted.current || version !== operation.current) throw new Error('Please try signing in again.');
+        verifiedUserId.current = id;
+        authSession.reset();
+      }
+      const profile = await readProfile(id);
+      if (!mounted.current || version !== operation.current) throw new Error('Please try signing in again.');
+      applySession(profile);
+      return { success: true, step: 'complete' };
+    } catch (failure) {
+      // A used OTP must not be submitted again just because the profile request failed.
+      if (verifiedUserId.current && !failure.isSessionExpired) failure.sessionConfirmationPending = true;
+      if (mounted.current && version === operation.current) setError('Login failed. Please check your details and try again.');
+      throw failure;
+    } finally {
+      if (mounted.current && version === operation.current) setLoading(false);
     }
   };
 
   const logout = async () => {
+    // Keep the page mounted so a failed logout preserves form data and displays its error.
+    const version = ++operation.current;
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
       await logoutUser();
-      setUser(null);
-      setUserId(null);
-      setCurrentUserId(null);
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login'; 
-      }
-    } catch (error) {
-      console.error('Logout error:', error.response?.data || error.message);
-      setError(error.response?.data?.message || 'Logout failed. Please try again.');
-      throw error;
-    } finally {
-      setLoading(false);
+      if (mounted.current && version === operation.current) applySession(null);
+    } catch (failure) {
+      if (mounted.current && version === operation.current) setError('We couldn’t log you out. Please try again.');
+      throw failure;
     }
   };
 
-  const socialLogin = async ({ token, user }) => {
+  const socialLogin = useCallback(async () => {
+    const version = ++operation.current;
+    setLoading(true);
+    setError(null);
+    // The callback must establish server cookies. A query token/profile is not a session.
+    authSession.reset();
     try {
-      localStorage.setItem('accessToken', token);
-      setUser(user);
-      setUserId(user._id || user.email); 
-      await checkAuth();
-
+      const profile = await readSession();
+      if (!mounted.current || version !== operation.current) throw new Error('Please try signing in again.');
+      applySession(profile);
       return { success: true };
-    } catch (error) {
-      console.error('Social login error:', error);
-      throw new Error('Failed to log in');
+    } catch (failure) {
+      if (mounted.current && version === operation.current) setError('We couldn’t confirm your sign-in. Please try again.');
+      throw new Error('We couldn’t confirm your sign-in. Please try again.', { cause: failure });
     } finally {
-      setLoading(false);
+      if (mounted.current && version === operation.current) setLoading(false);
     }
-  };
+  }, []);
 
-  const value = {
-    user,
-    userId,
-    loading,
-    error,
-    clearError,
-    login,
-    logout,
-    checkAuth,
-    socialLogin, 
-    updateProfile,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, userId, loading, error, sessionError, sessionExpired, clearError, login, logout, checkAuth, socialLogin, updateProfile }}>{children}</AuthContext.Provider>;
 };
 
-AuthProvider.propTypes = {
-  children: PropTypes.node.isRequired,
-};
+AuthProvider.propTypes = { children: PropTypes.node.isRequired };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };

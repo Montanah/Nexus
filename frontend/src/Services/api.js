@@ -1,86 +1,12 @@
-import axios from 'axios';
+import { createSessionClient } from './sessionClient.js';
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: true, 
-});
-  
-
-let isRefreshing = false;
-
-// Request Interceptor: Skip adding headers for public endpoints
-api.interceptors.request.use((config) => {
-  const publicEndpoints = [
-    '/api/auth/loginUser',
-    '/api/auth/register',
-    '/api/auth/refresh-token',
-    '/api/auth/verifyUser',
-    '/api/auth/resendVerificationCode',
-    '/api/auth/forgotPassword',
-    '/api/auth/resetPassword',
-    '/api/auth/logout',
-    '/api/auth/google/login/initiate',
-    '/api/auth/google/callback',
-    '/api/auth/google/signup/initiate',
-    '/api/auth//google/signup/callback',
-  ];
-
-  if (publicEndpoints.some(endpoint => config.url.includes(endpoint))) {
-    return config;
-  }
-
-  return config;
-});
-
-// Response Interceptor: Handle 401 errors with token refresh
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          console.log('Attempting to refresh token...');
-          const response = await api.post('/api/auth/refresh-token');
-          console.log('Token refresh successful:', response.data);
-          isRefreshing = false;
-          console.log('Retrying original request:', originalRequest.url);
-          return api(originalRequest); 
-        } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError);
-          isRefreshing = false;
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login'; 
-            return new Promise(() => {}); 
-          }
-          return Promise.reject(refreshError); 
-        }
-      } else {
-        console.log('Token refresh in progress...');
-        return new Promise((resolve) => {
-          const checkRefresh = setInterval(() => {
-            if (!isRefreshing) {
-              clearInterval(checkRefresh);
-              console.log('Retrying original request:', originalRequest.url);
-              resolve(api(originalRequest));
-            }
-          }, 100);
-        });
-      }
-    }
-
-    return Promise.reject(error);
-  }
-);
+const { api, session } = createSessionClient({ baseURL: import.meta.env.VITE_API_URL });
+export const authSession = session;
 
 // AUTH ENDPOINTS
 // Fetch user data based on userId (Protected)
 export const fetchUserData = async (userId) => {
-  console.log('fetchUserData called with userId:', userId);
-  const response = await api.get(`/api/auth/user/${userId}`);
+  const response = await api.get(`/api/auth/user/${encodeURIComponent(userId)}`, { timeout: 15000 });
   return response.data;
 };
 
@@ -119,7 +45,6 @@ export const loginUser = async (credentials) => {
 
 // Verify OTP (Public-ish, but typically after login initiation)
 export const verifyLoginOTP = async (otpData) => {
-  console.log('verifyLoginOTP called with data:', otpData);
   const response = await api.post('/api/auth/verifyLoginOTP', otpData);
   return response.data;
 };
@@ -143,10 +68,7 @@ export const fetchUser = async (userId) => {
 };
 
 // Logout (Protected)
-export const logoutUser = async () => {
-  const response = await api.post('/api/auth/logout', {});
-  return response.data;
-};
+export const logoutUser = () => authSession.logout();
 
 // Social Authentication
 export const initiateSocialLogin = async (provider, role) => {
@@ -181,7 +103,6 @@ export const initiateSocialSignup = async (provider) => {
 export const handleSocialCallback = async (provider, code) => {
   try {
     const response = await api.post(`/api/auth/${provider}/signup/callback`, { code });
-    console.log('handleSocialCallback response:', response);
     return response.data;
   } catch (error) {
     console.error(`Error handling ${provider} callback:`, error);
