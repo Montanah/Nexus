@@ -64,6 +64,17 @@ both `Server listening on 3001` and `MongoDB connected successfully` in the
 backend terminal. `http://localhost:3001/health` checks that HTTP is running;
 it does not check MongoDB, Redis, email delivery, or authentication.
 
+The admin workspace runs separately from `dashboard/`:
+
+```sh
+npm --prefix dashboard run dev -- --port 5174 --strictPort
+```
+
+Open `http://localhost:5174/preview/overview` to review the refreshed admin
+overview and shared navigation without the backend. The labeled sample data,
+loading/error scenarios, and simulated retries are development-only. See
+[the admin README](dashboard/README.md) for real-data behavior and validation.
+
 The frontend loads account pages and their styles on demand. If a page download
 fails, the recovery screen can reload the current URL, keeping its query
 parameters. Navigating between account pages preserves the shared session.
@@ -363,6 +374,7 @@ node --test frontend/test/settings.test.mjs
 node --test frontend/test/password-recovery.test.mjs
 node --test frontend/test/delivery-details.test.mjs
 npm --prefix frontend run build
+node --test dashboard/test/overview.test.mjs
 npm --prefix dashboard run build
 ```
 

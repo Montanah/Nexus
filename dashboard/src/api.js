@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { readCollection } from './components/overviewModel';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -104,45 +105,24 @@ export const deleteAdmin = async (adminId) => {
 };
 
 // Data fetching APIs
-export const fetchUsers = async () => {
-  try {
-    const response = await api.get('/api/admin/users');
-    return response.data?.data?.users || [];
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    throw error;
-  }
+export const fetchUsers = async (options = {}) => {
+  const response = await api.get('/api/admin/users', options);
+  return readCollection(response.data, 'users');
 };
 
-export const fetchProducts = async () => {
-  try {
-    const response = await api.get('/api/admin/products');
-    return response.data?.data?.products || [];
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    throw error;
-  }
+export const fetchProducts = async (options = {}) => {
+  const response = await api.get('/api/admin/products', options);
+  return readCollection(response.data, 'products');
 };
 
-export const fetchOrders = async () => {
-  try {
-    const response = await api.get('/api/admin/orders');
-    return response.data?.data?.orders || [];
-  } catch (error) {
-    console.error('Error fetching orders:', error);
-    throw error;
-  }
+export const fetchOrders = async (options = {}) => {
+  const response = await api.get('/api/admin/orders', options);
+  return readCollection(response.data, 'orders');
 };
 
-export const fetchTravelers = async () => {
-  try {
-    const response = await api.get('/api/admin/travelers');
-    const data = response.data?.data?.travelers || response.data?.data;
-    return Array.isArray(data) ? data : [];
-  } catch (error) {
-    console.error('Error fetching travelers:', error);
-    throw error;
-  }
+export const fetchTravelers = async (options = {}) => {
+  const response = await api.get('/api/admin/travelers', options);
+  return readCollection(response.data, 'travelers');
 };
 
 export const fetchTransactions = async () => {
