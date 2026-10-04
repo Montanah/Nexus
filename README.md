@@ -211,6 +211,36 @@ rating endpoints save the order item before updating the recipient's aggregate
 rating, without a transaction; failures can leave a partially saved rating.
 Actual persistence and aggregate updates still need live backend verification.
 
+Preview account settings at `http://localhost:5173/preview/settings` or
+`http://localhost:5173/preview/settings?as=traveler`. Settings links from both
+dashboards, order details, the order form, cart, and checkout previews open this
+page. Profile edits are simulated locally; returning to the dashboard carries
+the saved sample name and the existing order/delivery data. Reset preview restores
+the starting account. Loading, save-error, sign-out-error, unverified email,
+missing details, and unavailable-photo states are included. Preview code and
+fixtures are excluded from production builds.
+
+The real `/settings` waits for authentication, loads the signed-in user's profile,
+and saves only changed `name` and `phone_number` fields through the shared API
+service. A success message requires an acknowledged response for the same user
+with the submitted values. Failed saves preserve edits; successful saves update
+the shared account context so other pages display the new name. Empty phone
+replacements are blocked because the current backend ignores them. International
+phone formatting is preserved. Email is read-only, and existing photos display
+with an initials fallback. The workspace query is a navigation hint, not an
+account-role update. Sign-out failures retain the profile form.
+
+Security backend work remains deferred. Authenticator setup is marked unavailable:
+the existing enable endpoint is unauthenticated, immediately replaces/enables a
+secret, and the active email-code login flow does not enforce authenticator codes.
+Profile responses also omit the authenticator status. Password changes are marked
+unavailable because the reset endpoint currently neither verifies the submitted
+code nor updates the password. Settings does not call these endpoints or claim
+security changes succeeded. The profile update endpoint still needs server-side
+ownership enforcement and an email-change verification flow before wider rollout;
+this UI targets only the authenticated user and excludes email from its payload.
+Live profile persistence and sign-out require the backend setup.
+
 Run security audits separately:
 
 ```sh
@@ -232,6 +262,7 @@ node --test frontend/test/checkout.test.mjs
 node --test frontend/test/payment-result.test.mjs
 node --test frontend/test/order-details.test.mjs
 node --test frontend/test/rating.test.mjs
+node --test frontend/test/settings.test.mjs
 npm --prefix frontend run build
 npm --prefix dashboard run build
 ```

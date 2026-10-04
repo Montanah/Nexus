@@ -36,12 +36,13 @@ const CheckoutPreview = () => {
     });
   };
   const navigatePreview = path => {
+    if (path.startsWith('/settings')) { navigate('/preview/settings?as=client', { state: { previewCart: items, previewUser: location.state?.previewUser } }); window.scrollTo({ top: 0 }); return; }
     if (path === '/cart' || path === '/new-order') { navigate(`/preview${path}`, { state: { previewCart: items } }); return; }
     if (path === '/client-dashboard') { navigate('/preview/client-dashboard'); return; }
     if (path === '/' || path.includes('#')) { window.location.assign(path); return; }
     setNotice('Preview only: account settings opens after signing in to the connected app.');
   };
-  return <CheckoutView key={revision} user={{ name: 'Alex Morgan', email: 'alex@example.test' }} items={items} loading={scenario === 'loading'} error={scenario === 'error' ? 'We couldn’t load your checkout. Please try again.' : ''} submitting={submitting} result={result} notice={notice} onRetry={() => reset()} onSubmit={pay} onNavigate={navigatePreview} onLogout={() => navigate('/login')} previewControls={
+  return <CheckoutView key={revision} user={location.state?.previewUser || { name: 'Alex Morgan', email: 'alex@example.test' }} items={items} loading={scenario === 'loading'} error={scenario === 'error' ? 'We couldn’t load your checkout. Please try again.' : ''} submitting={submitting} result={result} notice={notice} onRetry={() => reset()} onSubmit={pay} onNavigate={navigatePreview} onLogout={() => navigate('/login')} previewControls={
     <div className="cd-preview-bar"><div><strong>Local preview · Sample data</strong><small>Explore checkout without sending a payment request.</small></div><div className="cd-preview-controls"><label htmlFor="checkout-preview-state">Preview state</label><select id="checkout-preview-state" value={scenario} onChange={event => reset(event.target.value)}><option value="sample">Sample checkout</option><option value="whole">Whole-shilling cart</option><option value="empty">Empty cart</option><option value="loading">Loading</option><option value="error">Loading error</option><option value="payment-error">Payment request error</option><option value="unavailable">Unavailable item</option></select><button onClick={() => reset()}>Reset preview</button><Link to="/preview/payment-success" state={{ previewCart: items }}>Payment outcomes</Link><Link to="/preview/cart" state={{ previewCart: items }}>Your cart</Link><Link to="/login">Back to login</Link></div></div>
   } />;
 };

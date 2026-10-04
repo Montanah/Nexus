@@ -12,6 +12,10 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   const clearError = () => setError(null);
+  // Apply the confirmed settings response without restarting authentication.
+  const updateProfile = profile => setUser(previous => previous?.data?.user
+    ? { ...previous, data: { ...previous.data, user: { ...previous.data.user, ...profile } } }
+    : { ...previous, ...profile });
   // Check auth status by calling /api/auth/me
   const checkAuth = async () => {
     try {
@@ -141,6 +145,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     checkAuth,
     socialLogin, 
+    updateProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

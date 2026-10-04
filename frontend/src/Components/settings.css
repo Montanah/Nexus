@@ -1,0 +1,87 @@
+.nexus-settings #settings-heading:focus { outline: none; }
+.st-profile-banner { display: flex; justify-content: space-between; align-items: center; gap: 25px; padding: 30px; border: 1px solid #e5d4f2; border-radius: 19px; background: radial-gradient(ellipse at 100% 50%, #e5cef5, transparent 65%), linear-gradient(130deg, #f8f1fe, #eee1fa); overflow: hidden; }
+.st-banner-person { display: flex; align-items: center; gap: 23px; min-width: 0; }
+.st-banner-person > div { min-width: 0; }
+.st-banner-person .cd-eyebrow { font-size: 7px; letter-spacing: 1.7px; }
+.st-banner-person h2 { font-size: 28px; font-weight: 550; line-height: 1.3; letter-spacing: -.9px; margin-top: 9px; overflow-wrap: anywhere; }
+.st-banner-person p { font-size: 11px; line-height: 1.8; color: #745985; margin-top: 6px; overflow-wrap: anywhere; }
+.st-avatar { display: grid; place-items: center; width: 34px; height: 35px; border-radius: 50%; border: 1px solid #dec9ef; background: #f0e5fa; color: #764699; font-size: 11px; flex-shrink: 0; overflow: hidden; }
+.st-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.st-avatar-large { width: 83px; height: 86px; border: 4px solid #fffcff; box-shadow: 0 5px 18px #81539812; background: linear-gradient(135deg, #eee2fa, #e2cff4); color: #83549f; font-size: 26px; font-weight: 550; }
+.st-avatar-large > svg { width: 32px; height: 32px; }
+.st-workspace-badge { display: inline-flex; align-items: center; gap: 6px; color: #704b88; font-size: 9px; background: #fff9ffb3; border: 1px solid #e4cfee; border-radius: 25px; padding: 5px 9px; margin-top: 13px; }
+.st-banner-art { position: relative; display: grid; place-items: center; width: 200px; height: 120px; flex-shrink: 0; }
+.st-art-orbit { position: absolute; width: 193px; height: 102px; border: 1px dashed #cda2e1; border-radius: 50%; transform: rotate(-18deg); }
+.st-art-user { display: grid; place-items: center; width: 72px; height: 75px; border: 1px solid white; border-radius: 23px; color: #a774c1; background: #fcf7ff; transform: rotate(-9deg); box-shadow: 0 10px 20px #a574bf14; }
+.st-art-user svg { width: 32px; height: 32px; stroke-width: 1.4; }
+.st-art-detail { display: inline-flex; align-items: center; gap: 6px; position: absolute; bottom: -1px; right: 0; border: 1px solid white; border-radius: 9px; padding: 9px 11px; background: #fff9f0; color: #886033; font-size: 9px; transform: rotate(5deg); }
+.st-section-nav { display: flex; flex-wrap: wrap; gap: 23px; padding: 24px 1px 19px; margin-bottom: 24px; border-bottom: 1px solid #e4dbee; }
+.st-section-nav a { display: inline-flex; align-items: center; gap: 8px; color: #76518c; font-size: 11px; }
+.st-section-nav a:first-child { color: #7134a2; font-weight: 600; }
+.st-section-nav svg { width: 14px; height: 14px; }
+.st-grid { display: grid; grid-template-columns: minmax(0, 1fr) 310px; align-items: start; gap: 24px; }
+.st-main-column { display: grid; gap: 23px; min-width: 0; }
+.st-section-heading { display: flex; gap: 13px; align-items: flex-start; padding: 26px; border-bottom: 1px solid #ece4f3; }
+.st-section-icon { display: grid; place-items: center; width: 36px; height: 37px; border: 1px solid #e6d8ef; background: #f7f0fc; color: #9160af; border-radius: 11px; flex-shrink: 0; }
+.st-section-heading .cd-eyebrow { font-size: 7px; letter-spacing: 1.2px; }
+.st-section-heading h2 { font-size: 23px; line-height: 1.4; letter-spacing: -.7px; font-weight: 550; margin-top: 6px; scroll-margin-top: 25px; }
+.st-section-heading p { color: #7b6487; font-size: 11px; line-height: 1.85; margin-top: 6px; }
+.st-profile form { padding: 26px; }
+.st-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 19px; }
+.st-field { min-width: 0; }
+.st-field > label { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #68477c; font-size: 11px; font-weight: 550; margin-bottom: 10px; }
+.st-field > label > span { display: inline-flex; align-items: center; gap: 5px; font-size: 9px; font-weight: 400; color: #7c648b; }
+.st-field > label svg { width: 11px; height: 11px; }
+.st-input { display: flex; align-items: center; gap: 9px; padding: 0 13px; border: 1px solid #e1d5eb; border-radius: 9px; background: #fff; min-height: 44px; }
+.st-input > svg { width: 14px; height: 14px; color: #9c77b2; flex-shrink: 0; }
+.st-input input { min-width: 0; width: 100%; padding: 13px 0; border: 0; background: transparent; font-size: 12px; color: #513468; }
+.st-input input::placeholder { color: #806a8b; }
+.st-input:focus-within { border-color: #9f61c2; box-shadow: 0 0 0 3px #a977cd18; }
+.nexus-settings .st-input input:focus-visible { outline: none; }
+.st-input.is-readonly { background: #f9f6fc; color: #746180; }
+.st-input.has-error { border-color: #bb5b78; }
+.st-field .st-field-help { font-size: 9px; color: #7f688a; line-height: 1.85; margin-top: 9px; }
+.st-field .st-field-error { font-size: 10px; color: #a13856; line-height: 1.85; margin-top: 9px; }
+.st-email-field { margin-top: 25px; }
+.st-form-footer { border-top: 1px solid #eae0f1; padding-top: 22px; margin-top: 26px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 15px; }
+.st-form-footer > span { display: inline-flex; align-items: center; gap: 6px; color: #7e688a; font-size: 9px; }
+.st-form-footer > span > span { width: 4px; height: 4px; background: #a48bae; border-radius: 50%; }
+.st-form-footer > .has-changes { color: #8f612e; }
+.st-form-footer > .has-changes > span { background: #bb8c4d; }
+.st-form-footer > div { display: flex; flex-wrap: wrap; align-items: center; gap: 15px; }
+.st-form-footer .cd-button { font-size: 11px; min-height: 41px; padding: 10px 16px; }
+.st-discard { border: 0; background: none; color: #7f568e; font-size: 10px !important; padding: 10px 0; }
+.st-security-rows { padding: 3px 26px; }
+.st-security-rows > div { display: flex; align-items: flex-start; gap: 12px; padding: 22px 0; border-bottom: 1px solid #eee6f4; }
+.st-security-rows > div:last-child { border-bottom: 0; }
+.st-security-icon { display: grid; place-items: center; width: 30px; height: 31px; border: 1px solid #e7dbef; border-radius: 9px; color: #9c79b0; background: #fbf8fd; flex-shrink: 0; }
+.st-security-icon svg { width: 14px; height: 14px; }
+.st-security-rows > div > div { flex: 1; min-width: 0; }
+.st-security-rows h3 { font-size: 12px; color: #68477c; font-weight: 550; line-height: 1.7; }
+.st-security-rows p { font-size: 10px; line-height: 1.85; color: #7e678c; margin-top: 5px; }
+.st-status { font-size: 8px; color: #744886; border: 1px solid #e2d1ed; background: #f6effc; border-radius: 25px; padding: 5px 8px; line-height: 1.5; }
+.st-status.is-unavailable { background: #f7f4fa; color: #7a6388; border-color: #e7dfee; }
+.st-aside { min-width: 0; }
+.st-account-card { overflow: hidden; }
+.st-card-heading { position: relative; padding: 25px; border-bottom: 1px solid #e8d9f1; background: radial-gradient(ellipse at 100% 0%, #e5d0f4, transparent 90%), #f7effd; }
+.st-card-heading .cd-eyebrow { font-size: 7px; letter-spacing: 1.3px; }
+.st-card-heading h2 { font-size: 25px; line-height: 1.2; font-weight: 550; letter-spacing: -.8px; margin-top: 10px; }
+.st-card-heading > svg { position: absolute; top: 28px; right: 23px; width: 24px; height: 24px; color: #a57fba; }
+.st-account-card dl { display: grid; gap: 22px; padding: 25px; margin: 0; }
+.st-account-card dt { display: flex; align-items: center; gap: 7px; font-size: 9px; color: #7c6488; }
+.st-account-card dt svg { width: 12px; height: 12px; }
+.st-account-card dd { margin: 7px 0 0 19px; font-size: 11px; font-weight: 500; color: #624077; line-height: 1.9; overflow-wrap: anywhere; }
+.st-account-note { display: flex; align-items: flex-start; gap: 9px; margin: 0 25px; padding: 19px 0 24px; border-top: 1px solid #eee5f4; font-size: 9px; color: #7c6589; line-height: 1.9; }
+.st-account-note > svg { flex-shrink: 0; margin-top: 2px; width: 13px; height: 13px; }
+.st-signout { margin-top: 22px; border: 1px solid #e4d8ed; border-radius: 15px; background: linear-gradient(130deg, #f6effc, #eee6f7); padding: 24px; }
+.st-signout .st-section-icon { background: white; width: 32px; height: 33px; }
+.st-signout h2 { font-size: 22px; font-weight: 550; line-height: 1.3; letter-spacing: -.6px; margin-top: 16px; }
+.st-signout p { font-size: 11px; color: #786084; line-height: 1.9; margin-top: 10px; }
+.st-signout .cd-button { width: 100%; justify-content: center; margin-top: 20px; font-size: 11px; min-height: 41px; padding: 10px 13px; }
+.st-page-state { min-height: 520px; }
+.st-feedback { scroll-margin-top: 25px; }
+.st-feedback:focus { outline: none; }
+@media (max-width: 1190px) { .st-grid { grid-template-columns: minmax(0, 1fr) 270px; gap: 19px; } .st-fields { grid-template-columns: minmax(0, 1fr); gap: 23px; } .st-card-heading, .st-account-card dl, .st-signout { padding: 22px; } .st-card-heading > svg { display: none; } .st-security-rows > div { flex-wrap: wrap; } .st-status { margin-left: 42px; } }
+@media (max-width: 1050px) { .st-grid { grid-template-columns: minmax(0, 1fr); } .st-fields { grid-template-columns: 1fr 1fr; } .st-aside { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; } .st-signout { margin-top: 0; } .st-banner-art { width: 160px; } .st-art-orbit { width: 166px; } .st-status { margin-left: 0; } }
+@media (max-width: 650px) { .st-banner-art { display: none; } .st-profile-banner { padding: 24px; } .st-avatar-large { width: 66px; height: 69px; font-size: 22px; } .st-banner-person { gap: 16px; } .st-banner-person h2 { font-size: 24px; } .st-banner-person .cd-eyebrow { font-size: 6px; letter-spacing: 1px; } .st-fields, .st-aside { grid-template-columns: minmax(0, 1fr); } .st-section-heading, .st-profile form { padding: 23px 20px; } .st-security-rows { padding: 0 20px; } .st-section-heading h2 { font-size: 21px; } .st-section-heading .cd-eyebrow { font-size: 6px; } .st-section-nav { gap: 17px; } .st-section-nav a { font-size: 10px; } .st-security-rows > div > div { flex-basis: calc(100% - 42px); } .st-status { margin-left: 42px; } .st-form-footer { gap: 19px; } .st-form-footer > div { width: 100%; justify-content: space-between; } }
+@media (max-width: 370px) { .st-profile-banner { padding: 22px 18px; } .st-banner-person { gap: 12px; } .st-avatar-large { width: 53px; height: 56px; font-size: 19px; } .st-banner-person h2 { font-size: 21px; } .st-form-footer > div { flex-direction: column-reverse; gap: 7px; } .st-form-footer .cd-button { width: 100%; justify-content: center; } }

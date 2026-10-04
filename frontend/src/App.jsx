@@ -49,6 +49,10 @@ const RatingPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/RatingPreview'))
   : null;
 
+const SettingsPreview = import.meta.env.DEV
+  ? lazy(() => import('./dev/SettingsPreview'))
+  : null;
+
 const ApplicationRoutes = () => {
   return (
     <AuthProvider>
@@ -90,6 +94,7 @@ const App = () => (
       {import.meta.env.DEV && <Route path="/preview/payment-failure" element={<Suspense fallback={<p role="status">Loading payment preview…</p>}><PaymentResultPreview key="failed" initialStatus="failed" /></Suspense>} />}
       {import.meta.env.DEV && <Route path="/preview/order-details" element={<Suspense fallback={<p role="status">Loading order preview…</p>}><OrderDetailsPreview /></Suspense>} />}
       {import.meta.env.DEV && <Route path="/preview/rating" element={<Suspense fallback={<p role="status">Loading feedback preview…</p>}><RatingPreview /></Suspense>} />}
+      {import.meta.env.DEV && <Route path="/preview/settings" element={<Suspense fallback={<p role="status">Loading settings preview…</p>}><SettingsPreview /></Suspense>} />}
       <Route path="/*" element={<ApplicationRoutes />} />
     </Routes>
   </Router>

@@ -39,6 +39,7 @@ const CartPreview = () => {
     });
   };
   const navigatePreview = (path, options) => {
+    if (path.startsWith('/settings')) { navigate('/preview/settings?as=client', { state: { previewCart: items, previewUser: location.state?.previewUser } }); window.scrollTo({ top: 0 }); return; }
     if (path === '/checkout') { navigate('/preview/checkout', { state: { previewCart: items } }); return; }
     if (path === '/client-dashboard') { navigate('/preview/client-dashboard'); return; }
     if (path === '/new-order') { navigate('/preview/new-order', { state: { previewCart: items, previewEditItem: options?.state?.itemToEdit } }); return; }
@@ -46,7 +47,7 @@ const CartPreview = () => {
     setNotice('Preview only: account settings opens after signing in to the connected app. No payment or order was submitted.');
     window.scrollTo({ top: 0 });
   };
-  return <CartView user={{ name: 'Alex Morgan' }} items={items} loading={scenario === 'loading'} error={scenario === 'error' ? 'We couldn’t load your cart. Please try again.' : ''} removingId={removingId} actionError={actionError} notice={notice} onRetry={() => reset()} onRemove={remove} onNavigate={navigatePreview} onLogout={() => navigate('/login')} previewControls={
+  return <CartView user={location.state?.previewUser || { name: 'Alex Morgan' }} items={items} loading={scenario === 'loading'} error={scenario === 'error' ? 'We couldn’t load your cart. Please try again.' : ''} removingId={removingId} actionError={actionError} notice={notice} onRetry={() => reset()} onRemove={remove} onNavigate={navigatePreview} onLogout={() => navigate('/login')} previewControls={
     <div className="cd-preview-bar"><div><strong>Local preview · Sample data</strong><small>Review your cart without signing in or making a payment.</small></div><div className="cd-preview-controls"><label htmlFor="cart-preview-state">Preview state</label><select id="cart-preview-state" value={scenario} onChange={event => reset(event.target.value)}><option value="sample">Sample cart</option><option value="empty">Empty cart</option><option value="loading">Loading</option><option value="error">Loading error</option><option value="remove-error">Removal error</option><option value="unavailable">Unavailable item</option></select><button onClick={() => reset()}>Reset preview</button><Link to="/preview/client-dashboard">Client dashboard</Link><Link to="/login">Back to login</Link></div></div>
   } />;
 };

@@ -40,6 +40,7 @@ const OrderDetailsPreview = () => {
     });
   };
   const navigatePreview = path => {
+    if (path.startsWith('/settings')) { navigate('/preview/settings?as=client', { state: { previewOrder: order, previewOrders: updatedOrders, previewUser: location.state?.previewUser || previewUser } }); window.scrollTo({ top: 0 }); return; }
     if (path.startsWith('/rate-product/')) {
       navigate('/preview/rating?as=client', { state: { productId: decodeURIComponent(path.split('?')[0].split('/').at(-1)), previewOrder: order, previewOrders: updatedOrders } }); window.scrollTo({ top: 0 }); return;
     }
@@ -50,7 +51,7 @@ const OrderDetailsPreview = () => {
     if (path === '/' || path.includes('#')) { window.location.assign(path); return; }
     setNotice(`Preview only: ${path.startsWith('/rate-product/') ? 'Traveler ratings' : 'Account settings'} opens after signing in to the connected app. No data was submitted.`);
   };
-  return <OrderDetailsView user={previewUser} order={['loading', 'error', 'not-found'].includes(scenario) ? null : order} loading={scenario === 'loading'} error={scenario === 'not-found' ? 'not-found' : ['error', 'refresh-error'].includes(scenario) ? 'load' : ''} notice={notice} confirmingId={confirmingId} actionError={actionError} onRetry={() => reset()} onConfirm={confirm} onNavigate={navigatePreview} onLogout={() => navigate('/login')} previewControls={
+  return <OrderDetailsView user={location.state?.previewUser || previewUser} order={['loading', 'error', 'not-found'].includes(scenario) ? null : order} loading={scenario === 'loading'} error={scenario === 'not-found' ? 'not-found' : ['error', 'refresh-error'].includes(scenario) ? 'load' : ''} notice={notice} confirmingId={confirmingId} actionError={actionError} onRetry={() => reset()} onConfirm={confirm} onNavigate={navigatePreview} onLogout={() => navigate('/login')} previewControls={
     <div className="cd-preview-bar"><div><strong>Local preview · Sample order</strong><small>Follow an order and try receipt confirmation without the backend.</small></div><div className="cd-preview-controls"><label htmlFor="order-details-preview-state">Preview state</label><select id="order-details-preview-state" value={scenario} onChange={event => reset(event.target.value)}><option value="sample">Mixed delivery stages</option><option value="pending">Finding a traveler</option><option value="complete">Completed order</option><option value="cancelled">Cancelled order</option><option value="confirm-error">Confirmation error</option><option value="missing">Missing product details</option><option value="empty">No item details</option><option value="loading">Loading</option><option value="error">Loading error</option><option value="refresh-error">Refresh error</option><option value="not-found">Order not found</option></select><button onClick={() => reset()}>Reset preview</button><Link to="/preview/client-dashboard" state={{ previewOrders: updatedOrders }}>Client dashboard</Link><Link to="/login">Back to login</Link></div></div>
   } />;
 };

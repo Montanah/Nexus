@@ -1,54 +1,53 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
-import axios from 'axios';
+import { fetchUserData, updateUserProfile } from '../Services/api';
+import SettingsView from '../Components/SettingsView';
+import { profileError, profileFromResponse, profilePayload, settingsRole } from '../Components/settingsModel';
 
-const Settings = () => {
-  const { userId } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
-  const [error, setError] = useState('');
-  const [loginRole] = useState(location.state?.role || '');
-
+const SettingsSession = ({ userId, role }) => {
+  const { updateProfile, logout } = useAuth(), navigate = useNavigate();
+  const [profile, setProfile] = useState(null), [phase, setPhase] = useState('loading');
+  const [reload, setReload] = useState(0), [saving, setSaving] = useState(false), [loggingOut, setLoggingOut] = useState(false);
+  const [error, setError] = useState(''), [notice, setNotice] = useState('');
+  const lock = useRef(false), mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
-    if (!userId) {
-      navigate('/login');
-    }
-  }, [userId, navigate]);
-
-  const enable2FA = async () => {
+    let cancelled = false; setPhase('loading'); setError(''); setNotice('');
+    fetchUserData(userId).then(response => {
+      const loaded = profileFromResponse(response, userId);
+      if (!cancelled) { setProfile(loaded); setPhase('ready'); }
+    }).catch(() => { if (!cancelled) setPhase('error'); });
+    return () => { cancelled = true; };
+  }, [userId, reload]);
+  const save = async form => {
+    if (lock.current || phase !== 'ready') return;
+    const payload = profilePayload(form, profile);
+    if (!Object.keys(payload).length) return;
+    lock.current = true; setSaving(true); setError(''); setNotice('');
     try {
-      const response = await axios.post(`/auth/enable2FA/${userId}`);
-      setQrCodeUrl(response.data.qrCodeUrl);
-      // After enabling, prompt re-login
-      navigate('/login');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to enable 2FA');
-    }
+      const updated = profileFromResponse(await updateUserProfile(userId, payload), userId, payload);
+      if (mounted.current) { setProfile(updated); updateProfile(updated); setNotice('Your profile changes have been saved.'); }
+    } catch (error) { if (mounted.current) setError(profileError(error)); }
+    finally { lock.current = false; if (mounted.current) setSaving(false); }
   };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8">
-        <h2 className="text-3xl font-bold text-center mb-6 text-indigo-900">Enable 2FA</h2>
-        <p className="text-gray-600 text-sm text-center mb-4">
-          Scan the QR code with your authenticator app to enable Two-Factor Authentication.
-        </p>
-        {!qrCodeUrl ? (
-          <button
-            onClick={enable2FA}
-            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors"
-          >
-            Enable 2FA
-          </button>
-        ) : (
-          <img src={qrCodeUrl} alt="2FA QR Code" className="w-full max-w-xs mx-auto" />
-        )}
-        {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
-      </div>
-    </div>
-  );
+  const signOut = async () => {
+    if (lock.current) return;
+    lock.current = true; setLoggingOut(true); setError(''); setNotice('');
+    try { await logout(); } catch { if (mounted.current) setError('We couldn’t sign you out. Please try again.'); }
+    finally { lock.current = false; if (mounted.current) setLoggingOut(false); }
+  };
+  const navigateTo = path => { if (lock.current) return; if (path.includes('#')) window.location.assign(path); else { navigate(path); window.scrollTo({ top: 0 }); } };
+  return <SettingsView role={role} profile={profile} phase={phase} saving={saving} loggingOut={loggingOut} error={error} notice={notice} onSave={save} onRetry={() => { if (!lock.current) setReload(value => value + 1); }} onLogout={signOut} onNavigate={navigateTo} onEdit={() => { setError(''); setNotice(''); }} />;
 };
-
+SettingsSession.propTypes = { userId: PropTypes.string.isRequired, role: PropTypes.string.isRequired };
+const Settings = () => {
+  const { user, userId, loading } = useAuth(), location = useLocation(), navigate = useNavigate();
+  const role = settingsRole(location.search, location.state, user?.data?.user || user);
+  useEffect(() => { if (!loading && !userId) navigate('/login', { replace: true }); }, [loading, userId, navigate]);
+  if (loading && (!userId || !user)) return <div className="cd-auth-loading" role="status">Loading your account…</div>;
+  if (!userId) return null;
+  return <SettingsSession key={userId} userId={userId} role={role} />;
+};
 export default Settings;
