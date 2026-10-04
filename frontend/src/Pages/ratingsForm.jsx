@@ -1,84 +1,58 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
-import { rateClient, rateTraveler } from '../Services/api';
+import { fetchOrders, getTravelerOrders, rateClient, rateTraveler } from '../Services/api';
+import RatingView from '../Components/RatingView';
+import { clientRatingContext, isAlreadyRated, ratingError, ratingPayload, ratingSaved, resolveRatingRole, travelerRatingContext, validateRating } from '../Components/ratingModel';
 
-const RatingForm = ({ isTraveler }) => {
-  const { userId } = useAuth();
-  const { productId } = useParams();
+const RatingSession = ({ role, userId, productId }) => {
   const navigate = useNavigate();
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
-  const [error, setError] = useState(null);
+  const [resource, setResource] = useState({ phase: 'loading', context: null });
+  const [reload, setReload] = useState(0), [saving, setSaving] = useState(false);
+  const [error, setError] = useState(''), [saved, setSaved] = useState(null);
+  const lock = useRef(false), mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => {
+    if (!role) { setResource({ phase: 'role', context: null }); return; }
+    let cancelled = false;
+    setResource({ phase: 'loading', context: null }); setError('');
+    const request = role === 'client' ? fetchOrders().then(data => clientRatingContext(data.orders, productId))
+      : getTravelerOrders(userId).then(products => travelerRatingContext(products, productId));
+    request.then(context => {
+      if (!cancelled) setResource({ context, phase: !context ? 'missing' : context.existingRating != null ? 'already' : context.eligible ? 'ready' : 'blocked' });
+    }).catch(() => { if (!cancelled) setResource({ phase: 'error', context: null }); });
+    return () => { cancelled = true; };
+  }, [role, userId, productId, reload]);
 
-  const handleSubmit = async () => {
+  const submit = async (rating, comment) => {
+    if (lock.current || resource.phase !== 'ready' || validateRating(rating, comment)) return;
+    lock.current = true; setSaving(true); setError('');
     try {
-      if (rating < 1 || rating > 5) {
-        setError('Rating must be between 1 and 5');
-        return;
-      }
-
-      const data = {
-        productId,
-        rating,
-        comment,
-      };
-
-      if (isTraveler) {
-        console.log('Traveler rates client, data:', data);
-        await rateClient(data); // Traveler rates client
-        navigate('/traveler-dashboard');
-      } else {
-        await rateTraveler(data); // Client rates traveler
-        navigate('/client-dashboard');
-      }
-      setError(null);
+      const payload = ratingPayload(productId, rating, comment);
+      const response = await (role === 'traveler' ? rateClient(payload) : rateTraveler(payload));
+      if (!ratingSaved(response, role)) throw new Error('Rating was not acknowledged.');
+      if (mounted.current) { setSaved(payload); setResource(previous => ({ ...previous, phase: 'saved' })); }
     } catch (error) {
-      console.error('Error submitting rating:', error);
-      setError(error.response?.data?.data?.message || error.message || 'Failed to submit rating. Please try again.');
-    }
+      if (mounted.current) {
+        if (isAlreadyRated(error)) setResource(previous => ({ ...previous, phase: 'already' }));
+        else setError(ratingError(error));
+      }
+    } finally { lock.current = false; if (mounted.current) setSaving(false); }
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-200 flex items-center justify-center p-6">
-      <div className="w-96 bg-white rounded-xl shadow-md p-6">
-        <h1 className="text-2xl font-bold text-blue-600 mb-4 text-center">
-          Rate {isTraveler ? 'Client' : 'Traveler'} for Product #{productId}
-        </h1>
-        {error && <p className="text-red-600 mb-4 text-center">{error}</p>}
-        <label className="block mb-2 text-blue-600">Rating (1-5)</label>
-        <select
-            value={rating}
-            onChange={(e) => setRating(Number(e.target.value))}
-            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="0">Select rating</option>
-            {[1, 2, 3, 4, 5].map((num) => (
-              <option key={num} value={num}>
-                {num} star{num !== 1 ? 's' : ''}
-              </option>
-            ))}
-          </select>
-        <label className="block mb-2 text-blue-600">Comment (Optional)</label>
-        <textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          className="w-full mb-4 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          rows="3"
-        />
-        <button
-          onClick={handleSubmit}
-          className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Submit Rating
-        </button>
-      </div>
-    </div>
-  );
+  const navigateTo = path => { if (!lock.current) { navigate(path); window.scrollTo({ top: 0 }); } };
+  return <RatingView role={role} context={resource.context} phase={resource.phase} saving={saving} error={error} saved={saved} onSubmit={submit} onRetry={() => { if (!lock.current) setReload(value => value + 1); }} onNavigate={navigateTo} />;
 };
-RatingForm.propTypes = {
-  isTraveler: PropTypes.bool.isRequired,
-};
+RatingSession.propTypes = { role: PropTypes.string.isRequired, userId: PropTypes.string.isRequired, productId: PropTypes.string.isRequired };
 
+const RatingForm = () => {
+  const { user, userId, loading } = useAuth();
+  const { productId } = useParams(), location = useLocation(), navigate = useNavigate();
+  const profile = user?.data?.user || user;
+  const role = resolveRatingRole(location.search, location.state, profile);
+  useEffect(() => { if (!loading && !userId) navigate('/login', { replace: true }); }, [loading, userId, navigate]);
+  if (loading) return <div className="cd-auth-loading" role="status">Loading your account…</div>;
+  if (!userId) return null;
+  return <RatingSession key={JSON.stringify([userId, role, productId])} role={role} userId={userId} productId={productId} />;
+};
 export default RatingForm;

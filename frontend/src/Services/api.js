@@ -639,7 +639,7 @@ export const uploadDeliveryProofF = async (productId, formData) => {
 export const rateClient = async (ratingData) => {
   try {
     const response = await api.post('/api/ratings/traveler-to-client', ratingData);
-    return response.data.data;
+    return response.data;
   } catch (error) {
     console.error('Submit traveler to client rating error:', error.response?.data || error.message);
     throw error;
@@ -650,7 +650,7 @@ export const rateClient = async (ratingData) => {
 export const rateTraveler = async (ratingData) => {
   try {
     const response = await api.post('/api/ratings/client-to-traveler', ratingData);
-    return response.data.data;
+    return response.data;
   } catch (error) {
     console.error('Submit client to traveler rating error:', error.response?.data || error.message);
     throw error;

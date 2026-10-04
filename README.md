@@ -185,6 +185,32 @@ also populates `travelerId`, which is absent from the Order schema; that backend
 query and actual receipt/rating behavior need verification when backend work
 resumes. The frontend exposes recoverable loading errors in the meantime.
 
+Preview feedback at `http://localhost:5173/preview/rating` (a client rating a
+traveler) or `http://localhost:5173/preview/rating?as=traveler` (a traveler rating
+a client). Eligible rating links in the order details and both dashboard previews
+open the selected item. Stars and an optional comment can be submitted locally;
+returning to the order or dashboard retains the sample rating. The preview has
+save-error, already-rated, unavailable-stage, missing-details, loading, and error
+states. It makes no API requests and is excluded from production builds.
+
+The real `/rate-product/:productId` page requires sign-in and reloads the item
+from the account's orders or claimed deliveries. Links include `?as=client` or
+`?as=traveler` so the intended rating direction survives opening a direct URL;
+older navigation state and the account role are fallbacks. An unknown role shows
+dashboard links instead of guessing an endpoint. The form starts without a
+rating, supports keyboard star selection, limits comments to 500 characters,
+retains input after failed saves, and prevents simultaneous submissions. A saved
+state requires the API's success flag and a valid rating result. Existing ratings
+and duplicate-rating responses prevent another submission.
+
+Backend rating limitations remain deferred: clients can currently rate only at
+Client Confirmed or Delivered, while travelers can rate only at Complete. Claimed
+products do not include the order item's client rating, so an existing traveler
+review may be detected only when the API rejects a duplicate submission. Both
+rating endpoints save the order item before updating the recipient's aggregate
+rating, without a transaction; failures can leave a partially saved rating.
+Actual persistence and aggregate updates still need live backend verification.
+
 Run security audits separately:
 
 ```sh
@@ -205,6 +231,7 @@ node --test frontend/test/cart.test.mjs
 node --test frontend/test/checkout.test.mjs
 node --test frontend/test/payment-result.test.mjs
 node --test frontend/test/order-details.test.mjs
+node --test frontend/test/rating.test.mjs
 npm --prefix frontend run build
 npm --prefix dashboard run build
 ```

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import ClientDashboardView from '../Components/ClientDashboardView';
-import { applyDeliveryConfirmation } from '../Components/clientDashboardModel';
+import { applyDeliveryConfirmation, getItems, getProductId } from '../Components/clientDashboardModel';
 import { previewOrders, previewUser } from './clientDashboardFixtures';
 
 const ClientDashboardPreview = () => {
@@ -22,6 +22,10 @@ const ClientDashboardPreview = () => {
     setConfirmingId('');
   };
   const navigatePreview = path => {
+    if (path.startsWith('/rate-product/')) {
+      const productId = decodeURIComponent(path.split('?')[0].split('/').at(-1));
+      navigate('/preview/rating?as=client', { state: { productId, previewOrder: orders.find(order => getItems(order).some(item => getProductId(item) === productId)), previewOrders: orders } }); window.scrollTo({ top: 0 }); return;
+    }
     if (path.startsWith('/orders/')) {
       const orderNumber = decodeURIComponent(path.slice('/orders/'.length));
       navigate('/preview/order-details', { state: { previewOrder: orders.find(order => order.orderNumber === orderNumber), previewOrders: orders } }); return;
