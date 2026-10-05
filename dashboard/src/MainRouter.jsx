@@ -32,8 +32,7 @@ const MainRouter = ({
     products = resources.products.data || [],
     orders = resources.orders.data || [],
     travelers = resources.travelers.data || [];
-  const setUsers = (update) => setRecords('users', update),
-    setProducts = (update) => setRecords('products', update),
+  const setProducts = (update) => setRecords('products', update),
     setOrders = (update) => setRecords('orders', update),
     setTravelers = (update) => setRecords('travelers', update);
   const page = (section, content, required = [], optional = []) => {
@@ -88,11 +87,10 @@ const MainRouter = ({
         element={page(
           'users',
           <UsersComponent
-            users={users}
-            setUsers={setUsers}
-            isDarkTheme={isDarkTheme}
+            resource={resources.users}
+            onRetry={() => onRetry('users')}
+            onNavigate={onNavigate}
           />,
-          ['users'],
         )}
       />
       <Route
@@ -180,18 +178,7 @@ const MainRouter = ({
         path="/edit-profile"
         element={<EditProfileComponent isDarkTheme={isDarkTheme} />}
       />
-      <Route
-        path="/users/:userId"
-        element={page(
-          'users',
-          <UserDetails
-            users={users}
-            setUsers={setUsers}
-            isDarkTheme={isDarkTheme}
-          />,
-          ['users'],
-        )}
-      />
+      <Route path="/users/:userId" element={page('users', <UserDetails />)} />
       <Route
         path="/travelers/:travelerId"
         element={page(

@@ -25,6 +25,34 @@ failure, complete failure, failed refresh with older data, orders-only access,
 and revoked access. Retry and refresh simulate recovery; **Reset preview** restores
 the initial samples. The route and fixtures are excluded from production builds.
 
+## User directory and profiles
+
+Open `http://localhost:5174/preview/users` to review the Users pages without a
+backend. The Overview preview's Users links also open this preview. Sample
+accounts support search by name, email, phone, and ID; role and verification
+filters; sorting; ten accounts per page; and profile navigation. Preview controls
+include empty/loading/failure states, stale data, restricted access, missing users,
+and incomplete history. Retry actions simulate recovery. The route and fixtures
+are excluded from production.
+
+The real `/users` directory uses the shared users resource. Search, filters, sort,
+and page are stored in the URL. View profile carries a validated return path so
+Back to users restores the directory choices. Summary counts describe all loaded
+accounts, independently of the current filters. Missing verification and unknown
+roles remain unknown; missing dates never fall back to today's date.
+
+Profiles load independently through `/api/admin/user/:id`. Requests are cancelled
+when switching profiles. A 404 shows User not found; a failed request offers retry;
+a failed refresh retains and labels the last snapshot. Access revocation clears
+cached profile data. Missing or malformed order/payment histories are shown as
+unavailable rather than empty. The endpoint must identify the requested user.
+Payment logs show their supplied reference, method, amount, and status, without
+inventing a currency or aggregating an unsupported total spent.
+
+User pages are read-only. The former directory Delete button only changed local
+state, and profile Edit/Block buttons had no handlers; those controls have been
+removed. This pass adds no account mutation endpoints or backend behavior.
+
 ## Overview data
 
 - Counts use the complete, unpaginated lists currently returned by the users,
@@ -48,8 +76,8 @@ the initial samples. The route and fixtures are excluded from production builds.
   an appropriate reporting source exists. Shared legacy stat cards no longer
   display hardcoded growth badges.
 
-The overview and shared shell use local CSS, support light/dark themes, and include
-keyboard-accessible mobile navigation. Existing management-page bodies still use
+The overview, Users pages, and shared shell use local CSS, support light/dark themes, and include
+keyboard-accessible mobile navigation. Other existing management-page bodies still use
 the Tailwind CDN and retain their prior behavior. Their detailed financial
 calculations and page-specific loaders are outside this overview refresh.
 The redundant CDN React, React DOM, and Axios scripts have been removed; the
@@ -58,7 +86,7 @@ application uses its installed versions.
 ## Validation
 
 ```sh
-node --test dashboard/test/overview.test.mjs
+node --test dashboard/test/*.test.mjs
 npm --prefix dashboard run build
 ```
 

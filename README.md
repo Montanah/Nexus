@@ -71,7 +71,9 @@ npm --prefix dashboard run dev -- --port 5174 --strictPort
 ```
 
 Open `http://localhost:5174/preview/overview` to review the refreshed admin
-overview and shared navigation without the backend. The labeled sample data,
+overview and shared navigation without the backend. The user directory and
+profiles are available at `http://localhost:5174/preview/users`, with search,
+filters, pagination, and simulated profile loading. The labeled sample data,
 loading/error scenarios, and simulated retries are development-only. See
 [the admin README](dashboard/README.md) for real-data behavior and validation.
 
@@ -374,7 +376,7 @@ node --test frontend/test/settings.test.mjs
 node --test frontend/test/password-recovery.test.mjs
 node --test frontend/test/delivery-details.test.mjs
 npm --prefix frontend run build
-node --test dashboard/test/overview.test.mjs
+node --test dashboard/test/*.test.mjs
 npm --prefix dashboard run build
 ```
 

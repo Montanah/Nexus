@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { readCollection } from './components/overviewModel';
+import { readUserDetails } from './components/usersModel';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -302,15 +303,9 @@ export const releaseFunds = async (paymentId, travelerId) => {
   }
 };
 
-export const getUserDetails = async (userId) => {
-  try {
-    const response = await api.get(`/api/admin/user/${userId}`);
-    //console.log(response.data?.data);
-    return response.data?.data || {};
-  } catch (error) {
-    console.error('Error fetching user details:', error);
-    throw error;
-  }
+export const getUserDetails = async (userId, options = {}) => {
+  const response = await api.get(`/api/admin/user/${encodeURIComponent(userId)}`, options);
+  return readUserDetails(response.data, userId);
 };
 
 export const getTravelerDetails = async (travelerId) => {

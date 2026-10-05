@@ -17,6 +17,10 @@ const AdminOverviewPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/AdminOverviewPreview'))
   : null;
 
+const AdminUsersPreview = import.meta.env.DEV
+  ? lazy(() => import('./dev/AdminUsersPreview'))
+  : null;
+
 const AppContent = () => {
   const { admin, logout } = useAuth();
   const location = useLocation();
@@ -57,6 +61,16 @@ export default function App() {
             element={
               <Suspense fallback={<p>Loading overview preview…</p>}>
                 <AdminOverviewPreview />
+              </Suspense>
+            }
+          />
+        )}
+        {import.meta.env.DEV && (
+          <Route
+            path="/preview/users"
+            element={
+              <Suspense fallback={<p>Loading users preview…</p>}>
+                <AdminUsersPreview />
               </Suspense>
             }
           />
