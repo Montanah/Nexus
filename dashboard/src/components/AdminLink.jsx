@@ -1,6 +1,8 @@
 const AdminLink = ({ to, onNavigate, preview = false, children, ...props }) => (
   <a
-    href={preview ? '/preview/overview' : to}
+    href={
+      typeof preview === 'string' ? preview : preview ? '/preview/overview' : to
+    }
     {...props}
     onClick={(event) => {
       if (

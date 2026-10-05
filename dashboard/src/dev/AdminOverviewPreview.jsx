@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminShell from '../components/AdminShell';
 import DashboardLanding from '../components/DashboardLanding';
 import AnalyticsComponent from '../components/AnalyticsComponent';
@@ -11,6 +12,7 @@ import {
 } from './overviewFixtures';
 
 export default function AdminOverviewPreview() {
+  const go = useNavigate();
   const [scenario, setScenario] = useState('sample');
   const [resources, setResources] = useState(() =>
     resourcesForScenario('sample'),
@@ -62,7 +64,8 @@ export default function AdminOverviewPreview() {
     if (destination === '/' || destination === '/analytics') {
       setPath(destination);
       setNotice('');
-    } else
+    } else if (destination === '/users') go('/preview/users');
+    else
       setNotice(
         'This preview covers the overview and navigation. Management pages open from the signed-in admin workspace.',
       );
