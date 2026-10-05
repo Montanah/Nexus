@@ -65,6 +65,7 @@ export default function AdminOverviewPreview() {
       setPath(destination);
       setNotice('');
     } else if (destination === '/users') go('/preview/users');
+    else if (destination === '/orders') go('/preview/orders');
     else
       setNotice(
         'This preview covers the overview and navigation. Management pages open from the signed-in admin workspace.',

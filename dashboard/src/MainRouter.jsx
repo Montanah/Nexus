@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import UsersComponent from './components/UsersComponent';
 import ProductsComponent from './components/ProductsComponent';
 import OrdersComponent from './components/OrdersComponent';
+import OrderDetails from './components/OrderDetails';
 import AnalyticsComponent from './components/AnalyticsComponent';
 import TravelersComponent from './components/TravelersComponent';
 import PaymentComponent from './components/PaymentComponent';
@@ -110,15 +111,21 @@ const MainRouter = ({
         element={page(
           'orders',
           <OrdersComponent
-            orders={orders}
-            setOrders={setOrders}
-            users={users}
-            travelers={travelers}
-            products={products}
-            isDarkTheme={isDarkTheme}
+            resources={resources}
+            onRetry={onRetry}
+            onNavigate={onNavigate}
           />,
-          ['orders'],
-          ['users', 'travelers', 'products'],
+        )}
+      />
+      <Route
+        path="/orders/:orderId"
+        element={page(
+          'orders',
+          <OrderDetails
+            resources={resources}
+            admin={admin}
+            onRetry={onRetry}
+          />,
         )}
       />
       <Route

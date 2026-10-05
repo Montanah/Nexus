@@ -53,6 +53,42 @@ User pages are read-only. The former directory Delete button only changed local
 state, and profile Edit/Block buttons had no handlers; those controls have been
 removed. This pass adds no account mutation endpoints or backend behavior.
 
+## Order directory and details
+
+Open `http://localhost:5174/preview/orders` for the development-only Orders
+preview. Overview and Users previews link to it through shared navigation.
+Sample orders support search, client/traveler filters, delivery/payment/assignment
+filters, sorting, pagination, and item-level detail review. Preview controls cover
+empty, loading, failure, stale refresh, failed related details, orders-only access,
+revoked access, missing orders, and incomplete data. No API requests, deletions, or
+payment operations are performed. Preview code and fixtures are excluded from
+production builds.
+
+The real `/orders` page displays one row per order and counts whole orders using
+the same delivery-stage rules as Overview. Delivery and payment statuses are
+separate. Name searches use Users for clients and Traveler → Users for travelers;
+order, user, product, and traveler IDs remain searchable when related details are
+unavailable. All filters, sorting, and pagination are URL-backed and survive the
+Back to orders link from details. Failed/restricted related collections are
+explicitly labeled; empty search results explain when names are unavailable.
+
+`/orders/:orderId` now loads the existing individual-order endpoint independently
+of the orders collection. It validates the returned ID, cancels superseded
+requests, distinguishes 404/403 from request errors, and retains the last snapshot
+after refresh failures. Quantities come from order items, while destination and
+delivery-date details are labeled as current product listings. Missing item arrays,
+unknown statuses, missing amounts, and absent dates stay unavailable. Proof links
+accept HTTPS URLs without embedded credentials and open separately. Client,
+traveler, and Payments links respect read permissions.
+
+The recorded order total is shown once without assuming a currency, revenue, or
+traveler payout. The old Process Payment action divided totals equally across items,
+selected the first completed item, and only tracked completion in local state.
+The Delete route uses `:id`, while its handler reads `orderId` and deletes using
+a field not present in the order schema. Those actions are removed from the Orders
+UI pending backend fixes. Existing payment-management routes are unchanged; this
+pass adds no backend writes or mutation endpoints.
+
 ## Overview data
 
 - Counts use the complete, unpaginated lists currently returned by the users,
@@ -76,7 +112,7 @@ removed. This pass adds no account mutation endpoints or backend behavior.
   an appropriate reporting source exists. Shared legacy stat cards no longer
   display hardcoded growth badges.
 
-The overview, Users pages, and shared shell use local CSS, support light/dark themes, and include
+The overview, Users and Orders pages, and shared shell use local CSS, support light/dark themes, and include
 keyboard-accessible mobile navigation. Other existing management-page bodies still use
 the Tailwind CDN and retain their prior behavior. Their detailed financial
 calculations and page-specific loaders are outside this overview refresh.
