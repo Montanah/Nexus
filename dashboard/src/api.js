@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { readCollection } from './components/overviewModel';
 import { readUserDetails } from './components/usersModel';
+import { readOrderDetails } from './components/ordersModel';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -170,14 +171,9 @@ export const fetchProductById = async (productId) => {
   }
 };
 
-export const fetchOrderById = async (orderId) => {
-  try {
-    const response = await api.get(`/api/admin/orders/${orderId}`);
-    return response.data?.data?.order || {};
-  } catch (error) {
-    console.error('Error fetching order:', error);
-    throw error;
-  }
+export const fetchOrderById = async (orderId, options = {}) => {
+  const response = await api.get(`/api/admin/orders/${encodeURIComponent(orderId)}`, options);
+  return readOrderDetails(response.data, orderId);
 };
 
 // Export transactions

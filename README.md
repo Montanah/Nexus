@@ -73,7 +73,9 @@ npm --prefix dashboard run dev -- --port 5174 --strictPort
 Open `http://localhost:5174/preview/overview` to review the refreshed admin
 overview and shared navigation without the backend. The user directory and
 profiles are available at `http://localhost:5174/preview/users`, with search,
-filters, pagination, and simulated profile loading. The labeled sample data,
+filters, pagination, and simulated profile loading. Preview the admin order
+directory and delivery-item details at `http://localhost:5174/preview/orders`.
+The labeled sample data,
 loading/error scenarios, and simulated retries are development-only. See
 [the admin README](dashboard/README.md) for real-data behavior and validation.
 

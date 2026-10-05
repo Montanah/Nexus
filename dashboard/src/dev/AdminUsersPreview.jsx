@@ -74,6 +74,7 @@ export default function AdminUsersPreview() {
   };
   const visit = (destination) => {
     if (destination === '/') navigate('/preview/overview');
+    else if (destination === '/orders') navigate('/preview/orders');
     else if (/^\/users(?:\?|$)/.test(destination)) {
       cancel();
       setUserId(null);
